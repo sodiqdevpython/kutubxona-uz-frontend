@@ -588,7 +588,23 @@ export default function HomePage() {
             <span className="eyebrow" style={{ color: 'var(--navy-30)' }}>Telegram orqali</span>
             <h4 className="h-display" style={{ fontSize: 20, lineHeight: 1.2, marginTop: 10, marginBottom: 8, color: 'white' }}>Maqolangizni botga yuboring.</h4>
             <p style={{ fontSize: 12, lineHeight: 1.55, color: 'rgba(255,255,255,0.7)', marginBottom: 16 }}>PDF yoki DOCX yuboring — qolganini AI o'zi ajratadi.</p>
-            <button style={{ background: 'white', color: 'var(--navy)', border: 0, padding: '9px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--sans)' }}>
+            <button
+              onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
+              style={{
+                background: 'white',
+                color: 'var(--navy)',
+                border: 0,
+                padding: '9px 14px',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                fontFamily: 'var(--sans)'
+              }}
+            >
               <TelegramIcon size={13} /> @KutubxonaBot
             </button>
           </div>

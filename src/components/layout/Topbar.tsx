@@ -286,7 +286,11 @@ export default function Topbar({ active }: { active: Page }) {
               </button>
             ))}
           </div>
-          <button className="btn primary" style={{ height: 38 }}>
+          <button
+            className="btn primary"
+            style={{ height: 38 }}
+            onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
+          >
             <UploadIcon size={14} />
             <span className="topbar-upload-lbl">Maqola yuborish</span>
           </button>
@@ -353,7 +357,11 @@ export default function Topbar({ active }: { active: Page }) {
           </nav>
 
           <div className="mobile-nav-foot">
-            <button className="btn primary" style={{ width: '100%', height: 42, justifyContent: 'center' }}>
+            <button
+              className="btn primary"
+              style={{ width: '100%', height: 42, justifyContent: 'center' }}
+              onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
+            >
               <UploadIcon size={14} /> Maqola yuborish
             </button>
             <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
