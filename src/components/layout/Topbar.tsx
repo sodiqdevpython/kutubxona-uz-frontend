@@ -19,7 +19,7 @@ const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
   { key: 'submissions',    label: 'Kelgan maqolalar', to: '/admin/submissions' },
   { key: 'admin-authors',  label: 'Mualliflar',       to: '/admin/authors'     },
   { key: 'admin-journals', label: 'Jurnal sonlari',   to: '/admin/journals'    },
-  { key: 'admin-chat',     label: '💬 Xabarlar',       to: '/admin/chat'        },
+  { key: 'admin-chat',     label: 'Xabarlar',       to: '/admin/chat'        },
 ];
 
 const LANGS = [

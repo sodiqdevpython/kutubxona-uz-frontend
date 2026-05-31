@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../../components/layout/Topbar';
 import PageLoadBar from '../../components/ui/PageLoadBar';
@@ -62,8 +62,6 @@ interface FormState {
   degree: string;
   bio:    string;
 }
-
-const EMPTY_FORM: FormState = { name: '', role: '', org: '', degree: '', bio: '' };
 
 function AuthorFormModal({
   title, initial, submitLabel, onSave, onClose,
@@ -214,43 +212,83 @@ function AuthorAdminCard({
 
 // ── Main sahifa ───────────────────────────────────────────────────────────────
 
+const PAGE_LIMIT = 20;
+
 export default function AdminAuthorsPage() {
   const navigate = useNavigate();
-  const [authors,  setAuthors]  = useState<AdminAuthor[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState('');
-  const [creating, setCreating] = useState(false);
-  const [editing,  setEditing]  = useState<AdminAuthor | null>(null);
-  const [deleting, setDeleting] = useState<AdminAuthor | null>(null);
-  const [toast,    setToast]    = useState('');
+  const [authors,  setAuthors]   = useState<AdminAuthor[]>([]);
+  const [loading,  setLoading]   = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore,  setHasMore]   = useState(false);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [total,    setTotal]     = useState(0);
+  const [search,   setSearch]    = useState('');
+  const [debQ,     setDebQ]      = useState('');
+  const [editing,  setEditing]   = useState<AdminAuthor | null>(null);
+  const [deleting, setDeleting]  = useState<AdminAuthor | null>(null);
+  const [toast,    setToast]     = useState('');
 
   function flash(t: string) { setToast(t); setTimeout(() => setToast(''), 3000); }
 
+  // Debounce search
   useEffect(() => {
-    adminApi.authors.list().then(d => { setAuthors(d); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
+    const t = setTimeout(() => setDebQ(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const filtered = authors.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.org.toLowerCase().includes(search.toLowerCase()) ||
-    a.telegram_username.toLowerCase().includes(search.toLowerCase())
-  );
+  // ── Birinchi sahifa (qidiruv yoki tozalash bo'lganda qayta yuklanadi) ──
+  useEffect(() => {
+    setLoading(true);
+    adminApi.authors.list({ offset: 0, limit: PAGE_LIMIT, search: debQ || undefined })
+      .then(d => {
+        setAuthors(d.results);
+        setHasMore(d.has_more);
+        setNextOffset(d.next_offset);
+        setTotal(d.total);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [debQ]);
+
+  // ── Keyingi sahifa ──
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const d = await adminApi.authors.list({ offset: nextOffset, limit: PAGE_LIMIT, search: debQ || undefined });
+      setAuthors(prev => {
+        const seen = new Set(prev.map(a => a.id));
+        const fresh = d.results.filter(a => !seen.has(a.id));
+        return [...prev, ...fresh];
+      });
+      setHasMore(d.has_more);
+      setNextOffset(d.next_offset);
+    } catch { /* ignore */ }
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, nextOffset, debQ]);
+
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: '200px', threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore]);
 
   async function handleDelete(mode: 'soft' | 'full') {
     if (!deleting) return;
     try {
       await adminApi.authors.remove(deleting.id, mode);
       setAuthors(p => p.filter(a => a.id !== deleting.id));
+      setTotal(t => Math.max(0, t - 1));
       setDeleting(null);
       flash("✓ Muallif o'chirildi.");
     } catch (e) { flash(`Xatolik: ${(e as Error).message}`); }
-  }
-
-  async function handleCreate(data: FormState) {
-    const created = await adminApi.authors.create(data);
-    setAuthors(p => [...p, created].sort((a, b) => a.name.localeCompare(b.name)));
-    setCreating(false);
-    flash('✓ Yangi muallif qo\'shildi.');
   }
 
   async function handleEdit(data: FormState) {
@@ -277,22 +315,17 @@ export default function AdminAuthorsPage() {
           <div>
             <h1 className="h-display h1-rsp" style={{ fontSize: 52, marginBottom: 14 }}>Mualliflar</h1>
             <p style={{ fontSize: 14, color: 'var(--ink-3)', maxWidth: 600, lineHeight: 1.6 }}>
-              Barcha mualliflar — chop etilmagan maqolalar egalari ham. Kartani bosing — muallif profilini ko'ring.
+              Telegram bot orqali maqola yuborgan mualliflar. Bot orqali ularga xabar yuborish mumkin.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div className="searchbar" style={{ height: 44, minWidth: 240 }}>
-              <SearchIcon size={16} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Ism, tashkilot…"
-                style={{ fontSize: 13.5 }}
-              />
-              {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 16, lineHeight: 1 }}>×</button>}
-            </div>
-            <button onClick={() => setCreating(true)} className="btn primary" style={{ height: 44, fontSize: 13.5 }}>
-              + Yangi muallif
-            </button>
+          <div className="searchbar" style={{ height: 44, minWidth: 280 }}>
+            <SearchIcon size={16} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Ism, @username, tashkilot…"
+              style={{ fontSize: 13.5 }}
+            />
+            {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 16, lineHeight: 1 }}>×</button>}
           </div>
         </div>
 
@@ -307,7 +340,7 @@ export default function AdminAuthorsPage() {
       <div style={{ padding: '0 var(--px) 0', maxWidth: 1400, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <span className="eyebrow" style={{ fontSize: 10.5 }}>
-            Admin ko'rinish · {filtered.length} ta muallif bor
+            {total} ta muallif · {authors.length} ko'rsatilmoqda
           </span>
         </div>
       </div>
@@ -316,36 +349,43 @@ export default function AdminAuthorsPage() {
       {loading ? (
         <div style={{ padding: '64px var(--px)', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
       ) : (
-        <div className="rsp-4" style={{ padding: '0 var(--px) 64px', maxWidth: 1400, margin: '0 auto' }}>
-          {filtered.length === 0 ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 14 }}>
-              Mualliflar topilmadi.
+        <>
+          <div className="rsp-4" style={{ padding: '0 var(--px) 24px', maxWidth: 1400, margin: '0 auto' }}>
+            {authors.length === 0 ? (
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 14 }}>
+                {debQ
+                  ? "Qidiruv bo'yicha hech narsa topilmadi."
+                  : "Hozircha Telegram bot orqali maqola yuborgan mualliflar yo'q."}
+              </div>
+            ) : (
+              authors.map(a => (
+                <AuthorAdminCard
+                  key={a.id} a={a}
+                  onClick={() => navigate(`/authors/${a.slug}`)}
+                  onEdit={() => setEditing(a)}
+                  onDelete={() => setDeleting(a)}
+                  onChat={() => navigate(`/admin/chat?author=${a.slug}`)}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Infinite scroll sentinel */}
+          {hasMore && (
+            <div ref={sentinelRef} style={{ padding: '20px var(--px) 64px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 12.5 }}>
+              {loadingMore ? 'Yana yuklanmoqda…' : 'Pastga aylanting'}
             </div>
-          ) : (
-            filtered.map(a => (
-              <AuthorAdminCard
-                key={a.id} a={a}
-                onClick={() => navigate(`/authors/${a.slug}`)}
-                onEdit={() => setEditing(a)}
-                onDelete={() => setDeleting(a)}
-                onChat={() => navigate(`/admin/chat?author=${a.slug}`)}
-              />
-            ))
           )}
-        </div>
+          {!hasMore && authors.length > 0 && (
+            <div style={{ padding: '20px var(--px) 64px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 12 }}>
+              · Hammasi ko'rsatildi ·
+            </div>
+          )}
+        </>
       )}
 
       <Footer />
 
-      {creating && (
-        <AuthorFormModal
-          title="Yangi muallif qo'shish"
-          initial={EMPTY_FORM}
-          submitLabel="Qo'shish"
-          onSave={handleCreate}
-          onClose={() => setCreating(false)}
-        />
-      )}
       {editing && (
         <AuthorFormModal
           title="Muallif tahrirlash"

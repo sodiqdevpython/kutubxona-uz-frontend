@@ -7,7 +7,7 @@ import AuthorAvatar from '../components/ui/AuthorAvatar';
 import ArtVariant from '../components/ui/ArtVariant';
 import LoadMoreButton from '../components/ui/LoadMoreButton';
 import {
-  StarIcon, ChevIcon, GridIcon, ClockIcon, ArrowIcon,
+  ChevIcon, GridIcon, ClockIcon, ArrowIcon,
   FireIcon, EyeIcon, TelegramIcon,
 } from '../components/ui/Icons';
 import { useFetch } from '../lib/hooks';

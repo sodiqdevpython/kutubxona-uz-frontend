@@ -3,7 +3,7 @@ import Topbar from '../components/layout/Topbar';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
 import LoadMoreButton from '../components/ui/LoadMoreButton';
-import { CheckIcon, LockIcon, EyeIcon, ClockIcon, ArrowIcon } from '../components/ui/Icons';
+import { CheckIcon, LockIcon, EyeIcon, ArrowIcon } from '../components/ui/Icons';
 import { useFetch } from '../lib/hooks';
 import type { ApiAuthor, ApiArticle, PaginatedResponse } from '../lib/api';
 import Seo from '../components/Seo';

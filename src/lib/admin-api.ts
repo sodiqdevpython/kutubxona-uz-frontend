@@ -87,6 +87,13 @@ export interface AdminArticleInIssue {
   authors_label: string; category_name: string | null; published_at: string | null;
 }
 
+export interface PaginatedAuthors {
+  results:     AdminAuthor[];
+  total:       number;
+  has_more:    boolean;
+  next_offset: number;
+}
+
 export interface AdminJournal { id: string; title: string; issn: string; }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
@@ -129,7 +136,14 @@ export interface PaginatedChats {
 
 export const adminApi = {
   authors: {
-    list:   ()                    => apiFetch<AdminAuthor[]>('/api/admin/authors/'),
+    list: (params: { offset?: number; limit?: number; search?: string } = {}) => {
+      const p = new URLSearchParams();
+      if (params.offset !== undefined) p.set('offset', String(params.offset));
+      if (params.limit  !== undefined) p.set('limit',  String(params.limit));
+      if (params.search)               p.set('search', params.search);
+      const q = p.toString();
+      return apiFetch<PaginatedAuthors>(`/api/admin/authors/${q ? `?${q}` : ''}`);
+    },
     create: (d: Partial<AdminAuthor>) =>
       apiFetch<AdminAuthor>('/api/admin/authors/', { method: 'POST', body: JSON.stringify(d) }),
     update: (id: string, d: Partial<AdminAuthor>) =>
