@@ -89,6 +89,42 @@ export interface AdminArticleInIssue {
 
 export interface AdminJournal { id: string; title: string; issn: string; }
 
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+export interface AdminChat {
+  id: string;
+  author_id: string;
+  author_name: string;
+  author_initials: string;
+  author_avatar_idx: number;
+  author_slug: string;
+  telegram_username: string;
+  is_blocked: boolean;
+  unread_count: number;
+  last_message_at: string | null;
+  last_message: { text: string; kind: string; sender: 'admin' | 'user'; created_at: string } | null;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'admin' | 'user';
+  kind: 'text' | 'photo' | 'document';
+  text: string;
+  image_url: string | null;
+  document_url: string | null;
+  document_name: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface PaginatedChats {
+  results:     AdminChat[];
+  total:       number;
+  has_more:    boolean;
+  next_offset: number;
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const adminApi = {
@@ -138,6 +174,31 @@ export const adminApi = {
     list:   () => apiFetch<AdminCategory[]>('/api/admin/categories/'),
     create: (name: string) =>
       apiFetch<AdminCategory>('/api/admin/categories/', { method: 'POST', body: JSON.stringify({ name }) }),
+  },
+
+  chat: {
+    list: (params: { offset?: number; limit?: number } = {}) => {
+      const p = new URLSearchParams();
+      if (params.offset !== undefined) p.set('offset', String(params.offset));
+      if (params.limit  !== undefined) p.set('limit',  String(params.limit));
+      const q = p.toString();
+      return apiFetch<PaginatedChats>(`/api/admin/chat/${q ? `?${q}` : ''}`);
+    },
+    byAuthor:   (authorSlug: string)     => apiFetch<AdminChat>(`/api/admin/chat/by-author/${authorSlug}/`),
+    messages:   (chatId: string)         => apiFetch<ChatMessage[]>(`/api/admin/chat/${chatId}/messages/`),
+    send: (chatId: string, payload: { text?: string; image?: File | null; document?: File | null }) => {
+      const fd = new FormData();
+      if (payload.text)     fd.append('text', payload.text);
+      if (payload.image)    fd.append('image', payload.image);
+      if (payload.document) fd.append('document', payload.document);
+      return apiFetchForm<ChatMessage>(`/api/admin/chat/${chatId}/send/`, { method: 'POST', body: fd });
+    },
+    toggleBlock: (chatId: string) =>
+      apiFetch<{ is_blocked: boolean }>(`/api/admin/chat/${chatId}/block/`, { method: 'POST' }),
+    markRead:    (chatId: string) =>
+      apiFetch<{ ok: boolean }>(`/api/admin/chat/${chatId}/read/`, { method: 'POST' }),
+    remove:      (chatId: string) =>
+      apiFetch<void>(`/api/admin/chat/${chatId}/`, { method: 'DELETE' }),
   },
 
   journals: {

@@ -633,9 +633,9 @@ export default function AdminSubmissionsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, fontSize: 12.5, color: 'var(--ink-3)' }}>
           <a onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Bosh sahifa</a>
           <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Topshirishlar</span>
+          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Kelgan maqolalar</span>
         </div>
-        <h1 className="h-display h1-rsp" style={{ fontSize: 44, marginBottom: 8 }}>Topshirishlar</h1>
+        <h1 className="h-display h1-rsp" style={{ fontSize: 44, marginBottom: 8 }}>Kelgan maqolalar</h1>
         <p style={{ fontSize: 14, color: 'var(--ink-3)' }}>
           Botdan kelgan maqolalar. Ko'rib chiqing, tasdiqlang va jurnal soniga qo'shing.
         </p>

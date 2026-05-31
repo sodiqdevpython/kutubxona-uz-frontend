@@ -6,7 +6,7 @@ import { articlesApi, type ApiArticle } from '../../lib/api';
 
 export type Page =
   | 'home' | 'articles' | 'archive' | 'authors'
-  | 'submissions' | 'admin-authors' | 'admin-journals';
+  | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
 
 const PUBLIC_NAV: { key: Page; label: string; to: string }[] = [
   { key: 'home',     label: 'Bosh sahifa',   to: '/' },
@@ -16,9 +16,10 @@ const PUBLIC_NAV: { key: Page; label: string; to: string }[] = [
 ];
 
 const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
-  { key: 'submissions',    label: 'Topshirishlar',         to: '/admin/submissions' },
-  { key: 'admin-authors',  label: 'Mualliflar boshqaruvi', to: '/admin/authors'     },
-  { key: 'admin-journals', label: 'Jurnal sonlari',        to: '/admin/journals'    },
+  { key: 'submissions',    label: 'Kelgan maqolalar', to: '/admin/submissions' },
+  { key: 'admin-authors',  label: 'Mualliflar',       to: '/admin/authors'     },
+  { key: 'admin-journals', label: 'Jurnal sonlari',   to: '/admin/journals'    },
+  { key: 'admin-chat',     label: '💬 Xabarlar',       to: '/admin/chat'        },
 ];
 
 const LANGS = [

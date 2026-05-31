@@ -427,7 +427,7 @@ function CommentsSection({ articleId }: { articleId: string }) {
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
       ) : comments.length === 0 ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
-          Hali sharh yo'q. Birinchi bo'ling!
+          Hali sharh yo'q.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -856,7 +856,7 @@ export default function ArticleDetailPage() {
                     <div style={{ minWidth: 0 }}>
                       {r.category && <div style={{ fontSize: 9.5, color: 'var(--navy)', letterSpacing: 0.15, textTransform: 'uppercase', fontWeight: 700, marginBottom: 5 }}>{r.category.name}</div>}
                       <div style={{ fontFamily: 'var(--serif)', fontSize: 14, color: 'var(--ink)', lineHeight: 1.3, letterSpacing: '-0.005em', fontWeight: 500, marginBottom: 6 }}>{r.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink-4)', display: 'inline-flex', alignItems: 'center', gap: 5 }}><ClockIcon size={10} /> {r.min_read} daq. o'qish</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-4)', display: 'inline-flex', alignItems: 'center', gap: 5 }}><ClockIcon size={10} /></div>
                     </div>
                   </a>
                 ))}

@@ -407,7 +407,7 @@ export default function AdminJournalsPage() {
           <div>
             <h1 className="h-display h1-rsp" style={{ fontSize: 48, marginBottom: 10 }}>Jurnal sonlari</h1>
             <p style={{ fontSize: 14.5, color: 'var(--ink-3)', maxWidth: 680, lineHeight: 1.6 }}>
-              Yangi son yaratish, maqolalarni ko'rish va boshqarish. Maqolani saytda ko'rsatish uchun «Topshirishlar» sahifasida jurnal soniga torting.
+              Yangi son yaratish, maqolalarni ko'rish va boshqarish. Maqolani saytda ko'rsatish uchun «Kelgan maqolalar» sahifasida jurnal soniga torting.
             </p>
           </div>
           <button onClick={() => setCreating(true)}

@@ -156,9 +156,6 @@ export default function AuthorDetailPage() {
                       {formatDate(art.published_at)}
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-                      <ClockIcon size={11} /> {art.min_read} daq.
-                    </span>
-                    <span style={{ fontSize: 12, color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
                       <EyeIcon size={11} /> {art.views.toLocaleString()}
                     </span>
                   </article>

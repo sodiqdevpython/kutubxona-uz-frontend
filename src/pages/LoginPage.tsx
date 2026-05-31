@@ -52,10 +52,7 @@ export default function LoginPage() {
 
           {/* Sarlavha */}
           <div style={{ marginBottom: 36, textAlign: 'center' }}>
-            <span className="eyebrow" style={{ display: 'block', marginBottom: 14 }}>Boshqaruv paneli</span>
-            <h1 className="h-display" style={{ fontSize: 38, letterSpacing: '-0.025em', lineHeight: 1.05, marginBottom: 10 }}>
-              Admin kirish
-            </h1>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: 14 }}>Kirish</span>
             <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
               Faqat tahrir xodimlari uchun.<br/>
               Parolingizni unutgan bo'lsangiz Django admin orqali tiklang.

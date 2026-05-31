@@ -140,8 +140,14 @@ function AuthorFormModal({
 // ── Muallif kartasi ───────────────────────────────────────────────────────────
 
 function AuthorAdminCard({
-  a, onClick, onEdit, onDelete,
-}: { a: AdminAuthor; onClick: () => void; onEdit: () => void; onDelete: () => void }) {
+  a, onClick, onEdit, onDelete, onChat,
+}: {
+  a: AdminAuthor;
+  onClick: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onChat: () => void;
+}) {
   // Tugma bosilganda card click ishlamasin
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
@@ -178,15 +184,29 @@ function AuthorAdminCard({
       </div>
 
       {/* Admin tugmalar — card click ni to'xtatadi */}
-      <div style={{ display: 'flex', gap: 6 }} onClick={stop}>
-        <button onClick={onEdit} className="btn ghost"
-          style={{ flex: 1, height: 32, fontSize: 12, justifyContent: 'center' }}>
-          ✏️ Tahrirlash
-        </button>
-        <button onClick={onDelete}
-          style={{ flex: 1, height: 32, borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--sans)' }}>
-          🗑 O'chirish
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} onClick={stop}>
+        {/* Asosiy harakat — Yozish (faqat telegram chat_id bo'lsa) */}
+        {a.telegram_chat_id && (
+          <button onClick={onChat}
+            style={{
+              width: '100%', height: 34, borderRadius: 6, border: 0,
+              background: 'var(--navy)', color: 'white', cursor: 'pointer',
+              fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--sans)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+            ✉️ Yozish
+          </button>
+        )}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={onEdit} className="btn ghost"
+            style={{ flex: 1, height: 32, fontSize: 12, justifyContent: 'center' }}>
+            ✏️ Tahrirlash
+          </button>
+          <button onClick={onDelete}
+            style={{ flex: 1, height: 32, borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--sans)' }}>
+            🗑 O'chirish
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -251,11 +271,11 @@ export default function AdminAuthorsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, fontSize: 12.5, color: 'var(--ink-3)' }}>
           <a onClick={() => navigate('/')} style={{ cursor: 'pointer', color: 'var(--ink-3)' }}>Bosh sahifa</a>
           <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Mualliflar boshqaruvi</span>
+          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Mualliflar</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <h1 className="h-display h1-rsp" style={{ fontSize: 52, marginBottom: 14 }}>Mualliflar boshqaruvi</h1>
+            <h1 className="h-display h1-rsp" style={{ fontSize: 52, marginBottom: 14 }}>Mualliflar</h1>
             <p style={{ fontSize: 14, color: 'var(--ink-3)', maxWidth: 600, lineHeight: 1.6 }}>
               Barcha mualliflar — chop etilmagan maqolalar egalari ham. Kartani bosing — muallif profilini ko'ring.
             </p>
@@ -287,7 +307,7 @@ export default function AdminAuthorsPage() {
       <div style={{ padding: '0 var(--px) 0', maxWidth: 1400, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
           <span className="eyebrow" style={{ fontSize: 10.5 }}>
-            Admin ko'rinish · {filtered.length} ta muallif ko'rsatilmoqda
+            Admin ko'rinish · {filtered.length} ta muallif bor
           </span>
         </div>
       </div>
@@ -308,6 +328,7 @@ export default function AdminAuthorsPage() {
                 onClick={() => navigate(`/authors/${a.slug}`)}
                 onEdit={() => setEditing(a)}
                 onDelete={() => setDeleting(a)}
+                onChat={() => navigate(`/admin/chat?author=${a.slug}`)}
               />
             ))
           )}

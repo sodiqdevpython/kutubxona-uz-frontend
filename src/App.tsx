@@ -13,6 +13,7 @@ import LoginPage          from './pages/LoginPage';
 import AdminSubmissionsPage from './pages/admin/AdminSubmissionsPage';
 import AdminAuthorsPage     from './pages/admin/AdminAuthorsPage';
 import AdminJournalsPage    from './pages/admin/AdminJournalsPage';
+import AdminChatPage        from './pages/admin/AdminChatPage';
 
 // ── Himoyalangan route ────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/admin/submissions" element={<Protected><AdminSubmissionsPage /></Protected>} />
           <Route path="/admin/authors"     element={<Protected><AdminAuthorsPage /></Protected>} />
           <Route path="/admin/journals"    element={<Protected><AdminJournalsPage /></Protected>} />
+          <Route path="/admin/chat"        element={<Protected><AdminChatPage /></Protected>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

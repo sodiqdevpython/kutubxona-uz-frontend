@@ -70,12 +70,14 @@ export interface ApiArticle {
   views: number;
   img_variant: number;
   image_url: string | null;
+  keywords: string[];
   published_at: string | null;
 }
 
-export interface ApiArticleDetail extends ApiArticle {
+export interface ApiArticleDetail extends Omit<ApiArticle, 'keywords'> {
   content: string;
   source_file_url: string | null;
+  /** Detail'da object — sayt detail sahifasi keyword + slug ishlatadi (related navigatsiya). */
   keywords: { name: string; slug: string }[];
   references: string;
   issue: ApiIssueBrief | null;

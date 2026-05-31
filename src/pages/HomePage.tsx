@@ -106,10 +106,27 @@ export default function HomePage() {
   const articles    = feedState.status === 'ok' ? feedState.data.results : [];
   const totalCount  = feedState.status === 'ok' ? feedState.data.count    : 0;
   const featured    = articles[0] ?? null;
-  const sideCards   = articles.slice(1, 3);
+  const sidePool    = articles.slice(1, 9);   // 8 ta — rotation uchun pool
   const trending    = trendState.status === 'ok' ? trendState.data.results : [];
   const categories  = catState.status   === 'ok' ? catState.data           : [];
   const stats       = statsState.status === 'ok' ? statsState.data : null;
+
+  // ── Side cards rotation: har 6 sekundda 2 ta maqola almashinadi ──
+  const [sideIdx, setSideIdx] = useState(0);
+  useEffect(() => {
+    if (sidePool.length <= 2) return;
+    const t = setInterval(() => {
+      setSideIdx(i => (i + 2) % sidePool.length);
+    }, 6000);
+    return () => clearInterval(t);
+  }, [sidePool.length]);
+
+  const sideCards = sidePool.length > 0
+    ? [
+        sidePool[sideIdx % sidePool.length],
+        sidePool[(sideIdx + 1) % sidePool.length],
+      ].filter(Boolean)
+    : [];
 
   // ── Filter o'zgarsa, page reset ─────────────────────────────────────────────
   useEffect(() => { setFeedPage(1); }, [activeCat, sort]);
@@ -247,12 +264,6 @@ export default function HomePage() {
           {/* Featured (faqat "Barchasi" tanlanganda) */}
           {!activeCat && feedState.status === 'ok' && featured && (
             <section style={{ marginTop: 32, marginBottom: 48 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <StarIcon size={14} style={{ color: 'var(--navy)' }} />
-                  <span className="eyebrow">Tahririyat tanlovi</span>
-                </div>
-              </div>
               <div className="rsp-featured">
                 {/* Big featured card */}
                 <article className="card-lift" onClick={() => navigate(`/articles/${featured.slug}`)}
@@ -294,46 +305,100 @@ export default function HomePage() {
                         </span>
                       </div>
                       <span style={{ color: 'rgba(255,255,255,0.4)' }}>·</span>
-                      <span style={{ color: 'rgba(255,255,255,0.7)', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-                        <ClockIcon size={11} /> {featured.min_read} daq.
-                      </span>
                       <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, color: 'white', fontWeight: 600, whiteSpace: 'nowrap' }}>O'qish <ArrowIcon size={12} /></span>
                     </div>
                   </div>
                 </article>
 
-                {/* Two side cards — kompakt, faqat sarlavha + kategoriya */}
-                <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 20 }}>
+                {/* Two side cards — vertikal (rasm tepa) + keywords + rotation */}
+                <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 20, minHeight: 0 }}>
                   {sideCards.length > 0 ? sideCards.map(a => (
-                    <article key={a.id} className="card-hover" onClick={() => navigate(`/articles/${a.slug}`)}
+                    <article
+                      key={a.id}
+                      className="card-hover side-card-fade"
+                      onClick={() => navigate(`/articles/${a.slug}`)}
                       style={{
                         background: 'var(--paper)', border: '1px solid var(--line)',
                         borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
-                        display: 'grid', gridTemplateColumns: '40% 1fr', minHeight: 0,
+                        display: 'flex', flexDirection: 'column', minHeight: 0,
+                      }}
+                    >
+                      {/* Rasm — qat'iy aspect ratio, kesilmaydi */}
+                      <div style={{
+                        width: '100%', aspectRatio: '16 / 9',
+                        background: 'var(--grey-2)', position: 'relative', overflow: 'hidden',
+                        flexShrink: 0,
                       }}>
-                      <div style={{ background: 'var(--grey-2)', position: 'relative', overflow: 'hidden' }}>
                         {a.image_url ? (
                           <img src={a.image_url} alt={a.title} loading="lazy"
                             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                         ) : (
                           <ArtVariant kind={artKind(a.img_variant)} />
                         )}
+                        {a.category && (
+                          <span style={{
+                            position: 'absolute', top: 10, left: 10,
+                            background: 'rgba(255,255,255,0.95)', color: 'var(--navy)',
+                            fontSize: 10, fontWeight: 700, letterSpacing: 0.15,
+                            textTransform: 'uppercase', padding: '4px 8px', borderRadius: 3,
+                            backdropFilter: 'blur(4px)',
+                          }}>
+                            {a.category.name}
+                          </span>
+                        )}
                       </div>
-                      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, justifyContent: 'space-between' }}>
-                        <div>
-                          {a.category && (
-                            <span className="tag navy-soft" style={{ marginBottom: 8 }}>{a.category.name}</span>
-                          )}
-                          <h3 className="h-display" style={{ fontSize: 15, lineHeight: 1.3, ...clamp(3) }}>{a.title}</h3>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--ink-3)', minWidth: 0 }}>
+
+                      {/* Matn qismi */}
+                      <div style={{
+                        padding: '14px 16px 16px', display: 'flex', flexDirection: 'column',
+                        gap: 8, flex: 1, minHeight: 0,
+                      }}>
+                        <h3 className="h-display" style={{
+                          fontSize: 15, lineHeight: 1.3, letterSpacing: '-0.01em',
+                          ...clamp(2),
+                        }}>
+                          {a.title}
+                        </h3>
+
+                        {/* Keywords — joy yetgancha */}
+                        {a.keywords && a.keywords.length > 0 && (
+                          <div style={{
+                            display: 'flex', flexWrap: 'wrap', gap: 4,
+                            overflow: 'hidden', maxHeight: 44,
+                          }}>
+                            {a.keywords.slice(0, 5).map((k, i) => (
+                              <span key={i} style={{
+                                fontSize: 10, color: 'var(--ink-3)',
+                                background: 'var(--grey-2)',
+                                padding: '2px 7px', borderRadius: 10,
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {k}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Muallif */}
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontSize: 11.5, color: 'var(--ink-3)', minWidth: 0,
+                          marginTop: 'auto', paddingTop: 6, borderTop: '1px solid var(--line)',
+                        }}>
                           {a.authors[0] && (
                             <AuthorAvatar name={a.authors[0].initials} idx={a.authors[0].avatar_idx} size={18} />
                           )}
-                          <span style={{ color: 'var(--ink-2)', fontWeight: 500, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>
-                            {trim(a.author_names?.[0] ?? a.author_label, 18)}
+                          <span style={{
+                            color: 'var(--ink-2)', fontWeight: 500,
+                            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                            flex: 1, minWidth: 0,
+                          }}>
+                            {trim(a.author_names?.[0] ?? a.author_label, 22)}
                           </span>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, color: 'var(--ink-4)' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
+                            color: 'var(--ink-4)', fontSize: 11,
+                          }}>
                             <ClockIcon size={10} />{a.min_read}m
                           </span>
                         </div>
@@ -342,6 +407,30 @@ export default function HomePage() {
                   )) : [0, 1].map(i => (
                     <div key={i} style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12 }} />
                   ))}
+
+                  {/* Rotation indikator (faqat 2 dan ko'p pool bo'lsa) */}
+                  {sidePool.length > 2 && (
+                    <div style={{
+                      gridColumn: 1, gridRow: '1 / span 2',
+                      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                      pointerEvents: 'none', padding: '0 0 4px',
+                    }}>
+                      <div style={{
+                        display: 'flex', justifyContent: 'center', gap: 4,
+                      }}>
+                        {Array.from({ length: Math.ceil(sidePool.length / 2) }).map((_, i) => {
+                          const active = Math.floor(sideIdx / 2) === i;
+                          return (
+                            <span key={i} style={{
+                              width: active ? 14 : 5, height: 5, borderRadius: 5,
+                              background: active ? 'var(--navy)' : 'var(--ink-4)',
+                              opacity: active ? 1 : 0.3, transition: 'all .3s',
+                            }} />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
