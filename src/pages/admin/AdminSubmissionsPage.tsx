@@ -30,6 +30,23 @@ function initialsOf(name: string): string {
   return (name || 'N').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
 }
 
+// ── AI topa olmagan field uchun kichik placeholder ──────────────────────────
+
+function NotFoundBox({ label }: { label: string }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 8,
+      padding: '8px 12px', borderRadius: 8,
+      background: 'rgba(234,179,8,0.08)',
+      border: '1px solid rgba(234,179,8,0.28)',
+      color: '#854D0E', fontSize: 12.5, fontWeight: 500,
+    }}>
+      <span style={{ fontSize: 13 }}>⚠</span>
+      <span>{label} topa olmadim</span>
+    </div>
+  );
+}
+
 // ── To'liq ko'rish modali ─────────────────────────────────────────────────────
 
 function PreviewModal({ sub, onClose }: { sub: AdminSubmission; onClose: () => void }) {
@@ -67,44 +84,44 @@ function PreviewModal({ sub, onClose }: { sub: AdminSubmission; onClose: () => v
           )}
 
           {/* AI ajratgan mualliflar */}
-          {sub.authors_list.length > 0 && (
-            <div>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Mualliflar (AI)</div>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Mualliflar (AI)</div>
+            {sub.authors_list.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {sub.authors_list.map((a, i) => (
                   <span key={i} className="tag navy-soft" style={{ height: 26 }}>{a}</span>
                 ))}
               </div>
-            </div>
-          )}
+            ) : sub.ai_filled ? <NotFoundBox label="Mualliflar" /> : null}
+          </div>
 
           {/* Kalit so'zlar */}
-          {sub.keywords_list.length > 0 && (
-            <div>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Kalit so'zlar</div>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Kalit so'zlar</div>
+            {sub.keywords_list.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {sub.keywords_list.map((k, i) => (
                   <span key={i} className="tag line" style={{ height: 26 }}>{k}</span>
                 ))}
               </div>
-            </div>
-          )}
+            ) : sub.ai_filled ? <NotFoundBox label="Kalit so'zlar" /> : null}
+          </div>
 
           {/* Annotatsiya */}
-          {sub.abstract && (
-            <div>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Annotatsiya</div>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Annotatsiya</div>
+            {sub.abstract ? (
               <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--ink-2)', margin: 0, whiteSpace: 'pre-wrap' }}>{sub.abstract}</p>
-            </div>
-          )}
+            ) : sub.ai_filled ? <NotFoundBox label="Annotatsiya" /> : null}
+          </div>
 
           {/* Adabiyotlar */}
-          {sub.references && (
-            <div>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Adabiyotlar</div>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Adabiyotlar</div>
+            {sub.references ? (
               <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--ink-3)', margin: 0, whiteSpace: 'pre-wrap' }}>{sub.references}</p>
-            </div>
-          )}
+            ) : sub.ai_filled ? <NotFoundBox label="Adabiyotlar" /> : null}
+          </div>
 
           {/* Rad sababi */}
           {sub.reject_reason && (
@@ -329,10 +346,11 @@ function AssignJournalSelect({ issues, onAssign }: {
 
 // ── Submission kartochkasi ────────────────────────────────────────────────────
 
-function SubmissionCard({ sub, issues, aiBusy, onPreview, onAiExtract, onEdit, onApprove, onReject, onRevert, onAssign, onUnassign, onDelete }: {
+function SubmissionCard({ sub, issues, aiBusy, trainBusy, onPreview, onAiExtract, onEdit, onApprove, onReject, onRevert, onAssign, onUnassign, onDelete, onTrainAI, onClearAI }: {
   sub: AdminSubmission;
   issues: AdminIssue[];
   aiBusy: boolean;
+  trainBusy: boolean;
   onPreview: () => void;
   onAiExtract: () => void;
   onEdit: () => void;
@@ -342,6 +360,8 @@ function SubmissionCard({ sub, issues, aiBusy, onPreview, onAiExtract, onEdit, o
   onAssign: (issueId: string) => void;
   onUnassign: () => void;
   onDelete: () => void;
+  onTrainAI: () => void;
+  onClearAI: () => void;
 }) {
   return (
     <article style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -397,18 +417,49 @@ function SubmissionCard({ sub, issues, aiBusy, onPreview, onAiExtract, onEdit, o
 
       {/* Approved: category + journal status */}
       {sub.status === 'approved' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 12px', background: 'var(--grey-1)', borderRadius: 8 }}>
-          {sub.article_category && (
-            <span className="tag navy-soft">{sub.article_category.name}</span>
-          )}
-          {sub.article_issue ? (
-            <span style={{ fontSize: 12.5, color: '#065F46', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <CheckIcon size={12} /> Vol.{sub.article_issue.volume} №{sub.article_issue.number} — saytda
-              <button onClick={onUnassign} title="Jurnaldan olib tashlash"
-                style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-4)', fontSize: 14, marginLeft: 4 }}>✕</button>
-            </span>
-          ) : (
-            <AssignJournalSelect issues={issues} onAssign={onAssign} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 12px', background: 'var(--grey-1)', borderRadius: 8 }}>
+            {sub.article_category && (
+              <span className="tag navy-soft">{sub.article_category.name}</span>
+            )}
+            {sub.article_issue ? (
+              <span style={{ fontSize: 12.5, color: '#065F46', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <CheckIcon size={12} /> Vol.{sub.article_issue.volume} №{sub.article_issue.number} — saytda
+                <button onClick={onUnassign} title="Jurnaldan olib tashlash"
+                  style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-4)', fontSize: 14, marginLeft: 4 }}>✕</button>
+              </span>
+            ) : (
+              <AssignJournalSelect issues={issues} onAssign={onAssign} />
+            )}
+          </div>
+
+          {/* AI ga o'qitish (chat uchun) */}
+          {sub.article_id && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 12px', background: 'var(--grey-1)', borderRadius: 8 }}>
+              {sub.article_ai_ready ? (
+                <>
+                  <span style={{ fontSize: 12.5, color: '#065F46', display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                    🤖 AI o'qitilgan · chat ochiq
+                  </span>
+                  <button onClick={onClearAI} disabled={trainBusy}
+                    title="AI hujjatini o'chirish (chat yopiladi)"
+                    style={{ marginLeft: 'auto', height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--line-2)', background: 'var(--paper)', color: 'var(--ink-3)', cursor: trainBusy ? 'default' : 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--sans)' }}>
+                    Chat ni o'chirish
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                    🤖 Bu maqola hali AI ga o'qitilmagan — saytda chat ko'rinmaydi
+                  </span>
+                  <button onClick={onTrainAI} disabled={trainBusy}
+                    title="Maqolani local LLM ga yuklab, chat ochish"
+                    style={{ marginLeft: 'auto', height: 30, padding: '0 14px', borderRadius: 6, border: 0, background: trainBusy ? 'var(--navy-30)' : 'linear-gradient(135deg,#2B4670,#0A192F)', color: 'white', cursor: trainBusy ? 'default' : 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--sans)' }}>
+                    {trainBusy ? '⏳ O\'qitilmoqda…' : '✨ AI ga o\'qitish'}
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -422,11 +473,14 @@ function SubmissionCard({ sub, issues, aiBusy, onPreview, onAiExtract, onEdit, o
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-        {sub.status === 'pending' && !sub.ai_filled && (
-          /* AI hali ishlamagan — birinchi AI bilan to'ldirish kerak */
+        {sub.status === 'pending' && (
+          /* AI — yordamchi tool. Har doim ko'rinadi, qayta tahlil ham mumkin. */
           <button onClick={onAiExtract} disabled={aiBusy}
+            title={sub.ai_filled ? 'AI natijasini yangidan oling' : 'AI yordamida fieldlarni to\'ldiring'}
             style={{ height: 38, borderRadius: 8, border: 0, background: aiBusy ? 'var(--navy-30)' : 'linear-gradient(135deg,#2B4670,#0A192F)', color: 'white', cursor: aiBusy ? 'default' : 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--sans)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            {aiBusy ? '✨ Tahlil qilinmoqda…' : '✨ AI bilan to\'ldirish'}
+            {aiBusy
+              ? '✨ Tahlil qilinmoqda…'
+              : sub.ai_filled ? '✨ Qayta AI tahlil' : '✨ AI bilan to\'ldirish'}
           </button>
         )}
 
@@ -435,19 +489,15 @@ function SubmissionCard({ sub, issues, aiBusy, onPreview, onAiExtract, onEdit, o
             👁 Ko'rish
           </button>
 
-          {/* Tahrirlash — pending (AI to'ldirgan), approved va rejected'da ham */}
-          {(sub.status !== 'pending' || sub.ai_filled) && (
-            <button onClick={onEdit} className="btn ghost" style={{ height: 34, fontSize: 12.5, flex: '1 1 auto', justifyContent: 'center' }}>
-              ✏️ Tahrirlash
-            </button>
-          )}
+          {/* Tahrirlash — har doim mavjud, AI ishlatilmagan bo'lsa ham admin qo'lda kiritadi */}
+          <button onClick={onEdit} className="btn ghost" style={{ height: 34, fontSize: 12.5, flex: '1 1 auto', justifyContent: 'center' }}>
+            ✏️ Tahrirlash
+          </button>
 
           {sub.status === 'pending' && (
             <>
-              <button onClick={onApprove} disabled={!sub.ai_filled}
-                className="btn primary"
-                title={sub.ai_filled ? '' : 'Avval AI bilan to\'ldiring'}
-                style={{ height: 34, fontSize: 12.5, flex: '1 1 auto', justifyContent: 'center', opacity: sub.ai_filled ? 1 : 0.45, cursor: sub.ai_filled ? 'pointer' : 'not-allowed' }}>
+              <button onClick={onApprove} className="btn primary"
+                style={{ height: 34, fontSize: 12.5, flex: '1 1 auto', justifyContent: 'center' }}>
                 ✓ Tasdiqlash
               </button>
               <button onClick={onReject}
@@ -498,6 +548,7 @@ export default function AdminSubmissionsPage() {
   const [reject,  setReject]  = useState<AdminSubmission | null>(null);
   const [revert,  setRevert]  = useState<AdminSubmission | null>(null);
   const [aiBusyId, setAiBusyId] = useState<string | null>(null);
+  const [trainBusyId, setTrainBusyId] = useState<string | null>(null);
   const [toast,   setToast]   = useState('');
   const [counts,  setCounts]  = useState<Record<string, number>>({});
 
@@ -606,6 +657,35 @@ export default function AdminSubmissionsPage() {
     } catch (e) { flash(`Xatolik: ${(e as Error).message}`); }
   }
 
+  async function doTrainAI(sub: AdminSubmission) {
+    if (!sub.article_id) return;
+    setTrainBusyId(sub.id);
+    try {
+      const res = await adminApi.articles.trainAi(sub.article_id);
+      setSubs(p => p.map(s => s.id === sub.id ? { ...s, article_ai_ready: res.ai_ready } : s));
+      flash('✨ AI o\'qitildi. Endi saytda chat ochiq.');
+    } catch (e) {
+      flash(`AI o'qitish xatosi: ${(e as Error).message}`);
+    } finally {
+      setTrainBusyId(null);
+    }
+  }
+
+  async function doClearAI(sub: AdminSubmission) {
+    if (!sub.article_id) return;
+    if (!confirm('AI chat ni o\'chirasizmi? Saytda "Maqola haqida so\'rang" qismi yo\'qoladi.')) return;
+    setTrainBusyId(sub.id);
+    try {
+      const res = await adminApi.articles.clearAi(sub.article_id);
+      setSubs(p => p.map(s => s.id === sub.id ? { ...s, article_ai_ready: res.ai_ready } : s));
+      flash('AI chat o\'chirildi.');
+    } catch (e) {
+      flash(`Xatolik: ${(e as Error).message}`);
+    } finally {
+      setTrainBusyId(null);
+    }
+  }
+
   async function doUnassign(sub: AdminSubmission) {
     if (!sub.article_id || !sub.article_issue) return;
     try {
@@ -690,6 +770,7 @@ export default function AdminSubmissionsPage() {
                 <SubmissionCard
                   key={s.id} sub={s} issues={issues}
                   aiBusy={aiBusyId === s.id}
+                  trainBusy={trainBusyId === s.id}
                   onPreview={() => setPreview(s)}
                   onAiExtract={() => doAiExtract(s)}
                   onEdit={() => setEdit(s)}
@@ -699,6 +780,8 @@ export default function AdminSubmissionsPage() {
                   onAssign={issueId => doAssign(s, issueId)}
                   onUnassign={() => doUnassign(s)}
                   onDelete={() => doDelete(s)}
+                  onTrainAI={() => doTrainAI(s)}
+                  onClearAI={() => doClearAI(s)}
                 />
               ))}
             </div>

@@ -53,6 +53,7 @@ export interface AdminSubmission {
   article_id: string | null; article_title: string | null; article_slug: string | null;
   article_category: { id: string; name: string } | null;
   article_issue: { id: string; volume: number; number: number; year: number; label: string } | null;
+  article_ai_ready: boolean;
   source_file_url: string | null;
   image_url: string | null;
 }
@@ -188,6 +189,19 @@ export const adminApi = {
     list:   () => apiFetch<AdminCategory[]>('/api/admin/categories/'),
     create: (name: string) =>
       apiFetch<AdminCategory>('/api/admin/categories/', { method: 'POST', body: JSON.stringify({ name }) }),
+  },
+
+  articles: {
+    trainAi: (articleId: string) =>
+      apiFetch<{ id: string; slug: string; llm_document_id: string; ai_ready: boolean }>(
+        `/api/admin/articles/${articleId}/train-ai/`,
+        { method: 'POST' },
+      ),
+    clearAi: (articleId: string) =>
+      apiFetch<{ id: string; ai_ready: boolean }>(
+        `/api/admin/articles/${articleId}/train-ai/`,
+        { method: 'DELETE' },
+      ),
   },
 
   chat: {

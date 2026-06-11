@@ -363,7 +363,7 @@ export default function ArticlesPage() {
           )}
           {articlesState.status === 'error' && (
             <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 13 }}>
-              Xatolik yuz berdi. Server ishlamoqdami?
+              Xatolik yuz berdi.
             </div>
           )}
           {articlesState.status === 'ok' && (

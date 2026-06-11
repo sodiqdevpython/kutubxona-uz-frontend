@@ -454,7 +454,7 @@ export default function HomePage() {
 
             {feedState.status === 'error' && (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-3)', fontSize: 13 }}>
-                Maqolalarni yuklashda xatolik. Server ishlamoqdami?
+                Maqolalarni yuklashda xatolik.
               </div>
             )}
 

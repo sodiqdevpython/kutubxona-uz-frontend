@@ -5,27 +5,20 @@ import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar, { AvatarStack } from '../components/ui/AuthorAvatar';
 import JournalCover from '../components/ui/JournalCover';
 import { CheckIcon, ClockIcon, SparkIcon, SearchIcon, SendIcon, ArrowIcon, EyeIcon } from '../components/ui/Icons';
-import { DETAIL_ARTICLE, AI_KB } from '../data';
+import { DETAIL_ARTICLE } from '../data';
 import { ICON_MAP } from '../components/ui/Icons';
 import { articlesApi, commentsApi, type ApiArticle, type ApiArticleDetail, type ApiComment } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/Seo';
 
-function retrieve(query: string) {
-  const q = query.toLowerCase();
-  if (!q.trim()) return null;
-  let best: (typeof AI_KB)[number] | null = null;
-  let bestScore = 0;
-  for (const e of AI_KB) {
-    let score = 0;
-    for (const k of e.kw) { if (q.includes(k.toLowerCase())) score += 2; }
-    for (const w of e.chip.toLowerCase().replace(/[«»?.,]/g, ' ').split(/\s+/)) {
-      if (w.length > 3 && q.includes(w)) score += 1;
-    }
-    if (score > bestScore) { bestScore = score; best = e; }
-  }
-  return bestScore > 0 ? best : null;
-}
+const SUGGESTED_QUESTIONS: string[] = [
+  "Bu maqola nima haqida?",
+  "Asosiy xulosa nima?",
+  "Mualliflar kimlar?",
+  "Qaysi metod ishlatilgan?",
+  "Kalit so'zlar nima?",
+  "Adabiyotlar ro'yxatida nimalar bor?",
+];
 
 function RDFGraph() {
   return (
@@ -73,8 +66,8 @@ function RDFGraph() {
 
 type Msg = { who: 'ai' | 'user'; name: string; src: string | null; text: string };
 
-function AskAISection() {
-  const seed: Msg[] = [{ who: 'ai', name: 'Kutubxona AI', src: null, text: "Salom! Men ushbu maqolaning to'liq matnini o'qib chiqdim. Pastdagi tayyor savollardan birini bosing yoki o'zingiz yozing — javobni maqola ichidan topib, aniq paragrafga havola qilaman." }];
+function AskAISection({ slug }: { slug: string }) {
+  const seed: Msg[] = [{ who: 'ai', name: 'Kutubxona AI', src: null, text: "Salom! Men ushbu maqolaning to'liq matnini o'qib chiqdim. Pastdagi tayyor savollardan birini bosing yoki o'zingiz yozing — javobni maqola ichidan topib beraman." }];
   const [msgs, setMsgs] = useState<Msg[]>(seed);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
@@ -85,21 +78,24 @@ function AskAISection() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [msgs, typing]);
 
-  function ask(text: string) {
+  async function ask(text: string) {
     const q = text.trim();
     if (!q || typing) return;
     setInput('');
     setMsgs(m => [...m, { who: 'user', name: "Anonim o'quvchi", src: null, text: q }]);
     setTyping(true);
-    const hit = retrieve(q);
-    setTimeout(() => {
+    try {
+      const res = await articlesApi.ask(slug, q);
+      setMsgs(m => [...m, { who: 'ai', name: 'Kutubxona AI', src: null, text: res.answer }]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      let nice = "Hozir javob ololmadim. Iltimos, biroz kutib qayta urinib ko'ring.";
+      if (/429/.test(msg)) nice = "Juda tez-tez savol berayapsiz. Bir oz kuting va qaytadan urinib ko'ring.";
+      else if (/400/.test(msg)) nice = "Bu maqola uchun manba fayl mavjud emas yoki savol noto'g'ri.";
+      setMsgs(m => [...m, { who: 'ai', name: 'Kutubxona AI', src: null, text: nice }]);
+    } finally {
       setTyping(false);
-      if (hit) {
-        setMsgs(m => [...m, { who: 'ai', name: 'Kutubxona AI', src: hit.src, text: hit.a }]);
-      } else {
-        setMsgs(m => [...m, { who: 'ai', name: 'Kutubxona AI', src: null, text: "Bu savol bo'yicha maqola matnidan aniq parcha topa olmadim. Savolni boshqacha ifodalab ko'ring yoki tayyor savollardan foydalaning." }]);
-      }
-    }, 750);
+    }
   }
 
   return (
@@ -121,7 +117,7 @@ function AskAISection() {
               <div style={{ width: 38, height: 38, borderRadius: 8, background: 'linear-gradient(135deg,#2B4670,#0A192F)', display: 'grid', placeItems: 'center', color: 'white', boxShadow: '0 4px 12px -4px rgba(10,25,47,0.40)' }}><SparkIcon size={16} /></div>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>Kutubxona AI <span className="live-dot" /></div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>14 sahifa · 7,200 so'z · maqola matni indekslandi</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>Maqola matni indekslandi</div>
               </div>
             </div>
             <span className="tag navy-soft">Faqat shu maqola</span>
@@ -155,13 +151,12 @@ function AskAISection() {
           <div style={{ padding: '4px 22px 14px', borderTop: '1px solid var(--line)' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 600, letterSpacing: 0.14, textTransform: 'uppercase', margin: '12px 2px 10px' }}>Tayyor savollar — bosing</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {AI_KB.slice(0, 6).map((s, i) => {
-                const Ic = ICON_MAP[s.icon] ?? ICON_MAP['doc'];
+              {SUGGESTED_QUESTIONS.map((q, i) => {
+                const Ic = ICON_MAP['doc'];
                 return (
-                  <button key={i} className="ai-pill" onClick={() => ask(s.chip)} disabled={typing}>
+                  <button key={i} className="ai-pill" onClick={() => ask(q)} disabled={typing}>
                     <span className="ai-pill-icon"><Ic size={12} /></span>
-                    <span>{s.chip}</span>
-                    <span className="ai-pill-tag">{s.tag}</span>
+                    <span>{q}</span>
                   </button>
                 );
               })}
@@ -591,6 +586,136 @@ function PdfViewer({ url, title }: { url: string; title: string }) {
   );
 }
 
+// ── DOCX Viewer (PDF kabi, lekin server'da mammoth parse qilgan HTML ni o'qiydi) ─
+
+const DOCX_ZOOM_STEPS = [80, 90, 100, 115, 130, 150, 175];
+
+function DocxViewer({ url, title, html }: { url: string; title: string; html: string }) {
+  const [fullscreen, setFullscreen] = useState(false);
+  const [zoomIdx,    setZoomIdx]    = useState(2);   // 100% default
+
+  const zoom = DOCX_ZOOM_STEPS[zoomIdx];
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setFullscreen(false); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullscreen]);
+
+  const zoomOut = () => setZoomIdx(i => Math.max(0, i - 1));
+  const zoomIn  = () => setZoomIdx(i => Math.min(DOCX_ZOOM_STEPS.length - 1, i + 1));
+
+  return (
+    <div style={{
+      position: fullscreen ? 'fixed' : 'relative',
+      inset: fullscreen ? 0 : undefined,
+      zIndex: fullscreen ? 1000 : undefined,
+      background: fullscreen ? 'rgba(10,25,47,0.92)' : 'transparent',
+      padding: fullscreen ? '24px' : 0,
+      display: 'flex', flexDirection: 'column',
+      marginBottom: 32,
+    }}>
+      {/* Toolbar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 10, padding: '12px 16px',
+        background: fullscreen ? 'var(--navy)' : 'var(--grey-2)',
+        border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.12)' : 'var(--line)'}`,
+        borderBottom: 'none',
+        borderTopLeftRadius: 10, borderTopRightRadius: 10,
+        color: fullscreen ? 'white' : 'var(--ink-2)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M14 2v6h6M9 13h6M9 17h6M9 9h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span style={{
+            fontSize: 12.5, fontWeight: 600,
+            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+            fontFamily: 'var(--sans)',
+          }}>
+            DOCX · {title}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
+            borderRadius: 6, overflow: 'hidden',
+          }}>
+            <button onClick={zoomOut} disabled={zoomIdx === 0} title="Kichraytirish"
+              style={{ width: 30, height: 30, border: 0, background: 'transparent', color: 'inherit',
+                cursor: zoomIdx === 0 ? 'not-allowed' : 'pointer', fontSize: 16, lineHeight: 1,
+                opacity: zoomIdx === 0 ? 0.4 : 1, fontFamily: 'var(--sans)' }}>−</button>
+            <span style={{ minWidth: 50, textAlign: 'center', fontSize: 11.5, fontWeight: 600,
+              fontFamily: 'var(--mono)', padding: '0 4px',
+              borderLeft:  `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
+              borderRight: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}` }}>{zoom}%</span>
+            <button onClick={zoomIn} disabled={zoomIdx === DOCX_ZOOM_STEPS.length - 1} title="Kattalashtirish"
+              style={{ width: 30, height: 30, border: 0, background: 'transparent', color: 'inherit',
+                cursor: zoomIdx === DOCX_ZOOM_STEPS.length - 1 ? 'not-allowed' : 'pointer',
+                fontSize: 16, lineHeight: 1,
+                opacity: zoomIdx === DOCX_ZOOM_STEPS.length - 1 ? 0.4 : 1,
+                fontFamily: 'var(--sans)' }}>+</button>
+          </div>
+
+          <button onClick={() => setFullscreen(p => !p)} title={fullscreen ? 'Yopish' : 'Kengaytirish'}
+            style={{ height: 30, padding: '0 12px', borderRadius: 6,
+              border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
+              background: fullscreen ? 'rgba(255,255,255,0.08)' : 'var(--paper)',
+              color: 'inherit', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--sans)' }}>
+            {fullscreen ? '✕ Yopish' : '⛶ Kengaytirish'}
+          </button>
+        </div>
+      </div>
+
+      {/* Reader — sahifa ko'rinishidagi konteyner, parsed HTML */}
+      <div style={{
+        background: 'var(--paper)',
+        border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.12)' : 'var(--line)'}`,
+        borderTop: 'none',
+        borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
+        height: fullscreen ? 'calc(100vh - 110px)' : 720,
+        overflowY: 'auto',
+        padding: '40px clamp(20px, 6%, 64px)',
+      }}>
+        <div
+          className="article-content"
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{
+            fontSize: 16 * (zoom / 100),
+            lineHeight: 1.75,
+            color: 'var(--ink-2)',
+            letterSpacing: '-0.003em',
+            maxWidth: 820,
+            margin: '0 auto',
+          }}
+        />
+      </div>
+
+      {!fullscreen && (
+        <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--ink-4)', textAlign: 'center', fontStyle: 'italic' }}>
+          
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isPdf(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split('?')[0].split('#')[0].toLowerCase();
+  return clean.endsWith('.pdf');
+}
+function isDocx(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split('?')[0].split('#')[0].toLowerCase();
+  return clean.endsWith('.docx');
+}
+
 export default function ArticleDetailPage() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
@@ -716,11 +841,17 @@ export default function ArticleDetailPage() {
                 </section>
               )}
 
-              {/* PDF Viewer — agar source_file bo'lsa */}
-              {apiArticle.source_file_url ? (
-                <PdfViewer url={apiArticle.source_file_url} title={apiArticle.title} />
+              {/* Viewer — fayl turiga qarab PDF iframe yoki DOCX reader (parsed HTML) */}
+              {isPdf(apiArticle.source_file_url) ? (
+                <PdfViewer url={apiArticle.source_file_url!} title={apiArticle.title} />
+              ) : isDocx(apiArticle.source_file_url) && apiArticle.content ? (
+                <DocxViewer
+                  url={apiArticle.source_file_url!}
+                  title={apiArticle.title}
+                  html={apiArticle.content}
+                />
               ) : apiArticle.content ? (
-                /* PDF yo'q bo'lsa — parsed HTML */
+                /* Fayl yo'q yoki noma'lum format — parsed HTML ni oddiy ko'rinishda */
                 <div
                   className="article-content"
                   dangerouslySetInnerHTML={{ __html: apiArticle.content }}
@@ -866,7 +997,7 @@ export default function ArticleDetailPage() {
         </aside>
       </div>
 
-      <AskAISection />
+      {apiArticle?.ai_ready && <AskAISection slug={apiArticle.slug} />}
       {apiArticle && <CommentsSection articleId={apiArticle.id} />}
     </div>
   );

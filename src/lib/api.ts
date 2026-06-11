@@ -81,6 +81,8 @@ export interface ApiArticleDetail extends Omit<ApiArticle, 'keywords'> {
   keywords: { name: string; slug: string }[];
   references: string;
   issue: ApiIssueBrief | null;
+  /** Admin AI ga o'qitgan bo'lsa true — chat widget shu paytda ko'rinadi. */
+  ai_ready: boolean;
 }
 
 export interface ApiIssueBrief {
@@ -144,6 +146,9 @@ export const articlesApi = {
   },
   stats() {
     return get<{ articles: number; authors: number; issues: number }>('/api/articles/stats/');
+  },
+  ask(slug: string, question: string) {
+    return post<{ answer: string }>(`/api/articles/${slug}/ask/`, { question });
   },
 };
 
