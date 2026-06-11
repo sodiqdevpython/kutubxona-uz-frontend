@@ -590,7 +590,7 @@ function PdfViewer({ url, title }: { url: string; title: string }) {
 
 const DOCX_ZOOM_STEPS = [80, 90, 100, 115, 130, 150, 175];
 
-function DocxViewer({ url, title, html }: { url: string; title: string; html: string }) {
+function DocxViewer({ title, html }: { title: string; html: string }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [zoomIdx,    setZoomIdx]    = useState(2);   // 100% default
 
@@ -696,11 +696,6 @@ function DocxViewer({ url, title, html }: { url: string; title: string; html: st
         />
       </div>
 
-      {!fullscreen && (
-        <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--ink-4)', textAlign: 'center', fontStyle: 'italic' }}>
-          
-        </div>
-      )}
     </div>
   );
 }
@@ -846,7 +841,6 @@ export default function ArticleDetailPage() {
                 <PdfViewer url={apiArticle.source_file_url!} title={apiArticle.title} />
               ) : isDocx(apiArticle.source_file_url) && apiArticle.content ? (
                 <DocxViewer
-                  url={apiArticle.source_file_url!}
                   title={apiArticle.title}
                   html={apiArticle.content}
                 />
