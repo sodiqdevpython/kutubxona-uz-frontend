@@ -93,11 +93,14 @@ export interface ApiIssueBrief {
   season: string;
   date_label: string;
   cover_image_url?: string | null;
+  journal_id?: string | null;
+  journal_title?: string | null;
 }
 
 export interface ApiIssue {
   id: string;
   cover_image_url: string | null;
+  pdf_file_url: string | null;
   volume: number;
   number: number;
   year: number;
@@ -107,10 +110,19 @@ export interface ApiIssue {
   is_current: boolean;
   is_upcoming: boolean;
   article_count: number;
+  journal_id?: string | null;
+  journal_title?: string | null;
 }
 
 export interface ApiYearGroup {
   year: number;
+  issues: ApiIssue[];
+}
+
+export interface ApiJournal {
+  id: string;
+  title: string;
+  issn: string;
   issues: ApiIssue[];
 }
 
@@ -176,12 +188,26 @@ export const archiveApi = {
   },
 };
 
+// ── Issues ────────────────────────────────────────────────────────────────────
+export const issuesApi = {
+  detail(id: string) {
+    return get<ApiIssue>(`/api/issues/${id}/`);
+  },
+};
+
+// ── Journals ──────────────────────────────────────────────────────────────────
+export const journalsApi = {
+  detail(id: string) {
+    return get<ApiJournal>(`/api/journals/${id}/`);
+  },
+};
+
 // ── Comments ──────────────────────────────────────────────────────────────────
 export const commentsApi = {
-  list(articleId: string) {
-    return get<PaginatedResponse<ApiComment>>('/api/comments/', { article: articleId });
+  list(target: { article: string } | { issue: string }) {
+    return get<PaginatedResponse<ApiComment>>('/api/comments/', target);
   },
-  create(body: { article: string; name: string; text: string; parent?: string }) {
+  create(body: { article?: string; issue?: string; name: string; text: string; parent?: string }) {
     return post<ApiComment>('/api/comments/', body);
   },
   remove(id: string) {

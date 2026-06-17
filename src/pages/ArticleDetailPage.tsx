@@ -4,11 +4,12 @@ import Topbar from '../components/layout/Topbar';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar, { AvatarStack } from '../components/ui/AuthorAvatar';
 import JournalCover from '../components/ui/JournalCover';
+import PdfViewer, { isPdf, isDocx } from '../components/ui/PdfViewer';
+import CommentsSection from '../components/CommentsSection';
 import { CheckIcon, ClockIcon, SparkIcon, SearchIcon, SendIcon, ArrowIcon, EyeIcon } from '../components/ui/Icons';
 import { DETAIL_ARTICLE } from '../data';
 import { ICON_MAP } from '../components/ui/Icons';
-import { articlesApi, commentsApi, type ApiArticle, type ApiArticleDetail, type ApiComment } from '../lib/api';
-import { useAuth } from '../context/AuthContext';
+import { articlesApi, type ApiArticle, type ApiArticleDetail } from '../lib/api';
 import Seo from '../components/Seo';
 
 const SUGGESTED_QUESTIONS: string[] = [
@@ -184,408 +185,6 @@ function AskAISection({ slug }: { slug: string }) {
   );
 }
 
-// ── Vaqtni nisbiy ko'rsatish ──────────────────────────────────────────────────
-
-function relTime(iso: string): string {
-  const d  = new Date(iso);
-  const dt = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (dt < 60)     return 'hozir';
-  if (dt < 3600)   return `${Math.floor(dt / 60)} daqiqa oldin`;
-  if (dt < 86400)  return `${Math.floor(dt / 3600)} soat oldin`;
-  if (dt < 604800) return `${Math.floor(dt / 86400)} kun oldin`;
-  return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function initialsOf(name: string): string {
-  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || '?';
-}
-
-// ── Bitta izoh kartochkasi (replies bilan) ────────────────────────────────────
-
-function CommentItem({
-  c, depth = 0, isAdmin, onReply, onDelete,
-}: {
-  c: ApiComment;
-  depth?: number;
-  isAdmin: boolean;
-  onReply: (parent: ApiComment) => void;
-  onDelete: (c: ApiComment) => void;
-}) {
-  return (
-    <article style={{
-      display: 'grid', gridTemplateColumns: '40px 1fr', gap: 14,
-      padding: '20px 0',
-      borderTop: depth === 0 ? '1px solid var(--line)' : 'none',
-      paddingLeft: depth > 0 ? 16 : 0,
-      marginLeft: depth > 0 ? 16 : 0,
-      borderLeft: depth > 0 ? '2px solid var(--line)' : undefined,
-    }}>
-      <AuthorAvatar name={initialsOf(c.name)} idx={(c.name.length) % 5} size={36} />
-      <div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'var(--serif)', fontSize: 14.5, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{c.name}</span>
-          <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>· {relTime(c.created_at)}</span>
-        </div>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--ink-2)', margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>
-          {c.text}
-        </p>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={() => onReply(c)}
-            style={{ background: 'none', border: 0, padding: 0, fontSize: 11.5, color: 'var(--navy)', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
-            ↩ Javob berish
-          </button>
-          {isAdmin && (
-            <button onClick={() => onDelete(c)}
-              title="Sharhni o'chirish"
-              style={{ background: 'none', border: 0, padding: 0, fontSize: 11.5, color: '#DC2626', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
-              🗑 O'chirish
-            </button>
-          )}
-        </div>
-        {c.replies && c.replies.length > 0 && (
-          <div style={{ marginTop: 12 }}>
-            {c.replies.map(r => (
-              <CommentItem key={r.id} c={r} depth={depth + 1}
-                isAdmin={isAdmin} onReply={onReply} onDelete={onDelete} />
-            ))}
-          </div>
-        )}
-      </div>
-    </article>
-  );
-}
-
-// ── Comments bo'limi (haqiqiy API) ────────────────────────────────────────────
-
-function CommentsSection({ articleId }: { articleId: string }) {
-  const { user, isAuthenticated } = useAuth();
-  const isAdmin = isAuthenticated && !!user?.is_staff;
-
-  const [comments, setComments] = useState<ApiComment[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [name,     setName]     = useState('');
-  const [text,     setText]     = useState('');
-  const [sending,  setSending]  = useState(false);
-  const [error,    setError]    = useState('');
-  const [replyTo,  setReplyTo]  = useState<ApiComment | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Daraxtdan comment'ni o'chirish (recursive)
-  function removeFromTree(list: ApiComment[], targetId: string): ApiComment[] {
-    return list
-      .filter(c => c.id !== targetId)
-      .map(c => ({ ...c, replies: removeFromTree(c.replies ?? [], targetId) }));
-  }
-
-  async function handleDelete(c: ApiComment) {
-    if (!confirm(`Sharhni o'chirasizmi?\n\n"${c.text.slice(0, 80)}${c.text.length > 80 ? '…' : ''}"`)) return;
-    try {
-      await commentsApi.remove(c.id);
-      setComments(prev => removeFromTree(prev, c.id));
-    } catch (e) {
-      alert(`O'chirib bo'lmadi: ${(e as Error).message}`);
-    }
-  }
-
-  useEffect(() => {
-    if (!articleId) return;
-    commentsApi.list(articleId)
-      .then(d => { setComments(d.results); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [articleId]);
-
-  // Total count (replies bilan)
-  function countAll(list: ApiComment[]): number {
-    return list.reduce((s, c) => s + 1 + countAll(c.replies ?? []), 0);
-  }
-  const total = countAll(comments);
-
-  function startReply(parent: ApiComment) {
-    setReplyTo(parent);
-    textareaRef.current?.focus();
-    textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  // Reply ni daraxtga qo'shish
-  function appendReply(list: ApiComment[], parentId: string, reply: ApiComment): ApiComment[] {
-    return list.map(c => {
-      if (c.id === parentId) return { ...c, replies: [...(c.replies ?? []), reply] };
-      if (c.replies?.length) return { ...c, replies: appendReply(c.replies, parentId, reply) };
-      return c;
-    });
-  }
-
-  async function submit() {
-    setError('');
-    const trimmed = text.trim();
-    if (!trimmed) { setError("Sharh matni bo'sh bo'lmasligi kerak."); return; }
-    setSending(true);
-    try {
-      const body: { article: string; name: string; text: string; parent?: string } = {
-        article: articleId,
-        name:    name.trim() || "Anonim o'quvchi",
-        text:    trimmed,
-      };
-      if (replyTo) body.parent = replyTo.id;
-
-      const created = await commentsApi.create(body);
-
-      if (replyTo) {
-        setComments(prev => appendReply(prev, replyTo.id, created));
-      } else {
-        setComments(prev => [...prev, created]);
-      }
-
-      setText(''); setReplyTo(null);
-    } catch (e) {
-      setError(`Yuborishda xato: ${(e as Error).message}`);
-    } finally {
-      setSending(false);
-    }
-  }
-
-  const charCount = text.length;
-
-  return (
-    <section style={{ padding: '72px var(--px) 96px', maxWidth: 1340, margin: '0 auto' }}>
-      <header style={{ display: 'flex', alignItems: 'end', marginBottom: 28, paddingBottom: 18, borderBottom: '1px solid var(--line)' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          <h2 className="h-display" style={{ fontSize: 32 }}>Sharhlar</h2>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 13, background: 'var(--grey-2)', color: 'var(--ink-3)', padding: '4px 10px', borderRadius: 4, fontWeight: 600 }}>{total}</span>
-        </div>
-      </header>
-
-      {/* ── Composer ── */}
-      <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, padding: 4, marginBottom: 32, boxShadow: '0 1px 2px rgba(10,25,47,0.04)' }}>
-        <div style={{ background: 'linear-gradient(180deg,var(--grey-1),var(--paper))', borderRadius: 10, padding: '18px 20px' }}>
-
-          {/* Reply ko'rsatkichi */}
-          {replyTo && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', marginBottom: 14, background: 'var(--navy-08)', borderLeft: '3px solid var(--navy)', borderRadius: 4 }}>
-              <div style={{ fontSize: 12, color: 'var(--ink-2)', minWidth: 0 }}>
-                <b style={{ color: 'var(--navy)' }}>{replyTo.name}</b> ga javob bermoqdasiz —{' '}
-                <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>
-                  «{replyTo.text.slice(0, 60)}{replyTo.text.length > 60 ? '…' : ''}»
-                </span>
-              </div>
-              <button onClick={() => setReplyTo(null)}
-                style={{ background: 'none', border: 0, padding: 0, fontSize: 16, color: 'var(--ink-3)', cursor: 'pointer', flexShrink: 0, marginLeft: 8 }}>×</button>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--grey-3)', color: 'var(--ink-3)', display: 'grid', placeItems: 'center', fontFamily: 'var(--serif)', fontStyle: 'italic', fontWeight: 600, fontSize: 18, flexShrink: 0 }}>
-              {initialsOf(name || "?")}
-            </div>
-            <div style={{ flex: 1 }}>
-              <textarea
-                ref={textareaRef}
-                value={text} onChange={e => setText(e.target.value)} maxLength={1200}
-                placeholder={replyTo ? "Javobingizni yozing…" : "Sharhingizni yozing — ro'yxatdan o'tish shart emas…"}
-                style={{ width: '100%', minHeight: 64, border: 0, outline: 0, background: 'transparent', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', resize: 'vertical', padding: 0, lineHeight: 1.5 }} />
-            </div>
-          </div>
-
-          <div className="comment-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 200 }}>
-              <div className="field" style={{ height: 34, padding: '0 10px', maxWidth: 220, flex: 1 }}>
-                <input value={name} onChange={e => setName(e.target.value)}
-                  placeholder="Ismingiz (ixtiyoriy)"
-                  maxLength={150}
-                  style={{ border: 0, outline: 0, background: 'transparent', fontFamily: 'var(--sans)', fontSize: 12.5, color: 'var(--ink)', flex: 1, minWidth: 0 }} />
-              </div>
-              {!name.trim() && (
-                <span style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>
-                  → "Anonim o'quvchi" sifatida
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>{charCount} / 1200</span>
-              <button onClick={submit} disabled={sending || !text.trim()}
-                className="btn primary" style={{ height: 36, opacity: (sending || !text.trim()) ? 0.5 : 1, cursor: (sending || !text.trim()) ? 'default' : 'pointer' }}>
-                <SendIcon size={13} /> {sending ? 'Yuborilmoqda…' : 'Yuborish'}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 6, fontSize: 12.5, color: '#DC2626' }}>
-              {error}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Comments list ── */}
-      {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
-      ) : comments.length === 0 ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
-          Hali sharh yo'q.
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {comments.map(c => (
-            <CommentItem key={c.id} c={c} isAdmin={isAdmin}
-              onReply={startReply} onDelete={handleDelete} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ── PDF Viewer (theme ga moslab) ──────────────────────────────────────────────
-
-// PDF zoom darajalari — % bo'yicha
-const ZOOM_STEPS = [50, 75, 100, 125, 150, 200, 300];
-
-function PdfViewer({ url, title }: { url: string; title: string }) {
-  const [fullscreen, setFullscreen] = useState(false);
-  const [zoomIdx,    setZoomIdx]    = useState(2);   // 100% default
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const zoom = ZOOM_STEPS[zoomIdx];
-
-  // ESC bosilsa fullscreen dan chiqish
-  useEffect(() => {
-    if (!fullscreen) return;
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setFullscreen(false); }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [fullscreen]);
-
-  const zoomOut = () => setZoomIdx(i => Math.max(0, i - 1));
-  const zoomIn  = () => setZoomIdx(i => Math.min(ZOOM_STEPS.length - 1, i + 1));
-
-  return (
-    <div ref={containerRef}
-      style={{
-        position: fullscreen ? 'fixed' : 'relative',
-        inset: fullscreen ? 0 : undefined,
-        zIndex: fullscreen ? 1000 : undefined,
-        background: fullscreen ? 'rgba(10,25,47,0.92)' : 'transparent',
-        padding: fullscreen ? '24px' : 0,
-        display: 'flex', flexDirection: 'column',
-        marginBottom: 32,
-      }}>
-      {/* Toolbar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 10, padding: '12px 16px',
-        background: fullscreen ? 'var(--navy)' : 'var(--grey-2)',
-        border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.12)' : 'var(--line)'}`,
-        borderBottom: 'none',
-        borderTopLeftRadius: 10, borderTopRightRadius: 10,
-        color: fullscreen ? 'white' : 'var(--ink-2)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M14 2v6h6M9 13h6M9 17h6M9 9h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span style={{
-            fontSize: 12.5, fontWeight: 600,
-            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-            fontFamily: 'var(--sans)',
-          }}>
-            PDF · {title}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-          {/* Zoom */}
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
-            borderRadius: 6, overflow: 'hidden',
-          }}>
-            <button onClick={zoomOut} disabled={zoomIdx === 0}
-              title="Kichraytirish"
-              style={{
-                width: 30, height: 30, border: 0,
-                background: 'transparent', color: 'inherit',
-                cursor: zoomIdx === 0 ? 'not-allowed' : 'pointer',
-                fontSize: 16, lineHeight: 1, opacity: zoomIdx === 0 ? 0.4 : 1,
-                fontFamily: 'var(--sans)',
-              }}>−</button>
-            <span style={{
-              minWidth: 50, textAlign: 'center', fontSize: 11.5, fontWeight: 600,
-              fontFamily: 'var(--mono)', padding: '0 4px',
-              borderLeft:  `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
-              borderRight: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
-            }}>{zoom}%</span>
-            <button onClick={zoomIn} disabled={zoomIdx === ZOOM_STEPS.length - 1}
-              title="Kattalashtirish"
-              style={{
-                width: 30, height: 30, border: 0,
-                background: 'transparent', color: 'inherit',
-                cursor: zoomIdx === ZOOM_STEPS.length - 1 ? 'not-allowed' : 'pointer',
-                fontSize: 16, lineHeight: 1,
-                opacity: zoomIdx === ZOOM_STEPS.length - 1 ? 0.4 : 1,
-                fontFamily: 'var(--sans)',
-              }}>+</button>
-          </div>
-
-          {/* Yangi tabda */}
-          <a href={url} target="_blank" rel="noreferrer"
-            title="Yangi tabda ochish"
-            style={{
-              height: 30, padding: '0 12px', borderRadius: 6,
-              border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
-              background: 'transparent',
-              color: 'inherit', fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'var(--sans)',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              textDecoration: 'none',
-            }}>
-            ↗ Yangi tab
-          </a>
-
-          {/* Fullscreen */}
-          <button onClick={() => setFullscreen(p => !p)}
-            title={fullscreen ? 'Yopish' : 'Kengaytirish'}
-            style={{
-              height: 30, padding: '0 12px', borderRadius: 6,
-              border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
-              background: fullscreen ? 'rgba(255,255,255,0.08)' : 'var(--paper)',
-              color: 'inherit', fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'var(--sans)',
-            }}>
-            {fullscreen ? '✕ Yopish' : '⛶ Kengaytirish'}
-          </button>
-        </div>
-      </div>
-
-      {/* PDF iframe */}
-      <div style={{
-        flex: 1,
-        background: 'var(--paper)',
-        border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.12)' : 'var(--line)'}`,
-        borderTop: 'none',
-        borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
-        overflow: 'hidden',
-        minHeight: fullscreen ? 0 : 720,
-        position: 'relative',
-      }}>
-        <iframe
-          key={zoom}   /* zoom o'zgarsa iframe qayta yuklanadi */
-          src={`${url}#toolbar=0&navpanes=0&view=FitH&zoom=${zoom}`}
-          title={title}
-          style={{ width: '100%', height: fullscreen ? '100%' : 720, border: 0, display: 'block' }}
-        />
-      </div>
-
-      {!fullscreen && (
-        <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--ink-4)', textAlign: 'center', fontStyle: 'italic' }}>
-          PDF brauzeringizning ichki ko'rsatuvchisi orqali ko'rsatilmoqda.
-          Brauzer ichki menyusi orqali zoom, sahifa va qidiruvni boshqarishingiz mumkin.
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── DOCX Viewer (PDF kabi, lekin server'da mammoth parse qilgan HTML ni o'qiydi) ─
 
 const DOCX_ZOOM_STEPS = [80, 90, 100, 115, 130, 150, 175];
@@ -700,17 +299,6 @@ function DocxViewer({ title, html }: { title: string; html: string }) {
   );
 }
 
-function isPdf(url: string | null | undefined): boolean {
-  if (!url) return false;
-  const clean = url.split('?')[0].split('#')[0].toLowerCase();
-  return clean.endsWith('.pdf');
-}
-function isDocx(url: string | null | undefined): boolean {
-  if (!url) return false;
-  const clean = url.split('?')[0].split('#')[0].toLowerCase();
-  return clean.endsWith('.docx');
-}
-
 export default function ArticleDetailPage() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
@@ -731,6 +319,9 @@ export default function ArticleDetailPage() {
   }, [slug]);
 
   const a = DETAIL_ARTICLE;
+
+  // Muallif noma'lum bo'lishi tabiiy holat — bunda muallif bloki umuman ko'rsatilmaydi.
+  const showAuthor = !apiArticle || apiArticle.authors.length > 0 || apiArticle.author_names.length > 0;
 
   return (
     <div className="bg-detail" style={{ minHeight: '100vh' }}>
@@ -772,37 +363,41 @@ export default function ArticleDetailPage() {
             </h1>
             {/* Subtitle (excerpt) — pastda "Annotatsiya" bloki bor, bu yerda takrorlamaymiz */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, paddingTop: 22, paddingBottom: 22, borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                {apiArticle
-                  ? (apiArticle.authors[0]
-                      ? <AuthorAvatar name={apiArticle.authors[0].initials} idx={apiArticle.authors[0].avatar_idx} size={40} />
-                      : <AuthorAvatar name={(apiArticle.author_names[0] ?? 'M')[0]} idx={0} size={40} />)
-                  : <AvatarStack authors={a.authors} size={40} />
-                }
-                <div>
-                  {/* AI ajratgan mualliflar (maqola ichidagi) — matn */}
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                    {apiArticle
-                      ? (apiArticle.author_names.length > 0
-                          ? apiArticle.author_names.join(', ')
-                          : apiArticle.author_label || 'Muallif')
-                      : a.authorLabel}
-                  </div>
-                  {/* Yuborgan (profil egasi) */}
-                  {apiArticle?.authors[0] && (
-                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>
-                      Yuborgan:{' '}
-                      <a onClick={() => navigate(`/authors/${apiArticle.authors[0].slug}`)}
-                        style={{ color: 'var(--navy)', cursor: 'pointer', fontWeight: 500 }}>
-                        {apiArticle.authors[0].name}
-                      </a>
+              {showAuthor ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  {apiArticle
+                    ? (apiArticle.authors[0]
+                        ? <AuthorAvatar name={apiArticle.authors[0].initials} idx={apiArticle.authors[0].avatar_idx} size={40} />
+                        : <AuthorAvatar name={(apiArticle.author_names[0] ?? 'M')[0]} idx={0} size={40} />)
+                    : <AvatarStack authors={a.authors} size={40} />
+                  }
+                  <div>
+                    {/* AI ajratgan mualliflar (maqola ichidagi) — matn */}
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                      {apiArticle
+                        ? (apiArticle.author_names.length > 0
+                            ? apiArticle.author_names.join(', ')
+                            : apiArticle.author_label)
+                        : a.authorLabel}
                     </div>
-                  )}
-                  {!apiArticle && (
-                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{a.authorOrg}</div>
-                  )}
+                    {/* Yuborgan (profil egasi) */}
+                    {apiArticle?.authors[0] && (
+                      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>
+                        Yuborgan:{' '}
+                        <a onClick={() => navigate(`/authors/${apiArticle.authors[0].slug}`)}
+                          style={{ color: 'var(--navy)', cursor: 'pointer', fontWeight: 500 }}>
+                          {apiArticle.authors[0].name}
+                        </a>
+                      </div>
+                    )}
+                    {!apiArticle && (
+                      <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{a.authorOrg}</div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--ink-3)', fontStyle: 'italic' }}>Muallifi noma'lum</div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ fontSize: 12, color: 'var(--ink-3)', textAlign: 'right' }}>
                   <div>{apiArticle?.published_at ?? a.date}</div>
@@ -916,7 +511,8 @@ export default function ArticleDetailPage() {
           {apiArticle?.issue && (
             <div className="card-hover" style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <span className="eyebrow" style={{ alignSelf: 'flex-start' }}>Chiqqan jurnal</span>
-              <div className="cover-hover" style={{ marginTop: 18, marginBottom: 18 }}>
+              <div className="cover-hover" style={{ marginTop: 18, marginBottom: 18, cursor: apiArticle.issue.journal_id ? 'pointer' : 'default' }}
+                onClick={() => apiArticle.issue?.journal_id && navigate(`/journals/${apiArticle.issue.journal_id}`)}>
                 {apiArticle.issue.cover_image_url ? (
                   <img src={apiArticle.issue.cover_image_url} alt="Jurnal muqovasi"
                     style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
@@ -924,8 +520,9 @@ export default function ArticleDetailPage() {
                   <JournalCover title="Kutubxona Arxivi" vol={`Vol. ${apiArticle.issue.volume}`} year={apiArticle.issue.year} n={apiArticle.issue.number} palette={0} w={150} h={200} />
                 )}
               </div>
-              <div className="h-display" style={{ fontSize: 19, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                Kutubxona Arxivi
+              <div className="h-display" style={{ fontSize: 19, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2, cursor: apiArticle.issue.journal_id ? 'pointer' : 'default' }}
+                onClick={() => apiArticle.issue?.journal_id && navigate(`/journals/${apiArticle.issue.journal_id}`)}>
+                {apiArticle.issue.journal_title ?? 'Kutubxona Arxivi'}
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 6, fontFamily: 'var(--sans)' }}>
                 <b style={{ color: 'var(--ink-2)' }}>{apiArticle.issue.volume}-jild · {apiArticle.issue.number}-son</b>

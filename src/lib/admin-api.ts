@@ -75,7 +75,21 @@ export interface AdminIssue {
   volume: number; number: number; year: number;
   season: string; date_label: string; palette: number;
   is_current: boolean; is_upcoming: boolean;
-  article_count: number; cover_image_url: string | null; created_at: string;
+  article_count: number; cover_image_url: string | null; pdf_file_url: string | null;
+  created_at: string;
+}
+
+export interface IssueFiles { cover?: File | null; pdf?: File | null; }
+
+export interface NewArticle {
+  title: string;
+  author_names?: string;
+  excerpt?: string;
+  keywords?: string;
+  category_id?: string;
+  category_name?: string;
+  issue_id?: string;
+  source_file?: File | null;
 }
 
 export interface AdminIssueDetail extends AdminIssue {
@@ -192,6 +206,20 @@ export const adminApi = {
   },
 
   articles: {
+    create: (a: NewArticle) => {
+      const fd = new FormData();
+      fd.append('title', a.title);
+      if (a.author_names) fd.append('author_names', a.author_names);
+      if (a.excerpt)      fd.append('excerpt', a.excerpt);
+      if (a.keywords)     fd.append('keywords', a.keywords);
+      if (a.category_id)  fd.append('category_id', a.category_id);
+      if (a.category_name) fd.append('category_name', a.category_name);
+      if (a.issue_id)     fd.append('issue_id', a.issue_id);
+      if (a.source_file)  fd.append('source_file', a.source_file);
+      return apiFetchForm<{ id: string; title: string; slug: string; issue_id: string | null }>(
+        '/api/admin/articles/', { method: 'POST', body: fd },
+      );
+    },
     trainAi: (articleId: string) =>
       apiFetch<{ id: string; slug: string; llm_document_id: string; ai_ready: boolean }>(
         `/api/admin/articles/${articleId}/train-ai/`,
@@ -236,20 +264,22 @@ export const adminApi = {
   issues: {
     list:   ()            => apiFetch<AdminIssue[]>('/api/admin/issues/'),
     detail: (id: string)  => apiFetch<AdminIssueDetail>(`/api/admin/issues/${id}/`),
-    create: (d: Record<string, unknown>, cover?: File | null) => {
-      if (cover) {
+    create: (d: Record<string, unknown>, files?: IssueFiles) => {
+      if (files?.cover || files?.pdf) {
         const fd = new FormData();
         Object.entries(d).forEach(([k, v]) => v !== undefined && fd.append(k, String(v)));
-        fd.append('cover_image', cover);
+        if (files.cover) fd.append('cover_image', files.cover);
+        if (files.pdf)   fd.append('pdf_file', files.pdf);
         return apiFetchForm<AdminIssue>('/api/admin/issues/', { method: 'POST', body: fd });
       }
       return apiFetch<AdminIssue>('/api/admin/issues/', { method: 'POST', body: JSON.stringify(d) });
     },
-    update: (id: string, d: Partial<AdminIssue>, cover?: File | null) => {
-      if (cover) {
+    update: (id: string, d: Partial<AdminIssue>, files?: IssueFiles) => {
+      if (files?.cover || files?.pdf) {
         const fd = new FormData();
         Object.entries(d).forEach(([k, v]) => v !== undefined && fd.append(k, String(v)));
-        fd.append('cover_image', cover);
+        if (files.cover) fd.append('cover_image', files.cover);
+        if (files.pdf)   fd.append('pdf_file', files.pdf);
         return apiFetchForm<AdminIssue>(`/api/admin/issues/${id}/`, { method: 'PATCH', body: fd });
       }
       return apiFetch<AdminIssue>(`/api/admin/issues/${id}/`, { method: 'PATCH', body: JSON.stringify(d) });

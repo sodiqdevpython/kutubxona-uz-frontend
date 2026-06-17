@@ -15,7 +15,7 @@ function IssueCard({ iss, year }: { iss: ApiIssue; year: number }) {
   const navigate = useNavigate();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, cursor: iss.is_upcoming ? 'default' : 'pointer', opacity: iss.is_upcoming ? 0.55 : 1 }}
-      onClick={() => !iss.is_upcoming && navigate('/articles')}>
+      onClick={() => !iss.is_upcoming && navigate(`/archive/${iss.id}`)}>
       <div style={{
         height: 300, display: 'grid', placeItems: 'center',
         background: iss.is_upcoming
@@ -43,6 +43,11 @@ function IssueCard({ iss, year }: { iss: ApiIssue; year: number }) {
           <div style={{ background: 'var(--paper)', border: '1px dashed var(--line-2)', borderRadius: 6, padding: '10px 14px', fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: 0.2, textTransform: 'uppercase' }}>
             Tayyorlanmoqda
           </div>
+        )}
+        {iss.pdf_file_url && !iss.is_upcoming && (
+          <span style={{ position: 'absolute', top: 14, left: 14, fontSize: 10, padding: '4px 8px', borderRadius: 3, background: 'var(--paper)', color: 'var(--navy)', fontWeight: 600, letterSpacing: 0.15, textTransform: 'uppercase', border: '1px solid var(--line)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <DocIcon size={10} /> PDF
+          </span>
         )}
         {iss.is_current && (
           <span style={{ position: 'absolute', top: 14, right: 14, fontSize: 10.5, padding: '4px 8px', borderRadius: 3, background: 'var(--navy)', color: 'white', fontWeight: 600, letterSpacing: 0.15, textTransform: 'uppercase' }}>

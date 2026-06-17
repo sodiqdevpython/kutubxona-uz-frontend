@@ -6,6 +6,8 @@ import HomePage           from './pages/HomePage';
 import ArticlesPage       from './pages/ArticlesPage';
 import ArticleDetailPage  from './pages/ArticleDetailPage';
 import ArchivePage        from './pages/ArchivePage';
+import IssueDetailPage    from './pages/IssueDetailPage';
+import JournalDetailPage  from './pages/JournalDetailPage';
 import AuthorsPage        from './pages/AuthorsPage';
 import AuthorDetailPage   from './pages/AuthorDetailPage';
 import LoginPage          from './pages/LoginPage';
@@ -34,6 +36,8 @@ export default function App() {
           <Route path="/articles"           element={<ArticlesPage />} />
           <Route path="/articles/:slug"     element={<ArticleDetailPage />} />
           <Route path="/archive"            element={<ArchivePage />} />
+          <Route path="/archive/:id"        element={<IssueDetailPage />} />
+          <Route path="/journals/:id"       element={<JournalDetailPage />} />
           <Route path="/authors"            element={<AuthorsPage />} />
           <Route path="/authors/:slug"      element={<AuthorDetailPage />} />
 
