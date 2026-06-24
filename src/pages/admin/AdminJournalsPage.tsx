@@ -5,6 +5,7 @@ import PageLoadBar from '../../components/ui/PageLoadBar';
 import Footer from '../../components/layout/Footer';
 import JournalCover from '../../components/ui/JournalCover';
 import { DocIcon } from '../../components/ui/Icons';
+import ParsePanel from '../../components/admin/ParsePanel';
 import { adminApi, type AdminIssue, type AdminIssueDetail, type AdminJournal, type AdminCategory, type IssueFiles, type NewArticle } from '../../lib/admin-api';
 
 const SEASONS = ['Bahor', 'Yoz', 'Kuz', 'Qish'];
@@ -349,7 +350,7 @@ function ArticleFormModal({
 // ── Bitta jurnal soni kartochkasi ─────────────────────────────────────────────
 
 function IssueCard({
-  iss, year, det, onEdit, onDelete, onLoadDetail, onRemoveArticle,
+  iss, year, det, onEdit, onDelete, onLoadDetail, onRemoveArticle, onParse,
 }: {
   iss:    AdminIssue;
   year:   number;
@@ -358,6 +359,7 @@ function IssueCard({
   onDelete: (id: string) => void;
   onLoadDetail: (id: string) => void;
   onRemoveArticle: (issueId: string, articleId: string) => void;
+  onParse: (i: AdminIssue) => void;
 }) {
   const [open, setOpen] = useState(false);
   const arts = det?.articles ?? [];
@@ -399,6 +401,12 @@ function IssueCard({
             🗑 O'chirish
           </button>
         </div>
+        {!iss.is_upcoming && iss.pdf_file_url && (
+          <button onClick={() => onParse(iss)}
+            style={{ width: '100%', marginTop: 4, height: 32, borderRadius: 6, border: '1px solid var(--navy-30)', background: 'var(--navy-08)', color: 'var(--navy)', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--sans)' }}>
+            📄 PDF dan maqolalarni ajratish
+          </button>
+        )}
       </div>
 
       {/* Info */}
@@ -449,7 +457,7 @@ function IssueCard({
 // ── Yil bo'limi ───────────────────────────────────────────────────────────────
 
 function YearSection({
-  year, issues, details, onEdit, onDelete, onLoadDetail, onRemoveArticle,
+  year, issues, details, onEdit, onDelete, onLoadDetail, onRemoveArticle, onParse,
 }: {
   year:    number;
   issues:  AdminIssue[];
@@ -458,6 +466,7 @@ function YearSection({
   onDelete: (id: string) => void;
   onLoadDetail: (id: string) => void;
   onRemoveArticle: (issueId: string, articleId: string) => void;
+  onParse: (i: AdminIssue) => void;
 }) {
   const published = issues.filter(i => !i.is_upcoming);
   const total     = published.reduce((s, i) => s + i.article_count, 0);
@@ -484,6 +493,7 @@ function YearSection({
             onDelete={onDelete}
             onLoadDetail={onLoadDetail}
             onRemoveArticle={onRemoveArticle}
+            onParse={onParse}
           />
         ))}
       </div>
@@ -503,6 +513,7 @@ export default function AdminJournalsPage() {
   const [creating,  setCreating] = useState(false);
   const [editing,   setEditing] = useState<AdminIssue | null>(null);
   const [addingArticle, setAddingArticle] = useState(false);
+  const [parsing,   setParsing] = useState<AdminIssue | null>(null);
   const [toast,     setToast]   = useState('');
 
   function flash(t: string) { setToast(t); setTimeout(() => setToast(''), 3000); }
@@ -636,6 +647,7 @@ export default function AdminJournalsPage() {
             onDelete={handleDelete}
             onLoadDetail={loadDetail}
             onRemoveArticle={handleRemoveArticle}
+            onParse={setParsing}
           />
         ))}
       </div>
@@ -662,6 +674,16 @@ export default function AdminJournalsPage() {
         <ArticleFormModal
           issues={issues} categories={cats}
           onSave={handleCreateArticle} onClose={() => setAddingArticle(false)}
+        />
+      )}
+      {parsing && (
+        <ParsePanel
+          issue={parsing}
+          onClose={() => setParsing(null)}
+          onSaved={() => {
+            adminApi.issues.list().then(setIssues).catch(() => {});
+            setDetails({});
+          }}
         />
       )}
     </div>

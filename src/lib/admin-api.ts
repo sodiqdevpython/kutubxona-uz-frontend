@@ -36,9 +36,42 @@ async function apiFetchForm<T>(path: string, init: RequestInit = {}): Promise<T>
 export interface AdminAuthor {
   id: string; name: string; slug: string; initials: string;
   role: string; org: string; degree: string; bio: string;
-  avatar_idx: number;
+  avatar_idx: number; avatar_url: string | null;
+  source: 'telegram' | 'manual' | 'parser';
   telegram_chat_id: number | null; telegram_username: string;
   article_count: number; created_at: string;
+}
+
+// ── PDF parser (ajratilgan maqola nomzodlari) ──────────────────────────────────
+
+export interface AuthorMatch {
+  id: string; name: string; slug: string; initials: string;
+  role: string; org: string; degree: string; bio: string;
+  avatar_idx: number; avatar_url: string | null;
+  source: 'telegram' | 'manual' | 'parser';
+  article_count: number;
+}
+
+export interface ParsedArticle {
+  id: string; order: number; section: string; title: string;
+  author_name: string; extra_info: string;
+  start_page: number | null; end_page: number | null;
+  status: 'pending' | 'saved' | 'skipped';
+  article_pdf_url: string | null; photo_url: string | null;
+  matches: AuthorMatch[];
+  article_id: string | null; article_slug: string | null;
+  created_at: string;
+}
+
+export interface ParsedEdit {
+  title?: string; author_name?: string; extra_info?: string; section?: string;
+}
+
+export interface ParsedSavePayload {
+  author_mode: 'existing' | 'new' | 'none';
+  author_id?: string;
+  author?: { name?: string; role?: string; org?: string; degree?: string; bio?: string };
+  title?: string; author_name?: string; extra_info?: string;
 }
 
 export interface AdminSubmission {
@@ -292,5 +325,26 @@ export const adminApi = {
       }),
     removeArticle: (issueId: string, articleId: string) =>
       apiFetch<void>(`/api/admin/issues/${issueId}/articles/${articleId}/`, { method: 'DELETE' }),
+
+    // PDF parser: jurnal soni PDF'idan maqolalarni ajratish
+    parsePdf: (issueId: string) =>
+      apiFetch<{ results: ParsedArticle[]; count: number }>(
+        `/api/admin/issues/${issueId}/parse-pdf/`, { method: 'POST' },
+      ),
+    parsed: (issueId: string) =>
+      apiFetch<{ results: ParsedArticle[] }>(`/api/admin/issues/${issueId}/parsed/`),
+  },
+
+  parsed: {
+    update: (id: string, data: ParsedEdit) =>
+      apiFetch<ParsedArticle>(`/api/admin/parsed/${id}/`, {
+        method: 'PATCH', body: JSON.stringify(data),
+      }),
+    save: (id: string, payload: ParsedSavePayload) =>
+      apiFetch<ParsedArticle>(`/api/admin/parsed/${id}/save/`, {
+        method: 'POST', body: JSON.stringify(payload),
+      }),
+    remove: (id: string) =>
+      apiFetch<void>(`/api/admin/parsed/${id}/`, { method: 'DELETE' }),
   },
 };

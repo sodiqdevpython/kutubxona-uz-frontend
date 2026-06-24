@@ -22,7 +22,9 @@ function AuthorCard({ a }: { a: ApiAuthor }) {
       }}>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={52} />
+        {a.avatar_url
+          ? <img src={a.avatar_url} alt={a.name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          : <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={52} />}
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--serif)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>{a.name}</div>
           <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.4 }}>{a.role}</div>

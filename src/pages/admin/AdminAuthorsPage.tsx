@@ -135,6 +135,22 @@ function AuthorFormModal({
   );
 }
 
+// ── Manba belgisi ─────────────────────────────────────────────────────────────
+
+function SourceBadge({ source }: { source: AdminAuthor['source'] }) {
+  const map: Record<string, [string, string, string]> = {
+    telegram: ['Telegram', '#0088cc', 'rgba(0,136,204,0.1)'],
+    manual:   ['Qo\'lda',   '#065F46', 'rgba(6,95,70,0.1)'],
+    parser:   ['Parser',   '#7C3AED', 'rgba(124,58,237,0.1)'],
+  };
+  const [label, color, bg] = map[source] ?? map.manual;
+  return (
+    <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, color, background: bg, padding: '2px 6px', borderRadius: 4, letterSpacing: 0.2, textTransform: 'uppercase' }}>
+      {label}
+    </span>
+  );
+}
+
 // ── Muallif kartasi ───────────────────────────────────────────────────────────
 
 function AuthorAdminCard({
@@ -157,9 +173,14 @@ function AuthorAdminCard({
       display: 'flex', flexDirection: 'column', gap: 14, cursor: 'pointer',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={52} />
+        {a.avatar_url
+          ? <img src={a.avatar_url} alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          : <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={52} />}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--serif)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>{a.name}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</div>
+            <SourceBadge source={a.source} />
+          </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 3 }}>{a.role || '—'}</div>
         </div>
       </div>
@@ -225,6 +246,7 @@ export default function AdminAuthorsPage() {
   const [search,   setSearch]    = useState('');
   const [debQ,     setDebQ]      = useState('');
   const [editing,  setEditing]   = useState<AdminAuthor | null>(null);
+  const [creating, setCreating]  = useState(false);
   const [deleting, setDeleting]  = useState<AdminAuthor | null>(null);
   const [toast,    setToast]     = useState('');
 
@@ -299,6 +321,14 @@ export default function AdminAuthorsPage() {
     flash('✓ Saqlandi.');
   }
 
+  async function handleCreate(data: FormState) {
+    const created = await adminApi.authors.create(data);
+    setAuthors(p => [created, ...p]);
+    setTotal(t => t + 1);
+    setCreating(false);
+    flash('✓ Muallif qo\'shildi (to\'g\'ridan-to\'g\'ri tasdiqlangan).');
+  }
+
   return (
     <div className="bg-authors" style={{ minHeight: '100vh' }}>
       <PageLoadBar />
@@ -315,17 +345,24 @@ export default function AdminAuthorsPage() {
           <div>
             <h1 className="h-display h1-rsp" style={{ fontSize: 52, marginBottom: 14 }}>Mualliflar</h1>
             <p style={{ fontSize: 14, color: 'var(--ink-3)', maxWidth: 600, lineHeight: 1.6 }}>
-              Telegram bot orqali maqola yuborgan mualliflar. Bot orqali ularga xabar yuborish mumkin.
+              Telegram bot, qo'lda yoki PDF parser orqali yaratilgan muallif profillari.
+              Qo'lda kiritilganlar to'g'ridan-to'g'ri tasdiqlangan va Telegramsiz.
             </p>
           </div>
-          <div className="searchbar" style={{ height: 44, minWidth: 280 }}>
-            <SearchIcon size={16} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Ism, @username, tashkilot…"
-              style={{ fontSize: 13.5 }}
-            />
-            {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 16, lineHeight: 1 }}>×</button>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="searchbar" style={{ height: 44, minWidth: 260 }}>
+              <SearchIcon size={16} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Ism, @username, tashkilot…"
+                style={{ fontSize: 13.5 }}
+              />
+              {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 16, lineHeight: 1 }}>×</button>}
+            </div>
+            <button onClick={() => setCreating(true)}
+              style={{ height: 44, padding: '0 18px', borderRadius: 8, border: 0, background: 'var(--navy)', color: 'white', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--sans)', whiteSpace: 'nowrap' }}>
+              + Qo'lda muallif
+            </button>
           </div>
         </div>
 
@@ -355,7 +392,7 @@ export default function AdminAuthorsPage() {
               <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 14 }}>
                 {debQ
                   ? "Qidiruv bo'yicha hech narsa topilmadi."
-                  : "Hozircha Telegram bot orqali maqola yuborgan mualliflar yo'q."}
+                  : "Hozircha muallif yo'q. «+ Qo'lda muallif» orqali qo'shing yoki bot/parser orqali yaratiladi."}
               </div>
             ) : (
               authors.map(a => (
@@ -386,6 +423,15 @@ export default function AdminAuthorsPage() {
 
       <Footer />
 
+      {creating && (
+        <AuthorFormModal
+          title="Qo'lda muallif qo'shish"
+          initial={{ name: '', role: '', org: '', degree: '', bio: '' }}
+          submitLabel="Qo'shish"
+          onSave={handleCreate}
+          onClose={() => setCreating(false)}
+        />
+      )}
       {editing && (
         <AuthorFormModal
           title="Muallif tahrirlash"

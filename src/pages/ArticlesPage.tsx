@@ -15,7 +15,7 @@ import Seo from '../components/Seo';
 // ── Sort variantlari ──────────────────────────────────────────────────────────
 type SortKey = 'new' | 'popular' | 'views';
 const SORT_OPTS: Record<SortKey, { label: string; param: string }> = {
-  new:     { label: 'Eng yangi',      param: '-published_at' },
+  new:     { label: 'Eng yangi',      param: '-issue__year,-issue__number,-published_at' },
   popular: { label: 'Mashhur',        param: '-cites' },
   views:   { label: "Ko'p o'qilgan",  param: '-views' },
 };

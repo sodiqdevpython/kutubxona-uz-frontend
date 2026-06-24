@@ -47,6 +47,7 @@ export interface ApiAuthor {
   degree: string;
   bio: string;
   avatar_idx: number;
+  avatar_url: string | null;
   article_count: number;
   total_views: number;
   profile_views: number;

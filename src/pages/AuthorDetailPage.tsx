@@ -27,7 +27,7 @@ export default function AuthorDetailPage() {
   const { slug }          = useParams<{ slug: string }>();
 
   const authorState   = useFetch<ApiAuthor>(slug ? `${BASE}/api/authors/${slug}/` : null);
-  const articlesState = useFetch<PaginatedResponse<ApiArticle>>(slug ? `${BASE}/api/articles/?author=${slug}&ordering=-published_at` : null);
+  const articlesState = useFetch<PaginatedResponse<ApiArticle>>(slug ? `${BASE}/api/articles/?author=${slug}&ordering=-issue__year,-issue__number,-published_at` : null);
 
   const a        = authorState.status   === 'ok' ? authorState.data            : null;
   const articles = articlesState.status === 'ok' ? articlesState.data.results  : [];
@@ -84,7 +84,9 @@ export default function AuthorDetailPage() {
           ) : a && (
             <div className="rsp-author-profile">
               <div>
-                <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={140} />
+                {a.avatar_url
+                  ? <img src={a.avatar_url} alt={a.name} style={{ width: 140, height: 140, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} />
+                  : <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={140} />}
               </div>
               <div>
                 {a.degree && <span className="eyebrow" style={{ fontSize: 10.5 }}>{a.degree}</span>}
