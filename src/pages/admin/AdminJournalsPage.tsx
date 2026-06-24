@@ -551,7 +551,7 @@ export default function AdminJournalsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Jurnal sonini o\'chirasizmi? Maqolalar saqlanib qoladi.')) return;
+    if (!confirm('Jurnal sonini o\'chirasizmi? PDF\'dan ajratilgan va qo\'lda kiritilgan maqolalar ham o\'chadi (bot orqali yuborilganlar saqlanib qoladi).')) return;
     await adminApi.issues.remove(id);
     setIssues(p => p.filter(i => i.id !== id)); flash('O\'chirildi.');
   }
