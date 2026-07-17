@@ -1,4 +1,7 @@
+import { useT } from '../../lib/i18n';
+
 export default function Footer() {
+  const t = useT();
   return (
     <footer style={{
       borderTop: '1px solid var(--line)',
@@ -8,12 +11,12 @@ export default function Footer() {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       fontSize: 12, color: 'var(--ink-3)',
     }}>
-      <div>© 2026 O'zbekiston Milliy kutubxonasi · Kutubxona Archive</div>
+      <div>{t('footer.copyright')}</div>
       <div style={{ display: 'flex', gap: 24 }}>
-        {['Foydalanish shartlari', 'Maxfiylik', 'Aloqa', 'API'].map(t => (
-          <a key={t} style={{ color: 'var(--ink-3)', cursor: 'pointer', textDecoration: 'none' }}
+        {['Foydalanish shartlari', 'Maxfiylik', 'Aloqa', 'API'].map(x => (
+          <a key={x} style={{ color: 'var(--ink-3)', cursor: 'pointer', textDecoration: 'none' }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--navy)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink-3)')}>{t}</a>
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink-3)')}>{x}</a>
         ))}
       </div>
     </footer>

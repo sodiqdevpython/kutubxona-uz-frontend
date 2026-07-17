@@ -5,8 +5,10 @@ import PageLoadBar from '../components/ui/PageLoadBar';
 import { ArrowIcon, EyeIcon } from '../components/ui/Icons';
 import { centralAsiaApi, type ApiCentralAsiaPostDetail } from '../lib/api';
 import Seo from '../components/Seo';
+import { useT } from '../lib/i18n';
 
 export default function CentralAsiaDetailPage() {
+  const t = useT();
   const { slug = '' } = useParams<{ slug: string }>();
   const [post, setPost]   = useState<ApiCentralAsiaPostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +26,8 @@ export default function CentralAsiaDetailPage() {
   return (
     <div className="bg-detail" style={{ minHeight: '100vh', fontFamily: 'var(--sans)' }}>
       <Seo
-        title={post?.title ?? 'Central Asia — maqola'}
-        description={post?.excerpt || 'Central Asia — einfolib.uz maqolasi'}
+        title={post?.title ?? t('ca.title')}
+        description={post?.excerpt || t('ca.description')}
       />
       <PageLoadBar />
       <Topbar active="central-asia" />
@@ -36,9 +38,9 @@ export default function CentralAsiaDetailPage() {
           display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20,
           fontSize: 12.5, color: 'var(--ink-3)', fontFamily: 'var(--sans)',
         }}>
-          <Link to="/" style={{ color: 'var(--ink-3)' }}>Bosh sahifa</Link>
+          <Link to="/" style={{ color: 'var(--ink-3)' }}>{t('nav.home')}</Link>
           <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <Link to="/central-asia" style={{ color: 'var(--ink-3)' }}>Central Asia</Link>
+          <Link to="/central-asia" style={{ color: 'var(--ink-3)' }}>{t('ca.title')}</Link>
           <span style={{ color: 'var(--ink-4)' }}>/</span>
           <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>
             {post ? post.title.slice(0, 70) + (post.title.length > 70 ? '…' : '') : '…'}
@@ -47,17 +49,17 @@ export default function CentralAsiaDetailPage() {
 
         {error && (
           <div style={{ padding: '96px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
-            Maqola topilmadi.
+            {t('ca.not_found')}
             <div style={{ marginTop: 16 }}>
               <Link to="/central-asia" className="btn ghost" style={{ display: 'inline-flex' }}>
-                <ArrowIcon size={12} style={{ transform: 'rotate(180deg)' }} /> Ro'yxatga qaytish
+                <ArrowIcon size={12} style={{ transform: 'rotate(180deg)' }} /> {t('common.back_to_list')}
               </Link>
             </div>
           </div>
         )}
 
         {!error && !post && (
-          <div style={{ padding: '96px 0', textAlign: 'center', color: 'var(--ink-3)' }}>Yuklanmoqda…</div>
+          <div style={{ padding: '96px 0', textAlign: 'center', color: 'var(--ink-3)' }}>{t('common.loading')}</div>
         )}
 
         {post && (
@@ -117,7 +119,7 @@ export default function CentralAsiaDetailPage() {
                   <a href={post.source_url} target="_blank" rel="noreferrer"
                     className="btn ghost"
                     style={{ height: 34, fontSize: 12.5, padding: '0 14px' }}>
-                    Asl manba — einfolib.uz
+                    {t('ca.source_link')}
                   </a>
                   <span style={{ fontSize: 11.5, color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>
                     {post.source_slug}
@@ -145,7 +147,7 @@ export default function CentralAsiaDetailPage() {
 
             <div style={{ marginTop: 32, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <Link to="/central-asia" className="btn ghost" style={{ display: 'inline-flex' }}>
-                <ArrowIcon size={12} style={{ transform: 'rotate(180deg)' }} /> Ro'yxatga qaytish
+                <ArrowIcon size={12} style={{ transform: 'rotate(180deg)' }} /> {t('common.back_to_list')}
               </Link>
             </div>
 

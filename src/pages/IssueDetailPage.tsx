@@ -91,7 +91,7 @@ export default function IssueDetailPage() {
         </article>
 
         {/* Metadata sidebar */}
-        <aside className="rsp-hide" style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <aside className="rsp-hide" style={{ position: 'sticky', top: 148, display: 'flex', flexDirection: 'column', gap: 24 }}>
           {issue && (
             <div className="card-hover" style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <span className="eyebrow" style={{ alignSelf: 'flex-start' }}>Jurnal soni</span>

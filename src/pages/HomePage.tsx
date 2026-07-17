@@ -192,7 +192,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Category tablari + sort ── */}
-      <div style={{ borderBottom: '1px solid var(--line)', background: 'var(--paper)', position: 'sticky', top: 68, zIndex: 40 }}>
+      <div style={{ borderBottom: '1px solid var(--line)', background: 'var(--paper)', position: 'sticky', top: 132, zIndex: 40 }}>
         <div style={{ padding: '0 var(--px)', maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
           <div className="cat-tabs-scroll" style={{ flex: 1 }}>
             <div className="cat-tabs-inner">

@@ -2,32 +2,35 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { SearchIcon, UploadIcon, ChevIcon } from '../ui/Icons';
 import { useAuth } from '../../context/AuthContext';
+import { useLang, type Lang } from '../../context/LangContext';
+import { useT } from '../../lib/i18n';
 import { articlesApi, type ApiArticle } from '../../lib/api';
 
 export type Page =
   | 'home' | 'articles' | 'archive' | 'authors' | 'central-asia'
   | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
 
-const PUBLIC_NAV: { key: Page; label: string; to: string }[] = [
-  { key: 'home',         label: 'Bosh sahifa',   to: '/' },
-  { key: 'articles',     label: 'Maqolalar',     to: '/articles' },
-  { key: 'archive',      label: 'Jurnal arxivi', to: '/archive' },
-  { key: 'authors',      label: 'Mualliflar',    to: '/authors' },
-  { key: 'central-asia', label: 'Central Asia',  to: '/central-asia' },
+const PUBLIC_NAV: { key: Page; tKey: string; to: string }[] = [
+  { key: 'home',         tKey: 'nav.home',          to: '/' },
+  { key: 'articles',     tKey: 'nav.articles',      to: '/articles' },
+  { key: 'archive',      tKey: 'nav.archive',       to: '/archive' },
+  { key: 'authors',      tKey: 'nav.authors',       to: '/authors' },
+  { key: 'central-asia', tKey: 'nav.central_asia',  to: '/central-asia' },
 ];
 
+// Admin sahifa yorliqlari — hozircha faqat lotin (admin panel ichi uchun etarli).
 const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
   { key: 'submissions',    label: 'Kelgan maqolalar', to: '/admin/submissions' },
   { key: 'admin-authors',  label: 'Mualliflar',       to: '/admin/authors'     },
   { key: 'admin-journals', label: 'Jurnal sonlari',   to: '/admin/journals'    },
-  { key: 'admin-chat',     label: 'Xabarlar',       to: '/admin/chat'        },
+  { key: 'admin-chat',     label: 'Xabarlar',         to: '/admin/chat'        },
 ];
 
-const LANGS = [
-  { cc: 'uz', code: 'UZ' },
-  { cc: 'uz', code: 'УЗ' },
-  { cc: 'ru', code: 'РУ' },
-  { cc: 'gb', code: 'EN' },
+const LANGS: { cc: string; code: string; value: Lang }[] = [
+  { cc: 'uz', code: 'UZ', value: 'uz-latn' },
+  { cc: 'uz', code: 'УЗ', value: 'uz-cyrl' },
+  { cc: 'ru', code: 'РУ', value: 'ru'      },
+  { cc: 'gb', code: 'EN', value: 'en'      },
 ];
 
 /* Linklarning aynan o'zidagi padding — topnav a { padding: 24px 0 } */
@@ -43,10 +46,12 @@ const LINK_STYLE: React.CSSProperties = {
 export default function Topbar({ active }: { active: Page }) {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const { lang, setLang } = useLang();
+  const t = useT();
+  const activeLangIdx = Math.max(0, LANGS.findIndex(l => l.value === lang));
 
   const [drawerOpen,  setDrawerOpen]  = useState(false);
   const [adminDrop,   setAdminDrop]   = useState(false);
-  const [activeLang,  setActiveLang]  = useState(0);
   const dropRef = useRef<HTMLDivElement>(null);
 
   // ── Qidiruv (live) ────────────────────────────────────────────────────────
@@ -105,7 +110,7 @@ export default function Topbar({ active }: { active: Page }) {
   }, []);
 
   const isAdminPage = ADMIN_NAV.some(n => n.key === active);
-  const activeAdminLabel = ADMIN_NAV.find(n => n.key === active)?.label ?? 'Admin';
+  const activeAdminLabel = ADMIN_NAV.find(n => n.key === active)?.label ?? t('nav.admin');
 
   return (
     <>
@@ -114,13 +119,9 @@ export default function Topbar({ active }: { active: Page }) {
         {/* ── Chap: brand + nav ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
           <div className="brand" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
-            <img
-              src="/kutubxonauz.png"
-              alt="kutubxona.uz"
-              style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }}
-            />
+            <img src="/kutubxonauz.png" alt="kutubxona.uz" className="brand-logo" />
             <div className="brand-name">
-              Kutubxona Archive
+              kutubxona.uz
               <span className="sub">O'zbekiston Milliy kutubxonasi</span>
             </div>
           </div>
@@ -129,7 +130,7 @@ export default function Topbar({ active }: { active: Page }) {
             {/* Ommaviy sahifalar — CSS'dan o'zgarishsiz */}
             {PUBLIC_NAV.map(n => (
               <Link key={n.key} to={n.to} className={active === n.key ? 'active' : ''}>
-                {n.label}
+                {t(n.tKey)}
               </Link>
             ))}
 
@@ -149,7 +150,7 @@ export default function Topbar({ active }: { active: Page }) {
                     position: 'relative',
                   }}
                 >
-                  {isAdminPage ? activeAdminLabel : 'Admin'}
+                  {isAdminPage ? activeAdminLabel : t('nav.admin')}
                   <ChevIcon size={9} style={{
                     transform: adminDrop ? 'rotate(180deg)' : 'none',
                     transition: 'transform .15s', opacity: 0.55,
@@ -212,7 +213,7 @@ export default function Topbar({ active }: { active: Page }) {
                         boxSizing: 'border-box',
                       }}
                     >
-                      Chiqish
+                      {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -230,7 +231,7 @@ export default function Topbar({ active }: { active: Page }) {
                 value={searchQ}
                 onChange={e => { setSearchQ(e.target.value); setSearchOpen(true); }}
                 onFocus={() => setSearchOpen(true)}
-                placeholder="Maqola, muallif, kalit so'z…"
+                placeholder={t('common.search_placeholder')}
               />
               {searchQ && (
                 <button type="button" onClick={() => { setSearchQ(''); setResults([]); }}
@@ -246,9 +247,9 @@ export default function Topbar({ active }: { active: Page }) {
                 padding: 6, maxHeight: 420, overflowY: 'auto',
               }}>
                 {searching ? (
-                  <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-4)' }}>Qidirilmoqda…</div>
+                  <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-4)' }}>{t('common.searching')}</div>
                 ) : results.length === 0 ? (
-                  <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-4)' }}>Hech nima topilmadi.</div>
+                  <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-4)' }}>{t('common.no_results')}</div>
                 ) : (
                   <>
                     {results.map(r => (
@@ -274,7 +275,7 @@ export default function Topbar({ active }: { active: Page }) {
                     ))}
                     <button onClick={submitSearch} className="pill-hover"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '10px', borderRadius: 6, border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: 'var(--navy)', fontWeight: 600, fontFamily: 'var(--sans)', marginTop: 4, borderTop: '1px solid var(--line)' }}>
-                      Barcha natijalarni ko'rish →
+                      {t('common.view_all_results')}
                     </button>
                   </>
                 )}
@@ -283,8 +284,8 @@ export default function Topbar({ active }: { active: Page }) {
           </div>
           <div className="lang-switch topbar-lang">
             {LANGS.map((l, i) => (
-              <button key={i} className={`lang-opt${activeLang === i ? ' active' : ''}`}
-                onClick={() => setActiveLang(i)}
+              <button key={i} className={`lang-opt${activeLangIdx === i ? ' active' : ''}`}
+                onClick={() => setLang(l.value)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 8px' }}>
                 <img src={`https://flagcdn.com/16x12/${l.cc}.png`} width="16" height="12" alt={l.cc}
                   style={{ borderRadius: 1, display: 'block', flexShrink: 0 }} />{l.code}
@@ -297,10 +298,10 @@ export default function Topbar({ active }: { active: Page }) {
             onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
           >
             <UploadIcon size={14} />
-            <span className="topbar-upload-lbl">Maqola yuborish</span>
+            <span className="topbar-upload-lbl">{t('common.upload_article')}</span>
           </button>
           {/* Hamburger — CSS da mobile uchun ko'rinadi */}
-          <button className="topbar-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Menyu">
+          <button className="topbar-hamburger" onClick={() => setDrawerOpen(true)} aria-label={t('common.menu')}>
             <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
               <line x1="0" y1="1"  x2="22" y2="1"  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
               <line x1="0" y1="8"  x2="22" y2="8"  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -318,8 +319,8 @@ export default function Topbar({ active }: { active: Page }) {
             <div className="brand" style={{ cursor: 'pointer' }}
               onClick={() => { setDrawerOpen(false); navigate('/'); }}>
               <img src="/kutubxonauz.png" alt="kutubxona.uz"
-                style={{ width: 32, height: 32, objectFit: 'contain' }} />
-              <div className="brand-name" style={{ fontSize: 15 }}>Kutubxona Archive</div>
+                style={{ width: 56, height: 56, objectFit: 'contain' }} />
+              <div className="brand-name" style={{ fontSize: 17 }}>kutubxona.uz</div>
             </div>
             <button className="mobile-nav-close" onClick={() => setDrawerOpen(false)}>✕</button>
           </div>
@@ -329,7 +330,7 @@ export default function Topbar({ active }: { active: Page }) {
               <Link key={n.key} to={n.to}
                 className={active === n.key ? 'active' : ''}
                 onClick={() => setDrawerOpen(false)}>
-                {n.label}
+                {t(n.tKey)}
               </Link>
             ))}
 
@@ -340,7 +341,7 @@ export default function Topbar({ active }: { active: Page }) {
                   display: 'block', fontSize: 10.5, color: 'var(--ink-4)',
                   fontWeight: 700, letterSpacing: 0.18, textTransform: 'uppercase',
                   padding: '4px 0 6px',
-                }}>Admin</span>
+                }}>{t('nav.admin')}</span>
                 {ADMIN_NAV.map(n => (
                   <Link key={n.key} to={n.to}
                     className={active === n.key ? 'active' : ''}
@@ -356,7 +357,7 @@ export default function Topbar({ active }: { active: Page }) {
                     fontFamily: 'var(--sans)', color: 'var(--ink-3)',
                     cursor: 'pointer', textAlign: 'left', width: '100%',
                   }}>
-                  Chiqish
+                  {t('nav.logout')}
                 </button>
               </>
             )}
@@ -368,13 +369,13 @@ export default function Topbar({ active }: { active: Page }) {
               style={{ width: '100%', height: 42, justifyContent: 'center' }}
               onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
             >
-              <UploadIcon size={14} /> Maqola yuborish
+              <UploadIcon size={14} /> {t('common.upload_article')}
             </button>
             <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
               <div className="lang-switch">
                 {LANGS.map((l, i) => (
-                  <button key={i} className={`lang-opt${activeLang === i ? ' active' : ''}`}
-                    onClick={() => setActiveLang(i)}
+                  <button key={i} className={`lang-opt${activeLangIdx === i ? ' active' : ''}`}
+                    onClick={() => setLang(l.value)}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 8px' }}>
                     <img src={`https://flagcdn.com/16x12/${l.cc}.png`} width="16" height="12" alt={l.cc}
                       style={{ borderRadius: 1, display: 'block', flexShrink: 0 }} />{l.code}

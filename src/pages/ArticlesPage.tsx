@@ -288,7 +288,7 @@ export default function ArticlesPage() {
 
       <div className="rsp-filter" style={{ padding: '0 var(--px) 64px', maxWidth: 1400, margin: '0 auto' }}>
         {/* Filter panel */}
-        <aside className="rsp-hide" style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12, padding: '24px 22px', position: 'sticky', top: 92, alignSelf: 'flex-start' }}>
+        <aside className="rsp-hide" style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12, padding: '24px 22px', position: 'sticky', top: 148, alignSelf: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
             <span className="eyebrow">Filtrlar</span>
             <a onClick={clearAll} style={{ fontSize: 11, color: 'var(--ink-3)', cursor: 'pointer' }}>Tozalash</a>

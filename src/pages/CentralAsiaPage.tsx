@@ -7,6 +7,7 @@ import { SearchIcon, ArrowIcon, EyeIcon } from '../components/ui/Icons';
 import { useFetch } from '../lib/hooks';
 import type { ApiCentralAsiaPost, PaginatedResponse } from '../lib/api';
 import Seo from '../components/Seo';
+import { useT } from '../lib/i18n';
 
 const BASE      = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 const PAGE_SIZE = 15;
@@ -15,6 +16,7 @@ const PAGE_SIZE = 15;
 
 function PostCard({ p, index }: { p: ApiCentralAsiaPost; index: number }) {
   const navigate = useNavigate();
+  const t = useT();
   const authorFirst = (p.author_line || '').split(',')[0].trim();
 
   return (
@@ -94,7 +96,7 @@ function PostCard({ p, index }: { p: ApiCentralAsiaPost; index: number }) {
           display: 'inline-flex', alignItems: 'center', gap: 4,
           fontSize: 12, fontWeight: 600, color: 'var(--navy)',
         }}>
-          O'qish <ArrowIcon size={11} />
+          {t('common.read_more')} <ArrowIcon size={11} />
         </span>
       </div>
     </article>
@@ -104,6 +106,7 @@ function PostCard({ p, index }: { p: ApiCentralAsiaPost; index: number }) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CentralAsiaPage() {
+  const t = useT();
   const [urlParams]      = useSearchParams();
   const initialSearch    = urlParams.get('search') ?? '';
   const [search, setSearch]         = useState(initialSearch);
@@ -131,8 +134,8 @@ export default function CentralAsiaPage() {
   return (
     <div className="bg-articles" style={{ minHeight: '100vh', fontFamily: 'var(--sans)' }}>
       <Seo
-        title="Central Asia"
-        description="einfolib.uz'dan yig'ilgan Central Asia bo'limi maqolalari."
+        title={t('ca.title')}
+        description={t('ca.description')}
       />
       <PageLoadBar />
       <Topbar active="central-asia" />
@@ -142,9 +145,9 @@ export default function CentralAsiaPage() {
           display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
           fontSize: 12.5, color: 'var(--ink-3)', fontFamily: 'var(--sans)',
         }}>
-          <a href="/" style={{ color: 'var(--ink-3)' }}>Bosh sahifa</a>
+          <a href="/" style={{ color: 'var(--ink-3)' }}>{t('nav.home')}</a>
           <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Central Asia</span>
+          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{t('ca.title')}</span>
         </div>
 
         {/* Hero */}
@@ -154,22 +157,19 @@ export default function CentralAsiaPage() {
         }}>
           <div style={{ maxWidth: 720 }}>
             <span className="eyebrow" style={{ display: 'block', marginBottom: 10 }}>
-              einfolib.uz · manba
+              {t('ca.eyebrow')}
             </span>
             <h1 style={{
               fontFamily: 'var(--sans)',
               fontSize: 42, lineHeight: 1.1,
               fontWeight: 700, letterSpacing: '-0.03em',
               color: 'var(--ink)', margin: '0 0 12px',
-            }}>Central Asia</h1>
+            }}>{t('ca.title')}</h1>
             <p style={{
               fontFamily: 'var(--sans)',
               fontSize: 15, lineHeight: 1.6, color: 'var(--ink-3)', margin: 0,
               maxWidth: 640,
-            }}>
-              «Central Asia» axborot-kutubxona ilmiy jurnalining barcha maqolalari.
-              Yangi son chiqishi bilan avtomatik yangilanadi.
-            </p>
+            }}>{t('ca.description')}</p>
           </div>
 
           {state.status === 'ok' && (
@@ -179,12 +179,12 @@ export default function CentralAsiaPage() {
               borderRadius: 12, fontFamily: 'var(--sans)',
             }}>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Maqola</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ca.stat.articles')}</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{total.toLocaleString()}</div>
               </div>
               <div style={{ width: 1, background: 'var(--line)' }} />
               <div>
-                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Sahifa</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ca.stat.pages')}</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
                   {page} / {Math.max(1, Math.ceil(total / PAGE_SIZE))}
                 </div>
@@ -202,7 +202,7 @@ export default function CentralAsiaPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Sarlavha, muallif yoki matn bo'yicha qidirish…"
+            placeholder={t('ca.search_placeholder')}
             style={{ fontSize: 14, fontFamily: 'var(--sans)' }}
           />
           {search && (
@@ -214,11 +214,11 @@ export default function CentralAsiaPage() {
         </div>
 
         {state.status === 'loading' && (
-          <div style={{ textAlign: 'center', padding: '96px 0', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
+          <div style={{ textAlign: 'center', padding: '96px 0', color: 'var(--ink-3)', fontSize: 13 }}>{t('common.loading')}</div>
         )}
         {state.status === 'error' && (
           <div style={{ textAlign: 'center', padding: '96px 0', color: 'var(--ink-3)', fontSize: 13 }}>
-            Xatolik yuz berdi. Backend ishga tushirilganini tekshiring.
+            {t('ca.error_backend')}
           </div>
         )}
         {state.status === 'ok' && (
@@ -228,7 +228,7 @@ export default function CentralAsiaPage() {
                 ? posts.map((p, i) => <PostCard key={p.id} p={p} index={startIdx + i + 1} />)
                 : (
                   <div style={{ textAlign: 'center', padding: '96px 0', color: 'var(--ink-3)', fontSize: 14 }}>
-                    Hech qanday maqola topilmadi. Qidiruvni o'zgartiring yoki admin panelidan «einfolib.uz — yangilash»ni bosing.
+                    {t('ca.empty')}
                   </div>
                 )
               }

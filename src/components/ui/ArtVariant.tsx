@@ -22,7 +22,7 @@ export default function ArtVariant({ kind = 'rdf' }: Props) {
             {Array.from({ length: 18 }).map((_, i) => <rect key={i} x="22" y={20 + i * 12} width={Math.max(40, 220 - (i % 4) * 30)} height="2" />)}
           </g>
           <rect x="22" y="20" width="36" height="36" fill="#0A192F" />
-          <text x="40" y="44" fill="#F5F7FA" fontFamily="Playfair Display" fontSize="26" fontWeight="700" textAnchor="middle" fontStyle="italic">م</text>
+          <text x="40" y="44" fill="#F5F7FA" fontFamily="Inter" fontSize="26" fontWeight="700" textAnchor="middle" fontStyle="italic">م</text>
         </g>
         <g transform="translate(280,6) rotate(2)">
           <rect x="0" y="0" width="240" height="220" fill="#FFFFFF" stroke="#5E7595" strokeWidth="0.8" />
@@ -34,7 +34,7 @@ export default function ArtVariant({ kind = 'rdf' }: Props) {
       <g transform="translate(620,220)" opacity="0.45">
         <circle cx="0" cy="0" r="38" fill="none" stroke="#5E7595" strokeWidth="1.2" />
         <circle cx="0" cy="0" r="30" fill="none" stroke="#5E7595" strokeWidth="0.8" />
-        <text x="0" y="-4" fill="#9DAEC4" fontFamily="Playfair Display" fontStyle="italic" fontSize="11" textAnchor="middle">1907</text>
+        <text x="0" y="-4" fill="#9DAEC4" fontFamily="Inter" fontStyle="italic" fontSize="11" textAnchor="middle">1907</text>
         <text x="0" y="10" fill="#9DAEC4" fontFamily="Inter" fontSize="6" letterSpacing="1" textAnchor="middle">TOSHKENT</text>
       </g>
     </svg>, 'transparent'
@@ -88,7 +88,7 @@ export default function ArtVariant({ kind = 'rdf' }: Props) {
           {Array.from({length:8}).map((_,i)=><rect key={i} x="22" y={40+i*9} width={Math.max(40,152-(i%3)*30)} height="2"/>)}
         </g>
         <rect x="138" y="22" width="36" height="14" fill="none" stroke="#0A192F" strokeWidth="0.8"/>
-        <text x="156" y="32" fill="#0A192F" fontSize="7" textAnchor="middle" fontFamily="JetBrains Mono">CONF.</text>
+        <text x="156" y="32" fill="#0A192F" fontSize="7" textAnchor="middle" fontFamily="Inter">CONF.</text>
       </g>
     </svg>
   );
@@ -102,7 +102,7 @@ export default function ArtVariant({ kind = 'rdf' }: Props) {
         <circle cx="100" cy="90" r="4" fill="#F5F7FA"/>
         <circle cx="180" cy="90" r="4" fill="#F5F7FA"/>
       </g>
-      <g fill="#5E7595" fontFamily="JetBrains Mono" fontSize="8" opacity="0.7">
+      <g fill="#5E7595" fontFamily="Inter" fontSize="8" opacity="0.7">
         <text x="20" y="28">U+0644</text><text x="20" y="42">U+064A</text><text x="20" y="56">U+0645</text>
       </g>
     </svg>
@@ -134,7 +134,7 @@ export default function ArtVariant({ kind = 'rdf' }: Props) {
           {Array.from({length:14}).map((_,i)=><rect key={i} x="16" y={16+i*10} width={Math.max(30,168-(i%4)*25)} height="2"/>)}
         </g>
         <rect x="16" y="16" width="30" height="30" fill="#0A192F"/>
-        <text x="31" y="37" fill="#F5F7FA" fontFamily="Playfair Display" fontSize="20" textAnchor="middle" fontStyle="italic">م</text>
+        <text x="31" y="37" fill="#F5F7FA" fontFamily="Inter" fontSize="20" textAnchor="middle" fontStyle="italic">م</text>
       </g>
     </svg>
   );

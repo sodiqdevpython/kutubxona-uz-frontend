@@ -59,7 +59,7 @@ function RDFGraph() {
       <g>
         <line x1="164" y1="80" x2="476" y2="80" stroke="#0A192F" strokeWidth="1.6" markerEnd="url(#arr)"/>
         <rect x="280" y="64" width="80" height="22" rx="11" fill="#F5F7FA" stroke="#0A192F"/>
-        <text x="320" y="79" fontFamily="JetBrains Mono" fontSize="9.5" fill="#0A192F" textAnchor="middle">km:witnesses</text>
+        <text x="320" y="79" fontFamily="Inter" fontSize="9.5" fill="#0A192F" textAnchor="middle">km:witnesses</text>
       </g>
     </svg>
   );
@@ -506,7 +506,7 @@ export default function ArticleDetailPage() {
         </article>
 
         {/* Metadata sidebar */}
-        <aside className="rsp-hide" style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <aside className="rsp-hide" style={{ position: 'sticky', top: 148, display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Journal cover — issue bo'lsa */}
           {apiArticle?.issue && (
             <div className="card-hover" style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>

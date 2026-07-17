@@ -178,7 +178,7 @@ export default function AuthorDetailPage() {
         </div>
 
         {/* Aside */}
-        <aside className="rsp-hide" style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <aside className="rsp-hide" style={{ position: 'sticky', top: 148, display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Author meta card */}
           {a && (
             <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, padding: '22px 22px' }}>
