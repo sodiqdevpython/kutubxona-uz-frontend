@@ -8,9 +8,11 @@ import ArticleDetailPage  from './pages/ArticleDetailPage';
 import ArchivePage        from './pages/ArchivePage';
 import IssueDetailPage    from './pages/IssueDetailPage';
 import JournalDetailPage  from './pages/JournalDetailPage';
-import AuthorsPage        from './pages/AuthorsPage';
-import AuthorDetailPage   from './pages/AuthorDetailPage';
-import LoginPage          from './pages/LoginPage';
+import AuthorsPage          from './pages/AuthorsPage';
+import AuthorDetailPage     from './pages/AuthorDetailPage';
+import CentralAsiaPage       from './pages/CentralAsiaPage';
+import CentralAsiaDetailPage from './pages/CentralAsiaDetailPage';
+import LoginPage             from './pages/LoginPage';
 
 import AdminSubmissionsPage from './pages/admin/AdminSubmissionsPage';
 import AdminAuthorsPage     from './pages/admin/AdminAuthorsPage';
@@ -40,6 +42,8 @@ export default function App() {
           <Route path="/journals/:id"       element={<JournalDetailPage />} />
           <Route path="/authors"            element={<AuthorsPage />} />
           <Route path="/authors/:slug"      element={<AuthorDetailPage />} />
+          <Route path="/central-asia"       element={<CentralAsiaPage />} />
+          <Route path="/central-asia/:slug" element={<CentralAsiaDetailPage />} />
 
           {/* ── Auth ── */}
           <Route path="/login" element={<LoginPage />} />

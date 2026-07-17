@@ -5,14 +5,15 @@ import { useAuth } from '../../context/AuthContext';
 import { articlesApi, type ApiArticle } from '../../lib/api';
 
 export type Page =
-  | 'home' | 'articles' | 'archive' | 'authors'
+  | 'home' | 'articles' | 'archive' | 'authors' | 'central-asia'
   | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
 
 const PUBLIC_NAV: { key: Page; label: string; to: string }[] = [
-  { key: 'home',     label: 'Bosh sahifa',   to: '/' },
-  { key: 'articles', label: 'Maqolalar',     to: '/articles' },
-  { key: 'archive',  label: 'Jurnal arxivi', to: '/archive' },
-  { key: 'authors',  label: 'Mualliflar',    to: '/authors' },
+  { key: 'home',         label: 'Bosh sahifa',   to: '/' },
+  { key: 'articles',     label: 'Maqolalar',     to: '/articles' },
+  { key: 'archive',      label: 'Jurnal arxivi', to: '/archive' },
+  { key: 'authors',      label: 'Mualliflar',    to: '/authors' },
+  { key: 'central-asia', label: 'Central Asia',  to: '/central-asia' },
 ];
 
 const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
@@ -113,7 +114,11 @@ export default function Topbar({ active }: { active: Page }) {
         {/* ── Chap: brand + nav ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
           <div className="brand" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
-            <div className="brand-mark">K</div>
+            <img
+              src="/kutubxonauz.png"
+              alt="kutubxona.uz"
+              style={{ width: 40, height: 40, objectFit: 'contain', flexShrink: 0 }}
+            />
             <div className="brand-name">
               Kutubxona Archive
               <span className="sub">O'zbekiston Milliy kutubxonasi</span>
@@ -312,7 +317,8 @@ export default function Topbar({ active }: { active: Page }) {
           <div className="mobile-nav-head">
             <div className="brand" style={{ cursor: 'pointer' }}
               onClick={() => { setDrawerOpen(false); navigate('/'); }}>
-              <div className="brand-mark" style={{ width: 30, height: 30, fontSize: 17 }}>K</div>
+              <img src="/kutubxonauz.png" alt="kutubxona.uz"
+                style={{ width: 32, height: 32, objectFit: 'contain' }} />
               <div className="brand-name" style={{ fontSize: 15 }}>Kutubxona Archive</div>
             </div>
             <button className="mobile-nav-close" onClick={() => setDrawerOpen(false)}>✕</button>

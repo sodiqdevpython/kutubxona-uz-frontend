@@ -143,6 +143,30 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
+// ── Central Asia (einfolib.uz'dan) ────────────────────────────────────────────
+export interface ApiCentralAsiaPost {
+  id: string;
+  title: string;
+  slug: string;
+  author_line: string;
+  excerpt: string;
+  image_url: string | null;
+  views_scraped: number;
+  views_local: number;
+  total_views: number;
+  quote_number: number;
+  doi: string;
+  source_category: string;
+  source_url: string | null;
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface ApiCentralAsiaPostDetail extends ApiCentralAsiaPost {
+  content: string;
+  source_slug: string;
+}
+
 // ── Articles ──────────────────────────────────────────────────────────────────
 export const articlesApi = {
   list(params?: Record<string, string>) {
@@ -200,6 +224,16 @@ export const issuesApi = {
 export const journalsApi = {
   detail(id: string) {
     return get<ApiJournal>(`/api/journals/${id}/`);
+  },
+};
+
+// ── Central Asia ──────────────────────────────────────────────────────────────
+export const centralAsiaApi = {
+  list(params?: Record<string, string>) {
+    return get<PaginatedResponse<ApiCentralAsiaPost>>('/api/central-asia/', params);
+  },
+  detail(slug: string) {
+    return get<ApiCentralAsiaPostDetail>(`/api/central-asia/${slug}/`);
   },
 };
 
