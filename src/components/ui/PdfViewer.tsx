@@ -139,14 +139,14 @@ export default function PdfViewer({ url, title }: { url: string; title: string }
         borderTop: 'none',
         borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
         overflow: 'hidden',
-        minHeight: fullscreen ? 0 : 720,
+        minHeight: fullscreen ? 0 : 'clamp(640px, 82vh, 960px)',
         position: 'relative',
       }}>
         <iframe
           key={zoom}   /* zoom o'zgarsa iframe qayta yuklanadi */
           src={`${url}#toolbar=0&navpanes=0&view=FitH&zoom=${zoom}`}
           title={title}
-          style={{ width: '100%', height: fullscreen ? '100%' : 720, border: 0, display: 'block' }}
+          style={{ width: '100%', height: fullscreen ? '100%' : 'clamp(640px, 82vh, 960px)', border: 0, display: 'block' }}
         />
       </div>
 

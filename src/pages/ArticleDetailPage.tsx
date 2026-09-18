@@ -11,6 +11,7 @@ import AskAISection from '../components/article/AskAISection';
 import DocxViewer from '../components/article/DocxViewer';
 import Seo from '../components/Seo';
 import { articlesApi, type ApiArticle, type ApiArticleDetail } from '../lib/api';
+import { mediaUrl } from '../lib/config';
 
 /**
  * Maqola sahifasi — Figma «Maqola detail» freymi.
@@ -24,23 +25,11 @@ const SECTIONS = [
   { id: 'annotatsiya', label: 'Annotatsiya' },
   { id: 'kalit',       label: "Kalit so‘zlar" },
   { id: 'matn',        label: "To‘liq matn" },
-  { id: 'iqtibos',     label: 'Iqtibos keltirish' },
   { id: 'adabiyot',    label: 'Adabiyotlar' },
   { id: 'sharh',       label: 'Sharhlar' },
-  { id: 'oxshash',     label: "O‘xshash maqolalar" },
 ];
 
-type CiteKey = 'GOST' | 'APA' | 'MLA' | 'BibTeX' | 'RIS';
-const CITE_KEYS: CiteKey[] = ['GOST', 'APA', 'MLA', 'BibTeX', 'RIS'];
-
 const DOI_RE = /\b(10\.\d{4,9}\/[^\s,;]+)/i;
-
-/** «Anvar Umarov» → «Umarov A.» */
-function shortName(full: string): string {
-  const p = full.trim().split(/\s+/);
-  if (p.length < 2) return full;
-  return `${p[p.length - 1]} ${p[0][0]}.`;
-}
 
 /** Adabiyotlar matnini qatorlarga ajratadi (har qator — bitta manba). */
 function splitRefs(raw: string): string[] {
@@ -48,50 +37,6 @@ function splitRefs(raw: string): string[] {
     .split('\n')
     .map(l => l.replace(/^\s*\d+[.)]\s*/, '').trim())
     .filter(Boolean);
-}
-
-function buildCitation(a: ApiArticleDetail, kind: CiteKey): string {
-  const authors = a.authors.length
-    ? a.authors.map(x => shortName(x.name))
-    : (a.author_names ?? []).map(shortName);
-  const year  = a.issue?.year ?? a.year;
-  const num   = a.issue?.number ?? a.quarter;
-  const pages = a.pages > 0 ? `${a.pages} b.` : '';
-  const url   = typeof window !== 'undefined' ? window.location.href : '';
-
-  switch (kind) {
-    case 'GOST':
-      return `${authors.join(', ')} ${a.title} // Kutubxona. — ${year}. — № ${num}.`
-        + (pages ? ` — ${pages}` : '');
-    case 'APA':
-      return `${authors.join(', ')} (${year}). ${a.title}. Kutubxona, (${num})`
-        + (pages ? `, ${pages}` : '') + '.';
-    case 'MLA':
-      return `${authors.join(', ')} "${a.title}." Kutubxona, no. ${num}, ${year}`
-        + (pages ? `, ${pages}` : '') + '.';
-    case 'BibTeX':
-      return [
-        `@article{${a.slug.replace(/-/g, '')}${year},`,
-        `  author  = {${authors.join(' and ')}},`,
-        `  title   = {${a.title}},`,
-        `  journal = {Kutubxona},`,
-        `  year    = {${year}},`,
-        `  number  = {${num}},`,
-        `  url     = {${url}}`,
-        `}`,
-      ].join('\n');
-    case 'RIS':
-      return [
-        'TY  - JOUR',
-        ...authors.map(x => `AU  - ${x}`),
-        `TI  - ${a.title}`,
-        'JO  - Kutubxona',
-        `PY  - ${year}`,
-        `IS  - ${num}`,
-        `UR  - ${url}`,
-        'ER  - ',
-      ].join('\n');
-  }
 }
 
 export default function ArticleDetailPage() {
@@ -102,7 +47,6 @@ export default function ArticleDetailPage() {
   const [loading, setLoading] = useState(true);
   const [failed,  setFailed]  = useState(false);
 
-  const [cite,   setCite]   = useState<CiteKey>('GOST');
   const [copied, setCopied] = useState<string | null>(null);
   const [active, setActive] = useState('annotatsiya');
 
@@ -112,7 +56,14 @@ export default function ArticleDetailPage() {
     articlesApi.detail(slug)
       .then(d => { setArticle(d); setLoading(false); })
       .catch(() => { setFailed(true); setLoading(false); });
-    articlesApi.related(slug).then(setRelated).catch(() => setRelated([]));
+    // O'xshash maqolalar: kalit so'z bo'yicha topilmasa, so'nggilaridan olamiz
+    articlesApi.related(slug)
+      .then(rs => {
+        if (rs.length) { setRelated(rs); return; }
+        return articlesApi.list({ page_size: '4' })
+          .then(d => setRelated(d.results.filter(x => x.slug !== slug).slice(0, 3)));
+      })
+      .catch(() => setRelated([]));
     window.scrollTo({ top: 0 });
   }, [slug]);
 
@@ -135,6 +86,18 @@ export default function ArticleDetailPage() {
   }, [article]);
 
   const refs = useMemo(() => splitRefs(article?.references ?? ''), [article]);
+
+  // Annotatsiya: excerpt bo'sh bo'lsa maqola matnining boshidan olamiz
+  const abstract = useMemo(() => {
+    if (!article) return '';
+    if (article.excerpt?.trim()) return article.excerpt.trim();
+    const plain = (article.content || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (plain.length < 80) return '';
+    return plain.slice(0, 520) + (plain.length > 520 ? '…' : '');
+  }, [article]);
   const refsWithDoi = refs.filter(r => DOI_RE.test(r)).length;
 
   function copy(text: string, tag: string) {
@@ -174,7 +137,8 @@ export default function ArticleDetailPage() {
   }
 
   const a = article;
-  const fileUrl = a.source_file_url;
+  // Mixed Content'dan himoya: HTTPS sahifada http:// fayl bloklanadi
+  const fileUrl = mediaUrl(a.source_file_url);
   const issue = a.issue;
 
   return (
@@ -238,21 +202,19 @@ export default function ArticleDetailPage() {
             </div>
           )}
 
-          <div className="detail-meta">
-            <MetaCell k="Jurnal" v={issue?.journal_title ?? 'Kutubxona'} />
-            <MetaCell k="Yil / son" v={issue ? `${issue.year} · № ${issue.number}` : String(a.year)} />
-            <MetaCell k="Sahifalar" v={a.pages > 0 ? `${a.pages} bet` : '—'} />
-            <MetaCell k="O‘qish" v={a.min_read ? `${a.min_read} daqiqa` : '—'} />
-            <MetaCell k="Nashr etildi" v={issue?.date_label || a.published_at || '—'} />
-            <MetaCell k="Yo‘nalish" v={a.category?.name ?? '—'} />
-            <MetaCell k="Iqtiboslar" v={String(a.cites)} />
-            <MetaCell k="Statistika" v={`${a.views.toLocaleString()} ko‘rish`} />
-          </div>
+          <MetaGrid cells={[
+            ['Jurnal',       issue?.journal_title ?? 'Kutubxona'],
+            ['Yil / son',    issue ? `${issue.year} · № ${issue.number}` : String(a.year)],
+            ['Sahifalar',    a.pages > 0 ? `${a.pages} bet` : ''],
+            ['Nashr etildi', issue?.date_label || a.published_at || ''],
+            ['Yo‘nalish',    a.category?.name ?? ''],
+            ['Statistika',   `${a.views.toLocaleString()} ko‘rish`],
+          ]} />
 
-          {a.excerpt && (
+          {abstract && (
             <section id="annotatsiya" className="detail-section">
               <SectionHead title="Annotatsiya" />
-              <p className="detail-abstract">{a.excerpt}</p>
+              <p className="detail-abstract">{abstract}</p>
             </section>
           )}
 
@@ -282,39 +244,6 @@ export default function ArticleDetailPage() {
                   : <div className="state-box">Fayl mavjud emas.</div>}
             </section>
           )}
-
-          <section id="iqtibos" className="detail-section">
-            <SectionHead title="Iqtibos keltirish" right="5 format · har biri nusxalanadi" />
-
-            <div className="cite-tabs">
-              {CITE_KEYS.map(k => (
-                <button key={k} className={cite === k ? 'active' : ''} onClick={() => setCite(k)}>{k}</button>
-              ))}
-            </div>
-
-            <div className="cite-box">
-              <pre className="cite-text">{buildCitation(a, cite)}</pre>
-              <div className="cite-foot">
-                <span className="meta">{cite} uslubi</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn ghost sm" onClick={() => {
-                    const blob = new Blob([buildCitation(a, cite)], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const el = document.createElement('a');
-                    el.href = url;
-                    el.download = `${a.slug}.${cite === 'BibTeX' ? 'bib' : cite === 'RIS' ? 'ris' : 'txt'}`;
-                    el.click();
-                    URL.revokeObjectURL(url);
-                  }}>
-                    Fayl sifatida yuklash
-                  </button>
-                  <button className="btn primary sm" onClick={() => copy(buildCitation(a, cite), 'cite')}>
-                    {copied === 'cite' ? 'Nusxalandi ✓' : 'Nusxalash'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {refs.length > 0 && (
             <section id="adabiyot" className="detail-section">
@@ -381,16 +310,13 @@ export default function ArticleDetailPage() {
               <div className="meta" style={{ padding: '6px 0 10px' }}>Fayl biriktirilmagan</div>
             )}
 
-            <div className="dl-row">
-              <button className="btn ghost sm" onClick={() => jump('iqtibos')}>Iqtibos</button>
-              <button className="btn ghost sm" onClick={() => copy(window.location.href, 'link')}>
-                {copied === 'link' ? 'Nusxalandi ✓' : 'Ulashish'}
-              </button>
-            </div>
+            <button className="btn ghost sm" style={{ width: '100%' }}
+              onClick={() => copy(window.location.href, 'link')}>
+              {copied === 'link' ? 'Nusxalandi ✓' : 'Ulashish'}
+            </button>
 
             <div className="dl-stats meta">
               <span>{a.views.toLocaleString()} ko‘rish</span>
-              <span>{a.cites} iqtibos</span>
             </div>
           </div>
 
@@ -443,11 +369,29 @@ function SectionHead({ title, right }: { title: string; right?: string }) {
   );
 }
 
-function MetaCell({ k, v }: { k: string; v: string }) {
+/**
+ * Meta jadval — bo'sh qiymatli kataklar tushib qoladi, oxirgi qatorda
+ * bo'shliq qolmasligi uchun so'nggi katak qolgan ustunlarni egallaydi.
+ */
+function MetaGrid({ cells }: { cells: [string, string][] }) {
+  const filled = cells.filter(([, v]) => v && v !== '—');
+  if (filled.length === 0) return null;
+
+  const cols = Math.min(4, filled.length);
+  const rest = filled.length % cols;          // oxirgi qatordagi kataklar soni
+
   return (
-    <div className="meta-cell">
-      <span className="meta-cell-k">{k}</span>
-      <span className="meta-cell-v">{v}</span>
+    <div className="detail-meta" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {filled.map(([k, v], i) => {
+        const isLast = i === filled.length - 1;
+        const span = isLast && rest !== 0 ? cols - rest + 1 : 1;
+        return (
+          <div key={k} className="meta-cell" style={span > 1 ? { gridColumn: `span ${span}` } : undefined}>
+            <span className="meta-cell-k">{k}</span>
+            <span className="meta-cell-v">{v}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

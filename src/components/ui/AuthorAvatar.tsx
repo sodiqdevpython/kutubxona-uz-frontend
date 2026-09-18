@@ -1,5 +1,11 @@
+/**
+ * Muallif avatari — Figma: och doira ichida serif bosh harflar.
+ * Har uchinchi muallif to'q sariq halqada, qolganlari kulrang.
+ */
 const VARIANTS = [
-  '#0A192F', '#1B3358', '#2B4670', '#5E7595', '#102441',
+  { bg: 'var(--accent-08)', border: 'var(--accent)', color: 'var(--accent)' },
+  { bg: 'var(--grey-2)',    border: 'var(--line-2)', color: 'var(--ink-2)'  },
+  { bg: 'var(--grey-2)',    border: 'var(--line-2)', color: 'var(--ink-2)'  },
 ];
 
 interface Props {
@@ -16,8 +22,9 @@ interface Props {
 }
 
 export default function AuthorAvatar({ name = '?', size = 32, idx = 0, src, alt }: Props) {
-  const bg = VARIANTS[idx % VARIANTS.length];
-  const fontSize = size <= 22 ? 9 : size <= 28 ? 10 : size <= 36 ? 12 : size <= 52 ? 14 : 20;
+  const v = VARIANTS[idx % VARIANTS.length];
+  const fontSize = size <= 22 ? 9 : size <= 28 ? 10.5 : size <= 36 ? 12.5 : size <= 56 ? 17 : 28;
+  const border = size <= 28 ? 1 : 1.5;
 
   if (src) {
     return (
@@ -28,14 +35,20 @@ export default function AuthorAvatar({ name = '?', size = 32, idx = 0, src, alt 
         className="avatar"
         style={{
           width: size, height: size, borderRadius: '50%',
-          objectFit: 'cover', flexShrink: 0, background: bg,
+          objectFit: 'cover', flexShrink: 0, background: v.bg,
+          border: `${border}px solid ${v.border}`, boxSizing: 'border-box',
         }}
       />
     );
   }
 
   return (
-    <div className="avatar" style={{ width: size, height: size, background: bg, fontSize }}>
+    <div className="avatar" style={{
+      width: size, height: size, fontSize,
+      background: v.bg, color: v.color,
+      border: `${border}px solid ${v.border}`, boxSizing: 'border-box',
+      fontFamily: 'var(--serif)', fontWeight: 600, letterSpacing: '.01em',
+    }}>
       {name}
     </div>
   );

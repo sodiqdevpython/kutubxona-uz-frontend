@@ -1,77 +1,40 @@
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
-import { ArrowIcon, ChevIcon, DocIcon } from '../components/ui/Icons';
 import { useFetch } from '../lib/hooks';
-import type { ApiYearGroup, ApiIssue } from '../lib/api';
+import type { ApiYearGroup, ApiIssue, ApiCategory } from '../lib/api';
+import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
 
+/**
+ * Jurnal arxivi — Figma «Jurnal arxivi» freymi.
+ * Chapda yillar ustuni + «Jami» kartasi, o'ngda yil bo'yicha guruhlangan sonlar.
+ */
+
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const VISIBLE_YEARS = 4;   // Figma: dastlab 4 yil, qolgani tugma bilan ochiladi
 
-// ── IssueCard ─────────────────────────────────────────────────────────────────
-
-function IssueCard({ iss, year }: { iss: ApiIssue; year: number }) {
-  const navigate = useNavigate();
+function IssueCard({ i }: { i: ApiIssue }) {
+  const cover = mediaUrl(i.cover_image_url);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, cursor: iss.is_upcoming ? 'default' : 'pointer', opacity: iss.is_upcoming ? 0.55 : 1 }}
-      onClick={() => !iss.is_upcoming && navigate(`/archive/${iss.id}`)}>
-      <div style={{
-        height: 300, display: 'grid', placeItems: 'center',
-        background: iss.is_upcoming
-          ? 'repeating-linear-gradient(135deg,var(--grey-2),var(--grey-2) 8px,var(--grey-3) 8px,var(--grey-3) 16px)'
-          : 'var(--grey-1)',
-        borderRadius: 8, padding: '24px 0', position: 'relative', overflow: 'hidden',
-      }} className={iss.is_upcoming ? '' : 'cover-hover'}>
-        {!iss.is_upcoming && (
-          iss.cover_image_url ? (
-            <img src={iss.cover_image_url} alt="Jurnal muqovasi"
-              style={{ width: 180, height: 240, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
-          ) : (
-            <JournalCover
-              title="Kutubxona Arxivi"
-              vol={`Vol. ${iss.volume}`}
-              year={year}
-              n={iss.number}
-              palette={iss.palette}
-              w={180}
-              h={240}
-            />
-          )
-        )}
-        {iss.is_upcoming && (
-          <div style={{ background: 'var(--paper)', border: '1px dashed var(--line-2)', borderRadius: 6, padding: '10px 14px', fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 600, letterSpacing: 0.2, textTransform: 'uppercase' }}>
-            Tayyorlanmoqda
-          </div>
-        )}
-        {iss.pdf_file_url && !iss.is_upcoming && (
-          <span style={{ position: 'absolute', top: 14, left: 14, fontSize: 10, padding: '4px 8px', borderRadius: 3, background: 'var(--paper)', color: 'var(--navy)', fontWeight: 600, letterSpacing: 0.15, textTransform: 'uppercase', border: '1px solid var(--line)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <DocIcon size={10} /> PDF
-          </span>
-        )}
-        {iss.is_current && (
-          <span style={{ position: 'absolute', top: 14, right: 14, fontSize: 10.5, padding: '4px 8px', borderRadius: 3, background: 'var(--navy)', color: 'white', fontWeight: 600, letterSpacing: 0.15, textTransform: 'uppercase' }}>
-            Joriy
-          </span>
-        )}
-      </div>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
-          <div style={{ fontFamily: 'var(--serif)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-            {iss.date_label}
-          </div>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)' }}>№{iss.number}</span>
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span>{iss.season}</span>
-          {!iss.is_upcoming && (
-            <>
-              <span style={{ color: 'var(--ink-4)' }}>·</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <DocIcon size={11} /> {iss.article_count} maqola
-              </span>
-            </>
+    <div className="ic">
+      <Link to={`/archive/${i.id}`} className="ic-cover">
+        {cover ? <img src={cover} alt="" /> : <JournalCover palette={i.palette} />}
+      </Link>
+      <div className="ic-body">
+        <Link to={`/archive/${i.id}`} className="ic-title">
+          № {i.number}{i.season ? ` · ${i.season}` : ''}
+        </Link>
+        <div className="meta">{i.date_label || i.year}</div>
+        <div className="ic-count">{i.article_count} maqola</div>
+        <div className="ic-actions">
+          <Link to={`/archive/${i.id}`} className="ic-btn">Mundarija</Link>
+          {i.pdf_file_url && (
+            <a href={mediaUrl(i.pdf_file_url) ?? undefined} target="_blank" rel="noreferrer"
+              className="ic-btn ic-btn-pdf">PDF</a>
           )}
         </div>
       </div>
@@ -79,106 +42,157 @@ function IssueCard({ iss, year }: { iss: ApiIssue; year: number }) {
   );
 }
 
-// ── YearGroupSection ──────────────────────────────────────────────────────────
-
-function YearGroupSection({ g }: { g: ApiYearGroup }) {
-  const published     = g.issues.filter(i => !i.is_upcoming);
-  const totalArticles = published.reduce((s, i) => s + i.article_count, 0);
-  const note          = published.length > 0
-    ? `${published.length} son · ${totalArticles} ta maqola`
-    : 'Rejalashtirilgan';
-
+/** Tayyorlanayotgan son yoki nashr tanaffusi uchun nuqtali karta */
+function NoteCard({ title, text }: { title: string; text: string }) {
   return (
-    <section>
-      <header style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--line)' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 18 }}>
-          <h2 className="h-display year-num-rsp" style={{ fontSize: 72, letterSpacing: '-0.04em', lineHeight: 0.9, fontWeight: 700, color: 'var(--navy)' }}>{g.year}</h2>
-          <div>
-            <div className="eyebrow" style={{ fontSize: 10.5 }}>Yillik to'plam</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4 }}>{note}</div>
-          </div>
-        </div>
-        <a className="link-arrow" style={{ fontSize: 13, color: 'var(--navy)', fontWeight: 600, cursor: 'pointer' }}>
-          {g.year} yillik hisobot <ArrowIcon size={12} />
-        </a>
-      </header>
-      <div className="rsp-issues">
-        {g.issues.map(iss => <IssueCard key={iss.id} iss={iss} year={g.year} />)}
-      </div>
-    </section>
+    <div className="ic ic-note">
+      <div className="eyebrow" style={{ marginBottom: 10 }}>{title}</div>
+      <p>{text}</p>
+    </div>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function ArchivePage() {
-  const state = useFetch<ApiYearGroup[]>(`${BASE}/api/issues/archive/`);
+  const archState = useFetch<ApiYearGroup[]>(`${BASE}/api/issues/archive/`);
+  const catState  = useFetch<ApiCategory[]>(`${BASE}/api/categories/`);
 
-  const groups         = state.status === 'ok' ? state.data : [];
-  const totalArticles  = groups.flatMap(g => g.issues).reduce((s, i) => s + i.article_count, 0);
-  const totalIssues    = groups.flatMap(g => g.issues).filter(i => !i.is_upcoming).length;
-  const minYear        = groups.length > 0 ? groups[groups.length - 1].year : 1962;
-  const maxYear        = groups.length > 0 ? groups[0].year                 : new Date().getFullYear();
+  const groups     = archState.status === 'ok' ? archState.data : [];
+  const categories = catState.status  === 'ok' ? catState.data  : [];
+
+  const [showAll, setShowAll] = useState(false);
+  const [activeYear, setActiveYear] = useState<number | null>(null);
+
+  const allIssues  = useMemo(() => groups.flatMap(g => g.issues), [groups]);
+  const totalArts  = allIssues.reduce((n, i) => n + i.article_count, 0);
+  const published  = allIssues.filter(i => !i.is_upcoming);
+  const yearMin    = groups.length ? groups[groups.length - 1].year : null;
+  const currentYear = groups[0]?.year ?? null;
+
+  const visible = showAll ? groups : groups.slice(0, VISIBLE_YEARS);
+  const hidden  = groups.length - visible.length;
+  const hiddenRange = hidden > 0
+    ? `${groups[groups.length - 1].year}–${groups[VISIBLE_YEARS].year}`
+    : '';
+
+  function jumpYear(y: number) {
+    setActiveYear(y);
+    if (groups.findIndex(g => g.year === y) >= VISIBLE_YEARS) setShowAll(true);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`year-${y}`);
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 140, behavior: 'smooth' });
+    });
+  }
 
   return (
     <div className="bg-archive" style={{ minHeight: '100vh' }}>
-      <Seo title="Jurnal arxivi" description="Kutubxona Arxivi jurnalining barcha sonlari — yil va chorak bo'yicha." />
+      <Seo title="Jurnal arxivi" description="Jurnalning barcha sonlari — muqova, mundarija va to'liq PDF." />
       <PageLoadBar />
       <Topbar active="archive" />
 
-      <div style={{ padding: '40px var(--px) 28px', maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, fontSize: 12.5, color: 'var(--ink-3)' }}>
-          <a style={{ color: 'var(--ink-3)', cursor: 'pointer' }}>Bosh sahifa</a>
-          <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Jurnal arxivi</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between' }}>
+      <div className="wrap" style={{ paddingTop: 30 }}>
+        <nav className="crumbs">
+          <Link to="/">Bosh sahifa</Link><span>/</span>
+          <span className="cur">Jurnal arxivi</span>
+        </nav>
+
+        <div className="page-head">
           <div>
-            <h1 className="h-display h1-rsp" style={{ fontSize: 48, marginBottom: 10 }}>Jurnal arxivi</h1>
-            <p style={{ fontSize: 14.5, color: 'var(--ink-3)', maxWidth: 680, lineHeight: 1.6 }}>
-              «Kutubxona Arxivi» jurnalining barcha sonlari. Har bir son chorak yakuniga ko'ra alohida muqovada saqlanadi.
+            <h1 className="h-display page-title">Jurnal arxivi</h1>
+            <p className="page-sub">
+              {archState.status === 'ok'
+                ? `${yearMin ?? ''}-yildan bugungacha chiqqan ${published.length} son. Har sonda muqova, mundarija va to‘liq PDF.`
+                : '…'}
             </p>
           </div>
-          <div className="arch-ctrl-hide" style={{ display: 'flex', gap: 8 }}>
-            <div className="field" style={{ minWidth: 160 }}>
-              <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>Yo'nalish:</span>
-              <span style={{ color: 'var(--ink)', fontWeight: 600, marginLeft: 'auto' }}>Barchasi</span>
-              <ChevIcon />
-            </div>
-          </div>
-        </div>
 
-        {/* Stats strip */}
-        <div className="rsp-stats-4" style={{ marginTop: 32 }}>
-          {[
-            [groups.length > 0 ? `${maxYear - minYear + 1}` : '—', `Yil · ${minYear}→${maxYear}`],
-            [totalIssues > 0   ? totalIssues.toLocaleString()   : '—', 'Jami sonlar'],
-            [totalArticles > 0 ? totalArticles.toLocaleString() : '—', 'Maqolalar'],
-          ].map(([k, v], i) => (
-            <div key={i} style={{ background: 'var(--paper)', padding: '18px 22px' }}>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: 26, letterSpacing: '-0.02em', color: 'var(--navy)', fontWeight: 600 }}>{k}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4, letterSpacing: 0.2, textTransform: 'uppercase', fontWeight: 600 }}>{v}</div>
+          {/* Yo'nalish chiplari — Figma'da o'ng tepada */}
+          {categories.length > 0 && (
+            <div className="page-head-ctrl" style={{ alignItems: 'flex-start' }}>
+              <span className="page-head-lbl" style={{ paddingTop: 8 }}>Yo‘nalish</span>
+              <div className="chip-wrap">
+                <Link to="/articles" className="chip active">
+                  Barchasi <span className="count">{published.length}</span>
+                </Link>
+                {categories.slice(0, 3).map(c => (
+                  <Link key={c.id} to="/articles" className="chip">
+                    {c.name} <span className="count">{c.article_count}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
-      <div style={{ padding: '24px var(--px) 64px', maxWidth: 1400, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 56 }}>
-        {state.status === 'loading' && (
-          <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
-        )}
-        {state.status === 'error' && (
-          <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 13 }}>
-            Arxivni yuklashda xatolik.
+      <div className="wrap archive-grid">
+        {/* ── Chap: yillar ── */}
+        <aside className="years-col rsp-hide">
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Yillar</div>
+          <div className="years-list">
+            {groups.map(g => (
+              <button key={g.year} onClick={() => jumpYear(g.year)}
+                className={activeYear === g.year || (activeYear === null && g.year === currentYear) ? 'active' : ''}>
+                <span>{g.year}</span>
+                <span className="meta">{g.issues.length} son</span>
+              </button>
+            ))}
           </div>
-        )}
-        {state.status === 'ok' && groups.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 13 }}>
-            Hali jurnal sonlari qo'shilmagan.
+
+          <div className="side-card" style={{ marginTop: 16 }}>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Jami</div>
+            <div className="h-display" style={{ fontSize: 24, marginBottom: 4 }}>
+              {published.length} son
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+              {totalArts} maqola · {groups.length} yil
+            </div>
           </div>
-        )}
-        {groups.map(g => <YearGroupSection key={g.year} g={g} />)}
+        </aside>
+
+        {/* ── O'ng: yillar bo'yicha sonlar ── */}
+        <div>
+          {archState.status === 'loading' && <div className="state-box">Yuklanmoqda…</div>}
+          {archState.status === 'error'   && <div className="state-box">Xatolik yuz berdi.</div>}
+
+          {visible.map(g => {
+            const arts = g.issues.reduce((n, i) => n + i.article_count, 0);
+            const isCurrent = g.year === currentYear;
+            return (
+              <section key={g.year} id={`year-${g.year}`} className="year-block">
+                <div className="year-head">
+                  <h2 className="h-display">{g.year}</h2>
+                  <span className="meta">{g.issues.length} son · {arts} maqola</span>
+                  <span className="rule" />
+                  {isCurrent && <span className="meta">joriy yil</span>}
+                </div>
+
+                <div className="issue-row">
+                  {g.issues.map(i =>
+                    i.is_upcoming
+                      ? <NoteCard key={i.id} title={`№ ${i.number} tayyorlanmoqda`}
+                          text="Kelgusi son uchun maqola qabuli ochiq." />
+                      : <IssueCard key={i.id} i={i} />
+                  )}
+                  {/* Yilda faqat 1 son bo'lsa — Figma'dagidek izoh kartasi */}
+                  {g.issues.length === 1 && !isCurrent && (
+                    <NoteCard title="Nashr tanaffusi"
+                      text="Bu yilda faqat bitta son chiqqan — tahririyat almashuvi davri." />
+                  )}
+                </div>
+              </section>
+            );
+          })}
+
+          {hidden > 0 && (
+            <div style={{ textAlign: 'center', paddingTop: 8 }}>
+              <button className="btn ghost" onClick={() => setShowAll(true)}>
+                {hiddenRange} yillarni ko‘rsatish · {groups.slice(VISIBLE_YEARS).reduce((n, g) => n + g.issues.length, 0)} son
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
       <Footer />
     </div>
   );

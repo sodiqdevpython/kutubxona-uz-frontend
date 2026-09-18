@@ -1,151 +1,200 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
-import LoadMoreButton from '../components/ui/LoadMoreButton';
-import { SearchIcon, SortIcon, ChevIcon, PinIcon, ArrowIcon } from '../components/ui/Icons';
-import { useFetch } from '../lib/hooks';
+import Pagination from '../components/ui/Pagination';
+import { SearchIcon } from '../components/ui/Icons';
 import type { ApiAuthor, PaginatedResponse } from '../lib/api';
+import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+/**
+ * Mualliflar — Figma «Mualliflar» freymi.
+ * Alifbo bo'yicha guruhlangan kartalar, tashkilot chiplari, raqamli sahifalash.
+ * Ro'yxat kichik (yuzlab), shuning uchun hammasi bir marta yuklanib
+ * saralash/qidiruv/guruhlash brauzerda bajariladi.
+ */
 
-function AuthorCard({ a }: { a: ApiAuthor }) {
-  const navigate = useNavigate();
-  return (
-    <div className="card-hover" onClick={() => navigate(`/authors/${a.slug}`)}
-      style={{
-        background: 'var(--paper)', border: '1px solid var(--line)',
-        borderRadius: 12, padding: '22px 22px 18px',
-        cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
+const BASE     = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+const PER_PAGE = 18;
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        {a.avatar_url
-          ? <img src={a.avatar_url} alt={a.name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-          : <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={52} />}
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--serif)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>{a.name}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.4 }}>{a.role}</div>
-        </div>
-      </div>
+type SortKey = 'abc' | 'count' | 'views';
+const SORT: Record<SortKey, string> = { abc: 'Alifbo', count: 'Maqolalar soni', views: 'Ko‘rishlar' };
 
-      <div style={{ fontSize: 11.5, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 14, borderBottom: '1px solid var(--line)' }}>
-        <PinIcon size={11} style={{ color: 'var(--navy-50)', flexShrink: 0 }} />
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.org}</span>
-      </div>
+type OrgKey = 'all' | 'national' | 'regional' | 'edu' | 'foreign';
+const ORG: Record<OrgKey, string> = {
+  all: 'Barchasi', national: 'Milliy kutubxona', regional: 'Viloyat markazlari', edu: 'Oliy ta‘lim', foreign: 'Xorijiy',
+};
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)' }}>
-        {[
-          [a.article_count.toLocaleString(), 'maqola'],
-          [a.total_views >= 1000 ? `${(a.total_views / 1000).toFixed(1)}k` : String(a.total_views), "ko'rish"],
-        ].map(([v, k], i) => (
-          <div key={i} style={{ textAlign: 'center', borderRight: i < 1 ? '1px solid var(--line)' : 'none', padding: '2px 0' }}>
-            <div style={{ fontFamily: 'var(--serif)', fontSize: 17, color: 'var(--ink)', fontWeight: 600, letterSpacing: '-0.01em' }}>{v}</div>
-            <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 1, letterSpacing: 0.15, textTransform: 'uppercase', fontWeight: 600 }}>{k}</div>
-          </div>
-        ))}
-      </div>
+/** Tashkilot nomidan turini aniqlash (Figma'dagi 4 guruh). */
+function orgKind(org: string): Exclude<OrgKey, 'all'> | null {
+  const s = org.toLowerCase();
+  if (!s) return null;
+  if (/milliy kutubxona|национальн(ая|ой) библиотек/.test(s)) return 'national';
+  if (/viloyat|axborot-kutubxona markazi|областн|shahar/.test(s)) return 'regional';
+  if (/universitet|institut|akademiya|universit|institute|academy|университет|институт|академи/.test(s)) return 'edu';
+  if (/[а-яё]/.test(s) || /russia|kazakh|kyrgyz|tajik|turkmen|international|library of/i.test(s)) return 'foreign';
+  return null;
+}
 
-      <button className="btn ghost" style={{ height: 32, fontSize: 12, justifyContent: 'center', marginTop: 'auto' }}>
-        Profilni ochish <ArrowIcon size={12} />
-      </button>
-    </div>
-  );
+/** Sort qilingan ro'yxatni «A», «D — H» kabi harf oraliqlariga bo'lish. */
+function groupByLetter(list: ApiAuthor[]): { label: string; items: ApiAuthor[] }[] {
+  const groups: { first: string; last: string; items: ApiAuthor[] }[] = [];
+  for (const a of list) {
+    const L = (a.name.trim()[0] || '#').toUpperCase();
+    const g = groups[groups.length - 1];
+    if (g && (g.last === L || g.items.length < 4)) { g.items.push(a); g.last = L; }
+    else groups.push({ first: L, last: L, items: [a] });
+  }
+  // oxirgi guruh juda kichik bo'lsa oldingisiga qo'shamiz
+  if (groups.length > 1 && groups[groups.length - 1].items.length < 2) {
+    const last = groups.pop()!;
+    const g = groups[groups.length - 1];
+    g.items.push(...last.items); g.last = last.last;
+  }
+  return groups.map(g => ({ label: g.first === g.last ? g.first : `${g.first} — ${g.last}`, items: g.items }));
+}
+
+async function fetchAll(): Promise<ApiAuthor[]> {
+  const out: ApiAuthor[] = [];
+  let url: string | null = `${BASE}/api/authors/?page_size=100`;
+  while (url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(String(r.status));
+    const d: PaginatedResponse<ApiAuthor> = await r.json();
+    out.push(...d.results);
+    url = d.next;
+  }
+  return out;
 }
 
 export default function AuthorsPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [debouncedQ, setDebouncedQ] = useState('');
+  const [all, setAll]       = useState<ApiAuthor[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [q, setQ]           = useState('');
+  const [sort, setSort]     = useState<SortKey>('abc');
+  const [org, setOrg]       = useState<OrgKey>('all');
   const [page, setPage]     = useState(1);
 
-  useEffect(() => {
-    const t = setTimeout(() => { setDebouncedQ(search); setPage(1); }, 350);
-    return () => clearTimeout(t);
-  }, [search]);
+  useEffect(() => { fetchAll().then(setAll).catch(() => setFailed(true)); }, []);
+  useEffect(() => { setPage(1); }, [q, sort, org]);
 
-  const url = useMemo(() => {
-    const p = new URLSearchParams();
-    if (debouncedQ.trim()) p.set('search', debouncedQ.trim());
-    p.set('page', String(page));
-    return `${BASE}/api/authors/?${p.toString()}`;
-  }, [debouncedQ, page]);
+  const orgCounts = useMemo(() => {
+    const c: Record<OrgKey, number> = { all: all?.length ?? 0, national: 0, regional: 0, edu: 0, foreign: 0 };
+    for (const a of all ?? []) { const k = orgKind(a.org); if (k) c[k]++; }
+    return c;
+  }, [all]);
+  const orgTotal = useMemo(() => new Set((all ?? []).map(a => a.org).filter(Boolean)).size, [all]);
 
-  const state = useFetch<PaginatedResponse<ApiAuthor>>(url);
-  const authors    = state.status === 'ok' ? state.data.results : [];
-  const totalCount = state.status === 'ok' ? state.data.count   : 0;
-  const hasMore    = state.status === 'ok' ? !!state.data.next  : false;
+  const filtered = useMemo(() => {
+    let list = all ?? [];
+    const s = q.trim().toLowerCase();
+    if (s) list = list.filter(a => `${a.name} ${a.org} ${a.role}`.toLowerCase().includes(s));
+    if (org !== 'all') list = list.filter(a => orgKind(a.org) === org);
+    const by: Record<SortKey, (x: ApiAuthor, y: ApiAuthor) => number> = {
+      abc:   (x, y) => x.name.localeCompare(y.name, 'uz'),
+      count: (x, y) => y.article_count - x.article_count || x.name.localeCompare(y.name, 'uz'),
+      views: (x, y) => y.total_views - x.total_views || x.name.localeCompare(y.name, 'uz'),
+    };
+    return [...list].sort(by[sort]);
+  }, [all, q, org, sort]);
+
+  const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const groups = sort === 'abc' ? groupByLetter(pageItems) : [{ label: '', items: pageItems }];
+  const from = filtered.length ? (page - 1) * PER_PAGE + 1 : 0;
+  const to   = Math.min(page * PER_PAGE, filtered.length);
 
   return (
     <div className="bg-authors" style={{ minHeight: '100vh' }}>
-      <Seo title="Mualliflar" description="Kutubxona Archive mualliflari — ilmiy maqolalar e'lon qilgan tadqiqotchilar." />
+      <Seo title="Mualliflar" description="Kutubxona.uz jurnali mualliflari — kutubxonachilar, arxivchilar, tadqiqotchilar." />
       <PageLoadBar />
       <Topbar active="authors" />
 
-      <div style={{ padding: '48px var(--px) 32px', maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, fontSize: 12.5, color: 'var(--ink-3)' }}>
-          <a onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Bosh sahifa</a>
-          <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Mualliflar</span>
+      <div className="wrap" style={{ paddingTop: 30, paddingBottom: 72 }}>
+        <nav className="crumbs">
+          <Link to="/">Bosh sahifa</Link><span>/</span>
+          <span className="cur">Mualliflar</span>
+        </nav>
+
+        <div className="page-head">
+          <div>
+            <h1 className="h-display page-title">Mualliflar</h1>
+            <p className="page-sub">
+              {all ? `${all.length} muallif · ${orgTotal} tashkilot · 2019-yildan beri` : 'Yuklanmoqda…'}
+            </p>
+          </div>
+          <div className="page-head-ctrl">
+            <div className="searchbar au-search">
+              <SearchIcon size={15} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Ism yoki ish joyi bo‘yicha" />
+              {q && <button className="searchbar-x" onClick={() => setQ('')}>×</button>}
+            </div>
+            <div className="segment">
+              {(Object.keys(SORT) as SortKey[]).map(k => (
+                <button key={k} className={sort === k ? 'active' : ''} onClick={() => setSort(k)}>{SORT[k]}</button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <h1 className="h-display h1-rsp" style={{ fontSize: 52, marginBottom: 14 }}>Platforma mualliflari</h1>
-        <p style={{ fontSize: 15, color: 'var(--ink-3)', maxWidth: 680, lineHeight: 1.6, marginBottom: 28 }}>
-          Kutubxona Archive da nashr qilinayotgan
-          {totalCount > 0 ? ` ${totalCount.toLocaleString()} ta` : ''} muallif — kutubxonachilar,
-          arxivchilar, sharqshunoslar, tarixchilar va doktorantlar.
-        </p>
+        {/* Tashkilot chiplari */}
+        <div className="filter-row" style={{ marginBottom: 28 }}>
+          <span className="page-head-lbl">Tashkilot</span>
+          {(Object.keys(ORG) as OrgKey[]).map(k => (
+            <button key={k} className={`chip${org === k ? ' active' : ''}`} onClick={() => setOrg(k)}>
+              {ORG[k]} <span className="count">{orgCounts[k]}</span>
+            </button>
+          ))}
+        </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', maxWidth: 780, flexWrap: 'wrap' }}>
-          <div className="searchbar" style={{ flex: 1, height: 48, minWidth: 'auto' }}>
-            <SearchIcon size={18} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Ism, ish joyi yoki yo'nalish bo'yicha qidirish…"
-              style={{ fontSize: 14 }}
-            />
-            {search && (
-              <button onClick={() => setSearch('')} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', padding: '0 4px', fontSize: 16, lineHeight: 1 }}>×</button>
+        {failed && <div className="state-box">Mualliflarni yuklashda xatolik.</div>}
+        {!all && !failed && <div className="state-box">Yuklanmoqda…</div>}
+        {all && filtered.length === 0 && <div className="state-box">Mualliflar topilmadi.</div>}
+
+        {groups.map(g => (
+          <section key={g.label || 'flat'} className="au-group">
+            {g.label && (
+              <div className="au-group-head">
+                <span className="au-group-letter h-display">{g.label}</span>
+                <span className="rule" />
+                <span className="meta">{g.items.length} muallif</span>
+              </div>
             )}
+            <div className="au-cards">
+              {g.items.map(a => (
+                <article key={a.id} className="au-card" onClick={() => navigate(`/authors/${a.slug}`)}>
+                  <AuthorAvatar name={a.initials} idx={a.avatar_idx} src={mediaUrl(a.avatar_url)} alt={a.name} size={54} />
+                  <div style={{ minWidth: 0 }}>
+                    <div className="au-card-name">{a.name}</div>
+                    <div className="au-card-org">
+                      {[a.org, a.role].filter(Boolean).join(' · ') || 'Tashkilot ko‘rsatilmagan'}
+                    </div>
+                    <div className="au-card-meta">
+                      <span>{a.article_count} maqola</span>
+                      <span className="dim">{a.total_views.toLocaleString()} ko‘rish</span>
+                      {a.orcid && <span className="orc">ORCID</span>}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {all && filtered.length > 0 && (
+          <div className="pager-bar">
+            <span className="meta">{from}–{to} / {filtered.length} muallif</span>
+            <Pagination total={filtered.length} perPage={PER_PAGE} current={page} label={null} onPageChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+            <span className="page-head-lbl">
+              {sort === 'abc' ? 'Alifbo bo‘yicha guruhlangan' : sort === 'count' ? 'Maqolalar soni bo‘yicha' : 'Ko‘rishlar bo‘yicha'}
+            </span>
           </div>
-          <div className="field" style={{ height: 48, minWidth: 180 }}>
-            <SortIcon size={14} />
-            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Saralash:</span>
-            <span style={{ color: 'var(--ink)', fontWeight: 600, marginLeft: 'auto' }}>Ism bo'yicha</span>
-            <ChevIcon />
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Cards */}
-      {state.status === 'loading' && (
-        <div style={{ padding: '64px var(--px)', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
-      )}
-      {state.status === 'error' && (
-        <div style={{ padding: '64px var(--px)', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Mualliflarni yuklashda xatolik.</div>
-      )}
-      {state.status === 'ok' && (
-        <>
-          <div className="rsp-4" style={{ padding: '8px var(--px) 32px', maxWidth: 1400, margin: '0 auto' }}>
-            {authors.length > 0
-              ? authors.map(a => <AuthorCard key={a.id} a={a} />)
-              : (
-                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 14 }}>
-                  Mualliflar topilmadi.
-                </div>
-              )
-            }
-          </div>
-          {hasMore && (
-            <div style={{ padding: '0 var(--px) 64px', maxWidth: 1400, margin: '0 auto', textAlign: 'center' }}>
-              <LoadMoreButton label="Yana mualliflar yuklash" onClick={() => setPage(p => p + 1)} />
-            </div>
-          )}
-        </>
-      )}
       <Footer />
     </div>
   );

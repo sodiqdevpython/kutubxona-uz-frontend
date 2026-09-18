@@ -60,6 +60,23 @@ export interface ApiAuthor {
   article_count: number;
   total_views: number;
   profile_views: number;
+  orcid: string;
+}
+
+export interface ApiCoauthor {
+  id: string; name: string; slug: string; initials: string;
+  avatar_idx: number; avatar_url: string | null;
+  /** Birgalikdagi maqolalar soni */
+  shared: number;
+}
+
+/** Muallif sahifasi — Figma «Muallif detail» */
+export interface ApiAuthorDetail extends ApiAuthor {
+  email: string;
+  scopus_id: string;
+  categories: string[];
+  years: { year: number; count: number }[];
+  coauthors: ApiCoauthor[];
 }
 
 export interface ApiArticle {
@@ -78,6 +95,9 @@ export interface ApiArticle {
   cites: number;
   views: number;
   img_variant: number;
+  /** Jurnaldagi bet oralig'i (mundarija uchun) */
+  page_start: number | null;
+  page_end: number | null;
   image_url: string | null;
   keywords: string[];
   published_at: string | null;
@@ -119,8 +139,49 @@ export interface ApiIssue {
   is_current: boolean;
   is_upcoming: boolean;
   article_count: number;
+  total_pages: number;
+  views: number;
   journal_id?: string | null;
   journal_title?: string | null;
+}
+
+/** Mundarija qatori (son sahifasi) */
+export interface ApiTocArticle {
+  id: string;
+  title: string;
+  slug: string;
+  authors: string[];
+  page_start: number | null;
+  page_end: number | null;
+  views: number;
+  image_url: string | null;
+}
+
+export interface ApiIssueSection {
+  category: string;
+  page_start: number | null;
+  page_end: number | null;
+  articles: ApiTocArticle[];
+}
+
+export interface ApiIssueNeighbor {
+  id: string;
+  number: number;
+  year: number;
+  is_upcoming: boolean;
+}
+
+/** Son sahifasi — Figma «Jurnal arxiv detail» */
+export interface ApiIssueDetail extends ApiIssue {
+  editorial_note: string;
+  editor_name: string;
+  issn: string;
+  pdf_size: number | null;
+  sections: ApiIssueSection[];
+  categories: { name: string; count: number }[];
+  languages: string[];
+  prev_issue: ApiIssueNeighbor | null;
+  next_issue: ApiIssueNeighbor | null;
 }
 
 export interface ApiYearGroup {
@@ -175,6 +236,13 @@ export interface ApiCentralAsiaPostDetail extends ApiCentralAsiaPost {
   source_slug: string;
 }
 
+export interface ApiCentralAsiaStats {
+  articles: number;
+  authors: number;
+  topics: { name: string; count: number }[];
+  languages: string[];
+}
+
 // ── Articles ──────────────────────────────────────────────────────────────────
 export const articlesApi = {
   list(params?: Record<string, string>) {
@@ -224,7 +292,7 @@ export const archiveApi = {
 // ── Issues ────────────────────────────────────────────────────────────────────
 export const issuesApi = {
   detail(id: string) {
-    return get<ApiIssue>(`/api/issues/${id}/`);
+    return get<ApiIssueDetail>(`/api/issues/${id}/`);
   },
 };
 
@@ -239,6 +307,9 @@ export const journalsApi = {
 export const centralAsiaApi = {
   list(params?: Record<string, string>) {
     return get<PaginatedResponse<ApiCentralAsiaPost>>('/api/central-asia/', params);
+  },
+  stats() {
+    return get<ApiCentralAsiaStats>('/api/central-asia/stats/');
   },
   detail(slug: string) {
     return get<ApiCentralAsiaPostDetail>(`/api/central-asia/${slug}/`);

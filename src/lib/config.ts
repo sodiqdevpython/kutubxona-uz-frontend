@@ -18,12 +18,28 @@ export function wsBase(): string {
 }
 
 /**
+ * HTTPS sahifada http:// havolani https:// ga ko'taradi.
+ *
+ * Backend proksi ortida turganda `build_absolute_uri()` ba'zan http:// li
+ * manzil qaytaradi. Brauzer bunday faylni HTTPS sahifada bloklaydi
+ * («Mixed Content»), natijada PDF ochilmaydi. Shuning uchun mijoz tomonda
+ * ham himoya qo'yamiz — backend to'g'rilanmaguncha ishlab turadi.
+ */
+export function secureUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (typeof window === 'undefined') return url;
+  if (window.location.protocol !== 'https:') return url;
+  return url.replace(/^http:\/\//i, 'https://');
+}
+
+/**
  * Media URL'ni to'liq holga keltiradi.
  * HTTP javoblarda absolyut URL keladi, WebSocket hodisalarida esa nisbiy
  * (`/media/…`) — chunki u yerda `request` konteksti yo'q.
  */
 export function mediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url;
-  return `${apiOrigin()}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  if (/^https?:\/\//i.test(url)) return secureUrl(url);
+  return secureUrl(`${apiOrigin()}${url.startsWith('/') ? '' : '/'}${url}`);
 }

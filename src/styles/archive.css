@@ -1,0 +1,141 @@
+/* ═══════════ JURNAL ARXIVI (Figma: «Jurnal arxivi») ═══════════ */
+
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: 520px; }
+
+.archive-grid {
+  display: grid; grid-template-columns: 172px minmax(0, 1fr);
+  gap: 40px; padding-bottom: 64px; align-items: start;
+}
+.years-col { position: sticky; top: 140px; }
+.years-list { display: flex; flex-direction: column; gap: 8px; }
+.years-list button {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; height: 40px; padding: 0 14px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+  font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--ink);
+  cursor: pointer; transition: border-color .12s, background .12s;
+}
+.years-list button:hover  { border-color: var(--line-2); }
+.years-list button.active { background: var(--accent-08); border-color: var(--accent); }
+
+.year-block { padding-bottom: 36px; }
+.year-head {
+  display: flex; align-items: baseline; gap: 16px;
+  padding-bottom: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--line);
+}
+.year-head h2 { font-size: 34px; margin: 0; }
+.year-head .rule { flex: 1; }
+
+.issue-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+
+/* ── Son kartasi ── */
+.ic {
+  display: flex; gap: 16px;
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); padding: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.ic:hover { border-color: var(--line-2); box-shadow: 0 8px 22px -14px rgba(43,43,43,.3); }
+.ic-cover {
+  width: 86px; flex-shrink: 0; aspect-ratio: 3 / 4;
+  border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--grey-3); border: 1px solid var(--line);
+}
+.ic-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ic-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+.ic-title { font-size: 15px; font-weight: 600; color: var(--ink); text-decoration: none; }
+.ic-title:hover { color: var(--accent); }
+.ic-count { font-size: 13px; color: var(--ink-2); }
+.ic-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+.ic-btn {
+  display: inline-flex; align-items: center; height: 28px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  font-family: var(--sans); font-size: 12.5px; color: var(--ink-2);
+  text-decoration: none; background: var(--paper); white-space: nowrap;
+  transition: border-color .12s, color .12s;
+}
+.ic-btn:hover { border-color: var(--line-2); color: var(--ink); }
+.ic-btn-pdf { color: var(--accent); border-color: var(--accent-40); }
+.ic-btn-pdf:hover { border-color: var(--accent); color: var(--accent); }
+
+.ic-note {
+  flex-direction: column; gap: 0;
+  background: var(--grey-2); border-style: dashed;
+}
+.ic-note p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+
+/* ═══════════ SON SAHIFASI (Figma: «Jurnal arxiv detail») ═══════════ */
+
+.issue-hero {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px;
+  gap: 32px; padding-top: 8px; align-items: start;
+}
+.issue-cover-col { display: flex; flex-direction: column; gap: 12px; }
+.issue-cover-big {
+  aspect-ratio: 3 / 4; border-radius: var(--radius-lg); overflow: hidden;
+  background: var(--grey-3); border: 1px solid var(--line);
+  box-shadow: 0 18px 40px -22px rgba(43,43,43,.45);
+}
+.issue-cover-big img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.issue-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.issue-nav .ic-btn { height: 34px; justify-content: center; }
+
+.issue-title { font-size: 40px; margin: 0 0 4px; line-height: 1.1; }
+.issue-sub { font-family: var(--serif); font-size: 20px; color: var(--ink-2); margin-bottom: 20px; }
+.issue-meta { margin: 0 0 18px; }
+.issue-meta .meta-cell { padding: 12px 14px; }
+
+.editorial {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); padding: 18px 20px;
+}
+.editorial p {
+  margin: 0; font-family: var(--serif); font-size: 15.5px; line-height: 1.7; color: var(--ink);
+}
+.issue-side { position: sticky; top: 140px; }
+
+/* ── Mundarija ── */
+.toc-section { padding-bottom: 26px; }
+.toc-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.toc-section-head .rule { flex: 1; height: 1px; background: var(--line); }
+
+.toc-table {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.toc-row {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr) 190px 60px;
+  gap: 18px; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  text-decoration: none; transition: background .12s;
+}
+.toc-row:last-child { border-bottom: 0; }
+.toc-row:hover { background: var(--grey-1); }
+.toc-thumb {
+  aspect-ratio: 16 / 10; border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--grey-3); border: 1px solid var(--line);
+}
+.toc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.toc-body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.toc-title {
+  font-family: var(--serif); font-size: 15.5px; font-weight: 600; line-height: 1.35; color: var(--ink);
+}
+.toc-row:hover .toc-title { color: var(--accent); }
+.toc-author { font-size: 13px; color: var(--ink-2); }
+.toc-pages { text-align: right; white-space: nowrap; color: var(--ink-2); }
+
+@media (max-width: 1180px) {
+  .issue-hero { grid-template-columns: 240px minmax(0, 1fr); }
+  .issue-side { display: none; }
+  .issue-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .archive-grid { grid-template-columns: 1fr; }
+  .years-col { display: none; }
+  .issue-hero { grid-template-columns: 1fr; }
+  .issue-cover-col { max-width: 260px; }
+  .issue-row { grid-template-columns: 1fr; }
+  .toc-row { grid-template-columns: 72px minmax(0, 1fr); }
+  .toc-author, .toc-pages { grid-column: 2; text-align: left; }
+  .page-title { font-size: 32px; }
+}

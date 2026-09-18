@@ -128,6 +128,29 @@ function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
   );
 }
 
+// ── Yuklanish skeleti (Figma: «Maqolalar loading») ───────────────────────────
+
+function ArticlesSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <div className="art-table" aria-busy="true" aria-label="Yuklanmoqda">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="art-row sk-row">
+          <div className="sk sk-num" />
+          <div className="art-row-body">
+            <div className="sk sk-cat" />
+            <div className="sk sk-title" style={{ width: `${72 + ((i * 7) % 22)}%` }} />
+            <div className="sk sk-author" />
+          </div>
+          <div className="art-row-meta">
+            <div className="sk sk-meta" />
+            <div className="sk sk-meta sk-meta-sm" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Sahifa ───────────────────────────────────────────────────────────────────
 
 export default function ArticlesPage() {
@@ -200,6 +223,24 @@ export default function ArticlesPage() {
   const catItems: [string, number | null, string][] =
     categories.map(c => [c.name, c.article_count, c.slug]);
 
+  // Faol filtrlar — Figma'da ro'yxat tepasida chiplar qatori bo'lib chiqadi
+  const activeChips = useMemo(() => {
+    const out: { key: string; label: string; remove: () => void }[] = [];
+    selYears.forEach(y => out.push({
+      key: 'y' + y, label: y, remove: () => toggle(setSelYears)(y),
+    }));
+    selQuarters.forEach(q => {
+      const lbl = QUARTERS.find(([, v]) => v === q)?.[0] ?? q;
+      out.push({ key: 'q' + q, label: lbl, remove: () => toggle(setSelQuarters)(q) });
+    });
+    selCats.forEach(c => {
+      const lbl = categories.find(x => x.slug === c)?.name ?? c;
+      out.push({ key: 'c' + c, label: lbl, remove: () => toggle(setSelCats)(c) });
+    });
+    return out;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selYears, selQuarters, selCats, categories]);
+
   const years = yearItems.map(y => Number(y[0]));
   const yearRange = years.length ? `${Math.min(...years)}–${Math.max(...years)}` : '';
   const from = (page - 1) * pageSize + 1;
@@ -224,9 +265,11 @@ export default function ArticlesPage() {
           <div>
             <h1 className="h-display page-title">Barcha maqolalar</h1>
             <p className="page-sub">
-              {articlesState.status === 'ok'
-                ? `${totalCount.toLocaleString()} ta maqola${yearRange ? ` · ${yearRange}` : ''}`
-                : '…'}
+              {articlesState.status !== 'ok'
+                ? '…'
+                : activeChips.length > 0
+                  ? `${totalCount.toLocaleString()} natija · ${activeChips.length} filtr qo‘llangan`
+                  : `${totalCount.toLocaleString()} ta maqola${yearRange ? ` · ${yearRange}` : ''}`}
             </p>
           </div>
 
@@ -249,7 +292,7 @@ export default function ArticlesPage() {
         <aside className="filters rsp-hide">
           <div className="filters-head">
             <span className="eyebrow">Filtrlar</span>
-            <button onClick={clearAll}>Tozalash</button>
+            <button onClick={clearAll} className={activeChips.length ? 'on' : ''}>Tozalash</button>
           </div>
 
           <div className="searchbar" style={{ marginBottom: 20 }}>
@@ -276,9 +319,23 @@ export default function ArticlesPage() {
 
         {/* Ro'yxat */}
         <div>
-          {articlesState.status === 'loading' && (
-            <div className="state-box">Yuklanmoqda…</div>
+          {/* Faol filtrlar */}
+          {activeChips.length > 0 && (
+            <div className="active-filters">
+              <span className="eyebrow accent">Faol filtrlar</span>
+              <div className="active-chips">
+                {activeChips.map(c => (
+                  <button key={c.key} className="active-chip" onClick={c.remove}>
+                    {c.label}
+                    <span aria-hidden>×</span>
+                  </button>
+                ))}
+              </div>
+              <button className="active-clear" onClick={clearAll}>Barchasini bekor qilish</button>
+            </div>
           )}
+
+          {articlesState.status === 'loading' && <ArticlesSkeleton rows={pageSize > 20 ? 10 : 8} />}
           {articlesState.status === 'error' && (
             <div className="state-box">Xatolik yuz berdi. Keyinroq urinib ko‘ring.</div>
           )}

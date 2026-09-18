@@ -1,19 +1,34 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
-import PdfViewer from '../components/ui/PdfViewer';
-import CommentsSection from '../components/CommentsSection';
-import { DocIcon } from '../components/ui/Icons';
-import { issuesApi, type ApiIssue } from '../lib/api';
+import { issuesApi, type ApiIssueDetail } from '../lib/api';
+import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
 
+/**
+ * Son sahifasi — Figma «Jurnal arxiv detail» freymi.
+ * Muqova + tahririyat so'zi + meta jadval, o'ngda yuklash kartasi,
+ * pastda yo'nalishlar bo'yicha guruhlangan mundarija.
+ */
+
+function fmtSize(bytes: number | null): string {
+  if (!bytes) return '';
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1 ? `${mb.toFixed(mb >= 10 ? 0 : 1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function pageRange(a: number | null, b: number | null): string {
+  if (a && b) return a === b ? `${a}` : `${a}–${b}`;
+  if (a) return `${a}`;
+  return '';
+}
+
 export default function IssueDetailPage() {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [issue,   setIssue]   = useState<ApiIssue | null>(null);
+  const [issue,   setIssue]   = useState<ApiIssueDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,113 +40,193 @@ export default function IssueDetailPage() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  const journalTitle = issue?.journal_title ?? 'Kutubxona Arxivi';
-  const title = issue
-    ? `${journalTitle} — ${issue.volume}-jild, ${issue.number}-son (${issue.year})`
-    : 'Jurnal soni';
+  const journal = issue?.journal_title ?? 'Kutubxona';
+  const cover   = mediaUrl(issue?.cover_image_url);
+  const pdf     = mediaUrl(issue?.pdf_file_url);
+  const totalArts = issue?.sections.reduce((n, s) => n + s.articles.length, 0) ?? 0;
+
+  if (loading) {
+    return (
+      <div className="bg-detail" style={{ minHeight: '100vh' }}>
+        <PageLoadBar /><Topbar active="archive" />
+        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        <Footer />
+      </div>
+    );
+  }
+  if (!issue) {
+    return (
+      <div className="bg-detail" style={{ minHeight: '100vh' }}>
+        <PageLoadBar /><Topbar active="archive" />
+        <div className="wrap">
+          <div className="state-box" style={{ marginTop: 40 }}>
+            Son topilmadi. <Link to="/archive" className="side-link">Arxivga qaytish →</Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-detail" style={{ minHeight: '100vh' }}>
-      <Seo title={title} description={`${journalTitle} jurnalining ${issue?.volume}-jild ${issue?.number}-soni.`} image={issue?.cover_image_url ?? undefined} />
+      <Seo title={`${journal} № ${issue.number} · ${issue.year}`}
+        description={issue.editorial_note || `${journal} jurnalining ${issue.year}-yil ${issue.number}-soni.`}
+        image={cover} />
       <PageLoadBar />
       <Topbar active="archive" />
 
-      {/* Breadcrumbs */}
-      <div style={{ padding: '16px var(--px)', background: 'var(--grey-1)', borderBottom: '1px solid var(--line)', fontSize: 12.5, color: 'var(--ink-3)' }}>
-        <div style={{ maxWidth: 1340, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <a onClick={() => navigate('/')} style={{ color: 'var(--ink-3)', cursor: 'pointer' }}>Bosh sahifa</a>
-          <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <a onClick={() => navigate('/archive')} style={{ color: 'var(--ink-3)', cursor: 'pointer' }}>Jurnal arxivi</a>
-          <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{issue ? `${issue.volume}-jild · ${issue.number}-son` : '…'}</span>
-        </div>
+      <div className="wrap" style={{ paddingTop: 26 }}>
+        <nav className="crumbs">
+          <Link to="/">Bosh sahifa</Link><span>/</span>
+          <Link to="/archive">Jurnal arxivi</Link><span>/</span>
+          <Link to="/archive">{issue.year}</Link><span>/</span>
+          <span className="cur">№ {issue.number}</span>
+        </nav>
       </div>
 
-      <div className="rsp-detail" style={{ padding: '48px var(--px) 32px', maxWidth: 1340, margin: '0 auto' }}>
-        {/* Body */}
-        <article>
-          <header style={{ marginBottom: 36 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
-              <span className="tag navy">Jurnal soni</span>
-              {issue?.is_current && <span className="tag ok">Joriy son</span>}
-              {issue?.season && <span className="tag line">{issue.season}</span>}
-            </div>
-            <h1 className="h-display h1-rsp" style={{ fontSize: 48, lineHeight: 1.06, letterSpacing: '-0.025em', marginBottom: 22 }}>
-              {issue ? `${journalTitle} — ${issue.volume}-jild, ${issue.number}-son` : 'Jurnal soni'}
-            </h1>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, paddingTop: 22, paddingBottom: 22, borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ fontSize: 13.5, color: 'var(--ink-2)', display: 'inline-flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                {issue?.date_label && <span style={{ fontWeight: 600 }}>{issue.date_label}</span>}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--ink-3)' }}>
-                  <DocIcon size={12} /> {issue?.article_count ?? 0} maqola
-                </span>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{issue?.year}</div>
-            </div>
-          </header>
+      {/* ═══ Yuqori blok: muqova · matn · yon karta ═══ */}
+      <div className="wrap issue-hero">
+        {/* Muqova + oldingi/keyingi */}
+        <div className="issue-cover-col">
+          <div className="issue-cover-big">
+            {cover ? <img src={cover} alt="" /> : <JournalCover palette={issue.palette} />}
+          </div>
+          <div className="issue-nav">
+            {issue.prev_issue
+              ? <Link to={`/archive/${issue.prev_issue.id}`} className="ic-btn">← № {issue.prev_issue.number} · {issue.prev_issue.year}</Link>
+              : <span className="ic-btn" style={{ opacity: .4 }}>← Birinchi son</span>}
+            {issue.next_issue
+              ? issue.next_issue.is_upcoming
+                ? <span className="ic-btn" style={{ opacity: .6 }}>№ {issue.next_issue.number} tayyorlanmoqda</span>
+                : <Link to={`/archive/${issue.next_issue.id}`} className="ic-btn">№ {issue.next_issue.number} · {issue.next_issue.year} →</Link>
+              : <span className="ic-btn" style={{ opacity: .4 }}>So‘nggi son</span>}
+          </div>
+        </div>
 
-          {loading && (
-            <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>Yuklanmoqda…</div>
-          )}
+        {/* Matn */}
+        <div className="issue-main">
+          <div className="detail-tags">
+            {issue.is_current && <span className="pill-cat">So‘nggi son</span>}
+            <span className="pill-oa">Ochiq kirish</span>
+          </div>
+          <h1 className="h-display issue-title">{journal} № {issue.number}</h1>
+          <div className="issue-sub">
+            {issue.year}-yil{issue.season ? ` · ${issue.season.toLowerCase()}` : ''}
+          </div>
 
-          {!loading && issue && (
-            issue.pdf_file_url ? (
-              <PdfViewer url={issue.pdf_file_url} title={title} />
-            ) : (
-              <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14, fontStyle: 'italic' }}>
-                Bu son uchun PDF hali yuklanmagan.
-              </div>
-            )
-          )}
+          <div className="detail-meta issue-meta">
+            <Cell k="Chiqarilgan sana" v={issue.date_label} />
+            <Cell k="Maqolalar" v={totalArts ? `${totalArts} ta` : ''} />
+            <Cell k="Hajm" v={issue.total_pages ? `${issue.total_pages} bet` : ''} />
+            <Cell k="Davriylik" v="Choraklik" />
+            <Cell k="ISSN" v={issue.issn} />
+            <Cell k="e-ISSN" v="2181-1740" />
+            <Cell k="DOI prefiks" v="10.62499" />
+            <Cell k="Tillar" v={issue.languages.join(' · ')} />
+          </div>
 
-          {!loading && !issue && (
-            <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
-              Jurnal soni topilmadi.
-            </div>
-          )}
-        </article>
-
-        {/* Metadata sidebar */}
-        <aside className="rsp-hide" style={{ position: 'sticky', top: 140, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {issue && (
-            <div className="card-hover" style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <span className="eyebrow" style={{ alignSelf: 'flex-start' }}>Jurnal soni</span>
-              <div className="cover-hover" style={{ marginTop: 18, marginBottom: 18, cursor: issue.journal_id ? 'pointer' : 'default' }}
-                onClick={() => issue.journal_id && navigate(`/journals/${issue.journal_id}`)}>
-                {issue.cover_image_url ? (
-                  <img src={issue.cover_image_url} alt="Jurnal muqovasi"
-                    style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)', display: 'block' }} />
-                ) : (
-                  <JournalCover title={journalTitle} vol={`Vol. ${issue.volume}`} year={issue.year} n={issue.number} palette={issue.palette} w={150} h={200} />
-                )}
-              </div>
-              <div className="h-display" style={{ fontSize: 19, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2, cursor: issue.journal_id ? 'pointer' : 'default' }}
-                onClick={() => issue.journal_id && navigate(`/journals/${issue.journal_id}`)}>
-                {journalTitle}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 6, fontFamily: 'var(--sans)' }}>
-                <b style={{ color: 'var(--ink-2)' }}>{issue.volume}-jild · {issue.number}-son</b>
-                <span style={{ color: 'var(--ink-4)' }}> · </span>
-                {issue.year}
-              </div>
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)', width: '100%', fontSize: 11.5, color: 'var(--ink-3)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Mavsum</span><span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{issue.season}</span></div>
-                {issue.date_label && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Sana</span><span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{issue.date_label}</span></div>}
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Maqolalar</span><span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{issue.article_count}</span></div>
-              </div>
-              {issue.pdf_file_url && (
-                <a href={issue.pdf_file_url} target="_blank" rel="noreferrer" className="btn ghost"
-                  style={{ width: '100%', height: 36, fontSize: 12.5, justifyContent: 'center', marginTop: 14, gap: 8, textDecoration: 'none' }}>
-                  <DocIcon size={13} /> PDF ni yangi tabda ochish
-                </a>
+          {issue.editorial_note && (
+            <div className="editorial">
+              <div className="eyebrow" style={{ marginBottom: 12 }}>Tahririyat so‘zi</div>
+              <p>{issue.editorial_note}</p>
+              {issue.editor_name && (
+                <div className="meta" style={{ marginTop: 14 }}>Bosh muharrir · {issue.editor_name}</div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Yon karta */}
+        <aside className="issue-side rsp-hide">
+          <div className="side-card">
+            {pdf ? (
+              <a className="btn primary dl-btn" href={pdf} target="_blank" rel="noreferrer"
+                style={{ justifyContent: 'space-between' }}>
+                <span>Butun sonni yuklash</span>
+                {issue.pdf_size && <span className="meta" style={{ color: 'rgba(255,255,255,.8)' }}>{fmtSize(issue.pdf_size)}</span>}
+              </a>
+            ) : (
+              <div className="meta" style={{ padding: '6px 0 10px' }}>PDF biriktirilmagan</div>
+            )}
+            {cover && (
+              <a className="btn ghost sm" href={cover} target="_blank" rel="noreferrer" style={{ width: '100%' }}>
+                Muqova skanini yuklash
+              </a>
+            )}
+            <div className="dl-stats meta">
+              <span>{issue.views.toLocaleString()} ko‘rish</span>
+            </div>
+          </div>
+
+          {issue.categories.length > 0 && (
+            <div className="side-card">
+              <div className="side-card-title">Sondagi yo‘nalishlar</div>
+              {issue.categories.map(c => (
+                <div key={c.name} className="side-row">
+                  <span>{c.name}</span>
+                  <span className="meta">{c.count}</span>
+                </div>
+              ))}
             </div>
           )}
         </aside>
       </div>
 
-      {issue && <CommentsSection issueId={issue.id} />}
+      {/* ═══ Mundarija ═══ */}
+      <div className="wrap" style={{ paddingTop: 44, paddingBottom: 72 }}>
+        <div className="detail-head" style={{ marginBottom: 22 }}>
+          <h2 className="h-display" style={{ fontSize: 28, display: 'flex', alignItems: 'baseline', gap: 14 }}>
+            Mundarija
+            <span className="meta">{totalArts} maqola{issue.total_pages ? ` · ${issue.total_pages} bet` : ''}</span>
+          </h2>
+          <span className="meta">Yo‘nalishlar bo‘yicha guruhlangan · sahifa raqamlari jurnaldagidek</span>
+        </div>
+
+        {issue.sections.length === 0 && (
+          <div className="state-box">Bu songa hali maqola kiritilmagan.</div>
+        )}
+
+        {issue.sections.map(sec => (
+          <section key={sec.category} className="toc-section">
+            <div className="toc-section-head">
+              <span className="eyebrow accent">{sec.category}</span>
+              <span className="rule" />
+              {pageRange(sec.page_start, sec.page_end) && (
+                <span className="meta">{pageRange(sec.page_start, sec.page_end)} b.</span>
+              )}
+            </div>
+
+            <div className="toc-table">
+              {sec.articles.map(a => (
+                <Link key={a.id} to={`/articles/${a.slug}`} className="toc-row">
+                  <div className="toc-thumb">
+                    {a.image_url ? <img src={mediaUrl(a.image_url) ?? undefined} alt="" /> : <div className="home-featured-ph" />}
+                  </div>
+                  <div className="toc-body">
+                    <div className="toc-title">{a.title}</div>
+                    <div className="meta">{a.views.toLocaleString()} ko‘rish</div>
+                  </div>
+                  <div className="toc-author">{a.authors.join(', ')}</div>
+                  <div className="toc-pages meta">{pageRange(a.page_start, a.page_end)}</div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+
       <Footer />
+    </div>
+  );
+}
+
+function Cell({ k, v }: { k: string; v: string }) {
+  if (!v) return null;
+  return (
+    <div className="meta-cell">
+      <span className="meta-cell-k">{k}</span>
+      <span className="meta-cell-v">{v}</span>
     </div>
   );
 }

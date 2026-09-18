@@ -1,0 +1,74 @@
+/* ═══ Yuklanish skeleti (Figma: «Maqolalar loading») ═══ */
+
+@keyframes sk-shimmer {
+  0%   { background-position: -420px 0; }
+  100% { background-position: 420px 0; }
+}
+
+.sk {
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--grey-3) 0%,
+    #EAE6DE 42%,
+    var(--grey-3) 84%
+  );
+  background-size: 420px 100%;
+  animation: sk-shimmer 1.25s linear infinite;
+}
+
+/* Skelet qatori — haqiqiy qator bilan bir xil o'lchamda */
+.sk-row { cursor: default; }
+.sk-row:hover { background: transparent; }
+
+.sk-num    { width: 22px; height: 11px; margin-top: 3px; }
+.sk-cat    { width: 118px; height: 9px; margin-bottom: 12px; }
+.sk-title  { height: 14px; margin-bottom: 11px; }
+.sk-author { width: 146px; height: 10px; }
+
+.art-row-meta .sk-meta { width: 74px; height: 9px; }
+.art-row-meta .sk-meta-sm { width: 46px; }
+
+/* Harakatni kamaytirish rejimi */
+@media (prefers-reduced-motion: reduce) {
+  .sk { animation: none; }
+}
+
+/* ═══ Faol filtrlar qatori ═══ */
+
+.active-filters {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 16px; margin-bottom: 16px;
+  background: var(--accent-08);
+  border: 1px solid var(--accent-20);
+  border-radius: var(--radius-lg);
+}
+.active-chips { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+
+.active-chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 30px; padding: 0 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  font-family: var(--sans); font-size: 13px; color: var(--ink);
+  cursor: pointer;
+  transition: border-color .12s, color .12s;
+}
+.active-chip span { color: var(--ink-4); font-size: 15px; line-height: 1; }
+.active-chip:hover { border-color: var(--accent); }
+.active-chip:hover span { color: var(--accent); }
+
+.active-clear {
+  border: 0; background: none; cursor: pointer;
+  font-family: var(--sans); font-size: 13px; color: var(--accent);
+  white-space: nowrap;
+}
+.active-clear:hover { text-decoration: underline; }
+
+/* Filtr panelidagi «Tozalash» faol bo'lganda */
+.filters-head button.on { color: var(--accent); }
+
+@media (max-width: 680px) {
+  .active-filters { flex-direction: column; align-items: flex-start; gap: 10px; }
+}

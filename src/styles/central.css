@@ -1,0 +1,94 @@
+/* ═══════════ CENTRAL ASIA (Figma: «Central Asia», davlatlarsiz) ═══════════ */
+
+.ca-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 48px; align-items: start;
+  padding-bottom: 32px; margin-bottom: 8px; border-bottom: 1px solid var(--line);
+}
+.ca-title { font-size: 40px; line-height: 1.1; margin: 0 0 16px; max-width: 640px; }
+.ca-lede  { font-size: 15px; line-height: 1.7; color: var(--ink-2); margin: 0; max-width: 620px; }
+.ca-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line); border-radius: var(--radius-lg);
+  overflow: hidden; background: var(--paper);
+}
+.ca-stats .au-stat:nth-child(2n) { border-right: 0; }
+.ca-stats .au-stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+
+.ca-grid {
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 44px; padding-top: 28px; padding-bottom: 72px; align-items: start;
+}
+.ca-side { position: sticky; top: 140px; }
+.side-row-btn {
+  width: 100%; border: 0; background: none; cursor: pointer;
+  font-family: var(--sans); text-align: left;
+}
+.side-row-btn.on { color: var(--accent); font-weight: 600; }
+
+/* ═══════════ CENTRAL ASIA MAQOLA SAHIFASI (o'z dizayn) ═══════════ */
+
+.cad-hero {
+  position: relative; background: var(--dark-2); overflow: hidden;
+  min-height: 380px; display: flex; align-items: flex-end;
+}
+.cad-veil {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(12,11,10,.55) 0%, rgba(12,11,10,.25) 40%, rgba(12,11,10,.88) 100%),
+    linear-gradient(90deg, rgba(12,11,10,.6) 0%, rgba(12,11,10,.2) 60%);
+}
+.cad-hero-inner { position: relative; width: 100%; padding-top: 26px; padding-bottom: 40px; }
+.cad-crumbs { margin-bottom: 28px; }
+.cad-crumbs a, .cad-crumbs span { color: rgba(255,255,255,.6) !important; }
+.cad-crumbs .cur { color: #fff !important; }
+.cad-title {
+  font-size: 44px; line-height: 1.1; color: #fff !important;
+  margin: 0 0 14px; max-width: 900px; letter-spacing: -0.02em;
+}
+.cad-author { font-family: var(--serif); font-style: italic; font-size: 18px; color: rgba(255,255,255,.75); }
+
+.cad-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 28px;
+  padding: 16px 0; border-bottom: 1px solid var(--line);
+  font-size: 13.5px; color: var(--ink);
+}
+.cad-meta span { display: inline-flex; flex-direction: column; gap: 3px; }
+.cad-meta b {
+  font-family: var(--mono); font-size: 10px; font-weight: 400;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+}
+.cad-meta a { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 12.5px; }
+
+.cad-grid {
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 48px; padding-top: 32px; padding-bottom: 72px; align-items: start;
+}
+.cad-body { max-width: 760px; }
+.cad-lede {
+  font-family: var(--serif); font-size: 19px; line-height: 1.65;
+  color: var(--ink); margin: 0 0 26px;
+  padding-left: 18px; border-left: 2px solid var(--accent);
+}
+.prose { font-size: 15.5px; line-height: 1.8; color: var(--ink-2); }
+.prose p { margin: 0 0 16px; }
+.prose h2, .prose h3 { font-family: var(--serif); color: var(--ink); margin: 28px 0 10px; }
+.prose img { max-width: 100%; border-radius: var(--radius); }
+.prose a { color: var(--accent); }
+.cad-side { position: sticky; top: 140px; display: flex; flex-direction: column; gap: 14px; }
+.cad-side .side-card + .side-card { margin-top: 0; }
+.cad-more {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 11px 0; border-bottom: 1px solid var(--line); text-decoration: none;
+}
+.cad-more:last-child { border-bottom: 0; }
+.cad-more-title { font-family: var(--serif); font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+.cad-more:hover .cad-more-title { color: var(--accent); }
+
+@media (max-width: 1080px) {
+  .ca-head, .ca-grid, .cad-grid { grid-template-columns: 1fr; gap: 28px; }
+  .ca-side, .cad-side { display: none; }
+  .ca-title { font-size: 30px; }
+  .cad-title { font-size: 30px; }
+  .cad-hero { min-height: 300px; }
+}

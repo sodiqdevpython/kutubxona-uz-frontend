@@ -1,238 +1,252 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
-import LoadMoreButton from '../components/ui/LoadMoreButton';
-import { CheckIcon, EyeIcon, ArrowIcon } from '../components/ui/Icons';
 import { useFetch } from '../lib/hooks';
-import type { ApiAuthor, ApiArticle, PaginatedResponse } from '../lib/api';
+import type { ApiArticle, ApiAuthorDetail, PaginatedResponse } from '../lib/api';
+import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
+
+/**
+ * Muallif sahifasi — Figma «Muallif detail» freymi.
+ * Avatar + ism + chiplar + bio, statistika, yillar diagrammasi,
+ * o'ngda identifikatorlar va hammualliflar, pastda maqolalar jadvali.
+ */
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
-// Barcha chop etilgan maqolalar ochiq kirishda — obuna tizimi yo'q
-function OpenAccessTag() {
-  return (
-    <span className="tag ok" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <CheckIcon size={10} /> Ochiq
-    </span>
-  );
-}
+type SortKey = 'new' | 'views';
+const SORT: Record<SortKey, { label: string; param: string }> = {
+  new:   { label: 'Eng yangi',     param: '-issue__year,-issue__number,-published_at' },
+  views: { label: "Ko‘p o‘qilgan", param: '-views' },
+};
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString('uz-UZ', { year: 'numeric', month: 'long' });
+/** «Anvar Umarov» → «A. Umarov» */
+function short(name: string): string {
+  const p = name.trim().split(/\s+/);
+  return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : name;
 }
 
 export default function AuthorDetailPage() {
-  const navigate          = useNavigate();
-  const { slug }          = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { slug } = useParams<{ slug: string }>();
+  const [sort, setSort] = useState<SortKey>('new');
 
-  const authorState   = useFetch<ApiAuthor>(slug ? `${BASE}/api/authors/${slug}/` : null);
-  const articlesState = useFetch<PaginatedResponse<ApiArticle>>(slug ? `${BASE}/api/articles/?author=${slug}&ordering=-issue__year,-issue__number,-published_at` : null);
+  const authorState   = useFetch<ApiAuthorDetail>(slug ? `${BASE}/api/authors/${slug}/` : null);
+  const articlesState = useFetch<PaginatedResponse<ApiArticle>>(
+    slug ? `${BASE}/api/articles/?author=${slug}&page_size=100&ordering=${SORT[sort].param}` : null,
+  );
 
-  const a        = authorState.status   === 'ok' ? authorState.data            : null;
-  const articles = articlesState.status === 'ok' ? articlesState.data.results  : [];
-  const total    = articlesState.status === 'ok' ? articlesState.data.count     : 0;
-  const hasMore  = articlesState.status === 'ok' ? !!articlesState.data.next    : false;
+  const a        = authorState.status   === 'ok' ? authorState.data           : null;
+  const articles = articlesState.status === 'ok' ? articlesState.data.results : [];
 
-  // ── 404 / error ─────────────────────────────────────────────────────────────
+  const years = useMemo(() => {
+    const ys = articles.map(x => x.year).filter(Boolean);
+    return ys.length ? `${Math.min(...ys)}–${Math.max(...ys)}` : '';
+  }, [articles]);
+  const maxYear = Math.max(1, ...(a?.years.map(y => y.count) ?? [1]));
+
   if (authorState.status === 'error') {
     return (
       <div className="bg-author" style={{ minHeight: '100vh' }}>
-        <PageLoadBar />
-        <Topbar active="authors" />
-        <div style={{ padding: '80px var(--px)', textAlign: 'center', color: 'var(--ink-3)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>404</div>
-          <p style={{ fontSize: 16, marginBottom: 24 }}>Muallif topilmadi.</p>
-          <button className="btn ghost" onClick={() => navigate('/authors')}>← Mualliflar ro'yxatiga qaytish</button>
+        <PageLoadBar /><Topbar active="authors" />
+        <div className="wrap">
+          <div className="state-box" style={{ marginTop: 40 }}>
+            Muallif topilmadi. <Link to="/authors" className="side-link">Mualliflar ro‘yxati →</Link>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
-  // ── Loading skeleton ─────────────────────────────────────────────────────────
-  const loading = authorState.status === 'loading' || authorState.status === 'idle';
+  if (!a) {
+    return (
+      <div className="bg-author" style={{ minHeight: '100vh' }}>
+        <PageLoadBar /><Topbar active="authors" />
+        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const avatar = mediaUrl(a.avatar_url);
 
   return (
     <div className="bg-author" style={{ minHeight: '100vh' }}>
-      <Seo
-        title={a ? `${a.name}${a.degree ? ` — ${a.degree}` : ''}` : 'Muallif'}
-        description={a?.bio || (a ? `${a.name}${a.org ? `, ${a.org}` : ''}. ${a.article_count} ta maqola muallifi.` : '')}
-      />
+      <Seo title={a.name} description={a.bio || `${a.name} — ${a.org}`} image={avatar} />
       <PageLoadBar />
       <Topbar active="authors" />
 
-      {/* Profile header */}
-      <div style={{ background: 'var(--grey-2)', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ padding: '40px var(--px) 48px', maxWidth: 1400, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, fontSize: 12.5, color: 'var(--ink-3)' }}>
-            <a onClick={() => navigate('/')} style={{ color: 'var(--ink-3)', cursor: 'pointer' }}>Bosh sahifa</a>
-            <span style={{ color: 'var(--ink-4)' }}>/</span>
-            <a onClick={() => navigate('/authors')} style={{ color: 'var(--ink-3)', cursor: 'pointer' }}>Mualliflar</a>
-            <span style={{ color: 'var(--ink-4)' }}>/</span>
-            <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{a?.name ?? '…'}</span>
-          </div>
+      <div className="wrap" style={{ paddingTop: 26 }}>
+        <nav className="crumbs">
+          <Link to="/">Bosh sahifa</Link><span>/</span>
+          <Link to="/authors">Mualliflar</Link><span>/</span>
+          <span className="cur">{a.name}</span>
+        </nav>
+      </div>
 
-          {loading ? (
-            <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-              <div style={{ width: 140, height: 140, borderRadius: '50%', background: 'var(--grey-3)' }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ height: 16, width: 120, background: 'var(--grey-3)', borderRadius: 4, marginBottom: 12 }} />
-                <div style={{ height: 48, width: 380, background: 'var(--grey-3)', borderRadius: 4, marginBottom: 14 }} />
-                <div style={{ height: 14, width: '60%', background: 'var(--grey-3)', borderRadius: 4 }} />
+      <div className="wrap au-grid">
+        {/* ═══ Chap ustun ═══ */}
+        <div className="au-main">
+          <div className="au-head">
+            <div className="au-avatar">
+              <AuthorAvatar name={a.initials} idx={a.avatar_idx} src={avatar} alt={a.name} size={96} />
+            </div>
+            <div>
+              <h1 className="h-display au-name">{a.name}</h1>
+              {(a.org || a.role) && (
+                <div className="au-org">{[a.org, a.role].filter(Boolean).join(' · ')}</div>
+              )}
+              <div className="au-chips">
+                {a.orcid && (
+                  <a className="orcid-pill" href={`https://orcid.org/${a.orcid}`} target="_blank" rel="noreferrer">
+                    ORCID {a.orcid}
+                  </a>
+                )}
+                {a.categories.map(c => <Link key={c} to="/articles" className="pill-line">{c}</Link>)}
               </div>
             </div>
-          ) : a && (
-            <div className="rsp-author-profile">
-              <div>
-                {a.avatar_url
-                  ? <img src={a.avatar_url} alt={a.name} style={{ width: 140, height: 140, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} />
-                  : <AuthorAvatar name={a.initials} idx={a.avatar_idx} size={140} />}
+          </div>
+
+          {a.bio && <p className="au-bio">{a.bio}</p>}
+
+          {/* Statistika */}
+          <div className="au-stats">
+            <Stat k="Maqolalar" v={a.article_count} />
+            <Stat k="Ko‘rishlar" v={a.total_views} />
+            <Stat k="Profil ko‘rildi" v={a.profile_views} />
+            <Stat k="Hammuallif" v={a.coauthors.length} />
+          </div>
+
+          {/* Yillar diagrammasi */}
+          {a.years.length > 0 && (
+            <div className="au-chart">
+              <div className="au-chart-head">
+                <span className="eyebrow">Yillar bo‘yicha faollik</span>
+                <span className="meta">maqolalar soni</span>
               </div>
-              <div>
-                {a.degree && <span className="eyebrow" style={{ fontSize: 10.5 }}>{a.degree}</span>}
-                <h1 className="h-display h1-rsp" style={{ fontSize: 52, lineHeight: 1.05, letterSpacing: '-0.025em', marginTop: 8, marginBottom: 14 }}>{a.name}</h1>
-                {a.org && (
-                  <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 10 }}>{a.org}</p>
-                )}
-                {a.bio && (
-                  <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--ink-2)', maxWidth: 720 }}>{a.bio}</p>
-                )}
+              <div className="au-bars" style={{ gridTemplateColumns: `repeat(${a.years.length}, minmax(0, 1fr))` }}>
+                {a.years.map(y => (
+                  <div key={y.year} className="au-bar-col">
+                    <span className="au-bar-n">{y.count || '–'}</span>
+                    <div className="au-bar-track">
+                      <div className="au-bar" style={{ height: `${y.count ? Math.max(18, (y.count / maxYear) * 100) : 0}%` }} />
+                    </div>
+                    <span className="meta">{y.year}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
+
+        {/* ═══ O'ng ustun ═══ */}
+        <aside className="au-side rsp-hide">
+          <div className="side-card">
+            <div className="side-card-title">Aloqa va identifikatorlar</div>
+            <Row k="ORCID" v={a.orcid} href={a.orcid ? `https://orcid.org/${a.orcid}` : undefined} accent />
+            <Row k="Elektron pochta" v={a.email} href={a.email ? `mailto:${a.email}` : undefined} accent />
+            <Row k="Tashkilot" v={a.org} />
+            <Row k="Scopus Author ID" v={a.scopus_id || 'ko‘rsatilmagan'} muted={!a.scopus_id} />
+            {articles.length > 0 && (
+              <Link to={`/articles?search=${encodeURIComponent(a.name)}`} className="btn primary" style={{ width: '100%', marginTop: 14 }}>
+                Barcha maqolalarini ko‘rish
+              </Link>
+            )}
+          </div>
+
+          {a.coauthors.length > 0 && (
+            <div className="side-card">
+              <div className="side-card-title">Hammualliflar</div>
+              {a.coauthors.map(c => (
+                <Link key={c.id} to={`/authors/${c.slug}`} className="coauthor">
+                  <AuthorAvatar name={c.initials} idx={c.avatar_idx} src={mediaUrl(c.avatar_url)} alt={c.name} size={32} />
+                  <span>
+                    <span className="coauthor-name">{c.name}</span>
+                    <span className="meta">{c.shared} birgalikdagi maqola</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </aside>
       </div>
 
-      {/* Stats */}
-      {a && (
-        <div style={{ padding: '40px var(--px) 0', maxWidth: 1400, margin: '0 auto' }}>
-          <div className="rsp-stats-author">
-            {([
-              [a.article_count,    'Qabul qilingan maqolalar', <CheckIcon size={14} />],
-              [a.total_views,      "Maqolalar ko'rilgan",       <EyeIcon size={14} />],
-              [a.profile_views,    "Profil ko'rilgan",          <EyeIcon size={14} />],
-            ] as [number, string, React.ReactNode][]).map(([v, k, icon], i) => (
-              <div key={i} style={{ background: 'var(--paper)', padding: '26px 28px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, color: 'var(--navy)' }}>
-                  {icon}
-                  <span className="eyebrow" style={{ fontSize: 10.5 }}>{k}</span>
-                </div>
-                <div style={{ fontFamily: 'var(--serif)', fontSize: 48, letterSpacing: '-0.03em', color: 'var(--navy)', fontWeight: 600, lineHeight: 1 }}>
-                  {v.toLocaleString()}
-                </div>
-              </div>
+      {/* ═══ Maqolalari ═══ */}
+      <div className="wrap" style={{ paddingTop: 40, paddingBottom: 72 }}>
+        <div className="detail-head" style={{ marginBottom: 18 }}>
+          <h2 className="h-display" style={{ fontSize: 28, display: 'flex', alignItems: 'baseline', gap: 14 }}>
+            Maqolalari
+            <span className="meta">{articles.length} ta{years ? ` · ${years}` : ''}</span>
+          </h2>
+          <div className="segment">
+            {(Object.keys(SORT) as SortKey[]).map(k => (
+              <button key={k} className={sort === k ? 'active' : ''} onClick={() => setSort(k)}>{SORT[k].label}</button>
             ))}
           </div>
         </div>
-      )}
 
-      {/* Body */}
-      <div className="rsp-aside" style={{ padding: '48px var(--px) 80px', maxWidth: 1400, margin: '0 auto' }}>
-        {/* Articles */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h2 className="h-display" style={{ fontSize: 28 }}>Maqolalar</h2>
-            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-              {articlesState.status === 'ok' ? `${total} ta` : ''}
-            </span>
-          </div>
+        {articlesState.status === 'loading' && <div className="state-box">Yuklanmoqda…</div>}
+        {articlesState.status === 'ok' && articles.length === 0 && (
+          <div className="state-box">Hali chop etilgan maqolasi yo‘q.</div>
+        )}
 
-          {articlesState.status === 'loading' && (
-            <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
-          )}
-
-          {articlesState.status === 'ok' && (
-            <>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {articles.length > 0 ? articles.map(art => (
-                  <article key={art.id} className="row-hover" onClick={() => navigate(`/articles/${art.slug}`)}
-                    style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 20, alignItems: 'center', padding: '18px 12px', borderTop: '1px solid var(--line)', cursor: 'pointer' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        {art.category && <span className="tag navy-soft">{art.category.name}</span>}
-                        <OpenAccessTag />
-                      </div>
-                      <h4 className="h-display" style={{ fontSize: 18, lineHeight: 1.25, letterSpacing: '-0.01em' }}>{art.title}</h4>
+        {articles.length > 0 && (
+          <div className="art-table">
+            {articles.map((x, i) => {
+              const others = x.authors.filter(o => o.slug !== a.slug).map(o => short(o.name));
+              return (
+                <article key={x.id} className="art-row au-row" onClick={() => navigate(`/articles/${x.slug}`)}>
+                  <div className="art-row-num">{String(i + 1).padStart(2, '0')}</div>
+                  <div className="au-row-thumb">
+                    {x.image_url ? <img src={mediaUrl(x.image_url) ?? undefined} alt="" /> : <div className="home-featured-ph" />}
+                  </div>
+                  <div className="art-row-body">
+                    <div className="art-row-tags">
+                      {x.category && <span className="tag cat">{x.category.name}</span>}
+                      <span className="tag ok">Ochiq kirish</span>
                     </div>
-                    <span style={{ fontSize: 12, color: 'var(--ink-3)', whiteSpace: 'nowrap' }}>
-                      {formatDate(art.published_at)}
-                    </span>
-                    <span style={{ fontSize: 12, color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-                      <EyeIcon size={11} /> {art.views.toLocaleString()}
-                    </span>
-                  </article>
-                )) : (
-                  <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
-                    Hali maqolalar mavjud emas.
+                    <h3 className="art-row-title h-display">{x.title}</h3>
+                    <div className="art-row-authors">{others.length ? `${others.join(', ')} bilan` : 'yakka muallif'}</div>
                   </div>
-                )}
-              </div>
-
-              {hasMore && (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
-                  <LoadMoreButton label={`Barcha ${total} maqolani ko'rsatish`} />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Aside */}
-        <aside className="rsp-hide" style={{ position: 'sticky', top: 140, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Author meta card */}
-          {a && (
-            <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, padding: '22px 22px' }}>
-              <span className="eyebrow">Muallif haqida</span>
-              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: 'var(--ink-2)' }}>
-                {a.org && (
-                  <div>
-                    <span style={{ color: 'var(--ink-4)', fontSize: 11, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.2, display: 'block', marginBottom: 2 }}>Tashkilot</span>
-                    {a.org}
+                  <div className="art-row-meta">
+                    <span>{x.year} · №&nbsp;{x.quarter}</span>
+                    {x.page_start && x.page_end && <span>{x.page_start}–{x.page_end}&nbsp;b.</span>}
+                    <span>{x.views.toLocaleString()} ko‘rish</span>
+                    <Link to={`/articles/${x.slug}`} className="art-row-pdf" onClick={e => e.stopPropagation()}>PDF</Link>
                   </div>
-                )}
-                {a.role && (
-                  <div>
-                    <span style={{ color: 'var(--ink-4)', fontSize: 11, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.2, display: 'block', marginBottom: 2 }}>Lavozim</span>
-                    {a.role}
-                  </div>
-                )}
-                {a.degree && (
-                  <div>
-                    <span style={{ color: 'var(--ink-4)', fontSize: 11, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.2, display: 'block', marginBottom: 2 }}>Ilmiy daraja</span>
-                    {a.degree}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Article categories for this author */}
-          {articles.length > 0 && (() => {
-            const cats = [...new Set(articles.map(a => a.category?.name).filter(Boolean))] as string[];
-            return cats.length > 0 ? (
-              <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, padding: '22px 22px' }}>
-                <span className="eyebrow">Tadqiqot yo'nalishlari</span>
-                <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {cats.map((t, i) => (
-                    <span key={i} className="tag line" style={{ height: 26 }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            ) : null;
-          })()}
-
-          {/* Navigate to all articles */}
-          <button className="btn ghost" style={{ justifyContent: 'center', gap: 8 }}
-            onClick={() => navigate('/articles')}>
-            Barcha maqolalar <ArrowIcon size={12} />
-          </button>
-        </aside>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
+
       <Footer />
+    </div>
+  );
+}
+
+function Stat({ k, v }: { k: string; v: number }) {
+  return (
+    <div className="au-stat">
+      <span className="meta-cell-k">{k}</span>
+      <span className="au-stat-n">{v.toLocaleString()}</span>
+    </div>
+  );
+}
+
+function Row({ k, v, href, accent, muted }: { k: string; v: string; href?: string; accent?: boolean; muted?: boolean }) {
+  if (!v) return null;
+  return (
+    <div className="pass-row">
+      <span className="pass-k">{k}</span>
+      {href
+        ? <a className="pass-v" data-accent={accent ? 'on' : undefined} href={href} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>{v}</a>
+        : <span className="pass-v" style={muted ? { color: 'var(--ink-3)', fontWeight: 400 } : undefined}>{v}</span>}
     </div>
   );
 }
