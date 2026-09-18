@@ -213,9 +213,8 @@ export default function HomePage() {
 
           <div className="home-featured-grid">
             <Link to={`/articles/${featured.slug}`} className="home-featured-media">
-              {featured.image_url
-                ? <img src={featured.image_url} alt="" />
-                : <div className="home-featured-ph" />}
+              {/* Yetakchi maqola uchun doimiy foto (public/main_article.png) */}
+              <img src="/main_article.png" alt="" />
             </Link>
 
             <div className="home-featured-meta">

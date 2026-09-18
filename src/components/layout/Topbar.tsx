@@ -16,6 +16,7 @@ const ISSN = '2181-1732';
 const DOI_PREFIX = '10.62499';
 
 const PUBLIC_NAV: { key: Page; tKey: string; to: string; countKey?: CountKey }[] = [
+  { key: 'home',         tKey: 'nav.home',         to: '/' },
   { key: 'articles',     tKey: 'nav.articles',     to: '/articles',     countKey: 'articles' },
   { key: 'archive',      tKey: 'nav.archive',      to: '/archive',      countKey: 'issues'   },
   { key: 'authors',      tKey: 'nav.authors',      to: '/authors',      countKey: 'authors'  },
