@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
@@ -53,7 +53,22 @@ export default function HomePage() {
   const featured = articles[0] ?? null;
   const alsoIn   = articles.slice(1, 5);
 
-  const heroCover = current?.cover_image_url ?? null;
+  // Hero karuseli — Figma'da 4 ta nuqta bor, ya'ni 4 ta yetakchi maqola
+  const slides = articles.slice(0, 4);
+  const [slide, setSlide] = useState(0);
+  const hero = slides[slide] ?? featured;
+
+  useEffect(() => {
+    if (slides.length < 2) return;
+    const t = setInterval(() => setSlide(i => (i + 1) % slides.length), 7000);
+    return () => clearInterval(t);
+  }, [slides.length]);
+
+  const go = (d: number) =>
+    setSlide(i => (i + d + slides.length) % slides.length);
+
+  // Hero foni — Figma'dagi o'qish zali fotosurati (public/main_ground.png)
+  const HERO_BG = '/main_ground.png';
 
   return (
     <div className="bg-home" style={{ minHeight: '100vh' }}>
@@ -66,7 +81,7 @@ export default function HomePage() {
 
       {/* ═══ 1. Hero ═══ */}
       <section className="hero">
-        {heroCover && <div className="hero-photo" style={{ backgroundImage: `url(${heroCover})` }} />}
+        <div className="hero-photo" style={{ backgroundImage: `url(${HERO_BG})` }} />
         <div className="hero-veil" />
 
         <div className="wrap hero-inner">
@@ -85,11 +100,11 @@ export default function HomePage() {
           <div className="hero-body">
             <div className="hero-text">
               <h1 className="h-display hero-title">
-                {featured?.title ?? 'Ilmiy meros va kelajak raqamli formatda'}
+                {hero?.title ?? 'Ilmiy meros va kelajak raqamli formatda'}
               </h1>
               <p className="hero-lede">
-                {featured?.excerpt
-                  ? featured.excerpt.slice(0, 180) + (featured.excerpt.length > 180 ? '…' : '')
+                {hero?.excerpt
+                  ? hero.excerpt.slice(0, 150) + (hero.excerpt.length > 150 ? '…' : '')
                   : 'Axborot-kutubxona texnologiyalari bo‘yicha ilmiy-amaliy jurnal. Barcha maqolalar ochiq kirishda.'}
               </p>
               <div className="hero-actions">
@@ -97,9 +112,9 @@ export default function HomePage() {
                   onClick={() => current ? navigate(`/archive/${current.id}`) : navigate('/archive')}>
                   Sonni ochish
                 </button>
-                {featured && (
+                {hero && (
                   <button className="btn hero-ghost"
-                    onClick={() => navigate(`/articles/${featured.slug}`)}>
+                    onClick={() => navigate(`/articles/${hero.slug}`)}>
                     Yetakchi maqola
                   </button>
                 )}
@@ -113,6 +128,24 @@ export default function HomePage() {
               <HeroStat n={caCount ?? undefined} label="Central Asia" />
             </div>
           </div>
+
+          {/* Karusel boshqaruvi */}
+          {slides.length > 1 && (
+            <div className="hero-nav">
+              <button className="hero-arrow" onClick={() => go(-1)} aria-label="Oldingi">
+                <Chevron dir="left" />
+              </button>
+              <div className="hero-dots">
+                {slides.map((_, i) => (
+                  <button key={i} className={i === slide ? 'active' : ''}
+                    onClick={() => setSlide(i)} aria-label={`${i + 1}-slayd`} />
+                ))}
+              </div>
+              <button className="hero-arrow" onClick={() => go(1)} aria-label="Keyingi">
+                <Chevron dir="right" />
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -361,6 +394,16 @@ export default function HomePage() {
 }
 
 // ── Kichik komponentlar ──────────────────────────────────────────────────────
+
+function Chevron({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+      style={{ transform: dir === 'left' ? 'rotate(180deg)' : undefined }}>
+      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6"
+        strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function HeroStat({ n, label }: { n?: number; label: string }) {
   return (

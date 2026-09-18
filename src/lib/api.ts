@@ -41,6 +41,9 @@ export interface ApiAuthorBrief {
   avatar_idx: number;
   /** Profil rasmi — profilda bor bo'lsa maqola sahifasida ham ko'rinadi. */
   avatar_url: string | null;
+  /** Tashkilot va lavozim — maqola sahifasida muallif tagida chiqadi. */
+  org: string;
+  role: string;
 }
 
 export interface ApiAuthor {

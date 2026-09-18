@@ -1,0 +1,221 @@
+/* ═══════════ MAQOLA SAHIFASI (Figma: «Maqola detail») ═══════════ */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 44px;
+  padding-top: 6px;
+  padding-bottom: 72px;
+  align-items: start;
+}
+.detail-main { max-width: 960px; }
+
+/* ── Yorliqlar qatori ── */
+.detail-tags {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap; margin-bottom: 18px;
+}
+.pill-cat {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: #fff; background: var(--accent);
+  padding: 5px 10px; border-radius: var(--radius-sm);
+}
+.pill-oa {
+  font-size: 12.5px; color: var(--ok);
+  border: 1px solid rgba(47,107,79,0.38);
+  padding: 4px 11px; border-radius: var(--radius-sm);
+}
+.pill-line {
+  font-size: 12.5px; color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  padding: 4px 11px; border-radius: var(--radius-sm);
+}
+
+/* ── Sarlavha ── */
+.detail-title {
+  font-size: 42px; line-height: 1.14; margin: 0 0 26px;
+  max-width: 900px;
+}
+
+/* ── Mualliflar ── */
+.detail-authors {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 20px 0; margin-bottom: 4px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.detail-author { display: flex; align-items: flex-start; gap: 14px; }
+.detail-author-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.detail-author-name {
+  font-size: 14.5px; font-weight: 600; color: var(--ink); text-decoration: none;
+}
+.detail-author-name:hover { color: var(--accent); }
+.detail-author-org { font-size: 13px; color: var(--ink-3); margin-top: 3px; }
+
+/* ── Meta jadval ── */
+.detail-meta {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden; margin: 22px 0 8px;
+  background: var(--paper);
+}
+.meta-cell {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.meta-cell:nth-child(4n) { border-right: 0; }
+.meta-cell:nth-last-child(-n+4) { border-bottom: 0; }
+.meta-cell-k {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.meta-cell-v { font-size: 14px; color: var(--ink); }
+
+/* ── Bo'lim sarlavhasi ── */
+.detail-section { padding-top: 42px; }
+.detail-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 18px; padding-bottom: 12px; margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.detail-head h2 { font-size: 24px; margin: 0; }
+
+.detail-abstract {
+  font-size: 15px; line-height: 1.78; color: var(--ink-2);
+  margin: 0; max-width: 860px;
+}
+
+/* ── Kalit so'zlar ── */
+.kw-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.kw {
+  font-size: 13px; color: var(--ink-2); text-decoration: none;
+  border: 1px solid var(--line); border-radius: 15px;
+  padding: 6px 13px; background: var(--paper);
+  transition: border-color .12s, color .12s;
+}
+.kw:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Iqtibos ── */
+.cite-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.cite-tabs button {
+  border: 1px solid var(--line); background: var(--paper);
+  border-radius: var(--radius); padding: 8px 16px;
+  font-family: var(--sans); font-size: 13.5px; font-weight: 500;
+  color: var(--ink-2); cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.cite-tabs button:hover { border-color: var(--line-2); }
+.cite-tabs button.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.cite-box {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden; background: var(--paper);
+}
+.cite-text {
+  margin: 0; padding: 20px 22px;
+  font-family: var(--serif); font-size: 14.5px; line-height: 1.75;
+  color: var(--ink); white-space: pre-wrap; word-break: break-word;
+}
+.cite-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  padding: 12px 16px; background: var(--grey-2);
+  border-top: 1px solid var(--line);
+}
+
+/* ── Adabiyotlar ── */
+.ref-list { list-style: none; margin: 0; padding: 0; }
+.ref-list li {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--line);
+  font-size: 14px; line-height: 1.65; color: var(--ink-2);
+}
+.ref-list li:last-child { border-bottom: 0; }
+.ref-n { font-family: var(--mono); font-size: 11px; color: var(--ink-4); padding-top: 3px; }
+.ref-doi {
+  display: block; margin-top: 4px;
+  font-family: var(--mono); font-size: 11.5px;
+  color: var(--accent); text-decoration: none;
+}
+.ref-doi:hover { text-decoration: underline; }
+
+/* ── O'xshash maqolalar ── */
+.rel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.rel-card {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); overflow: hidden;
+  text-decoration: none; display: flex; flex-direction: column;
+  transition: border-color .15s, transform .15s;
+}
+.rel-card:hover { border-color: var(--line-2); transform: translateY(-2px); }
+.rel-media { aspect-ratio: 16 / 9; background: var(--grey-3); }
+.rel-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rel-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+.rel-title {
+  font-family: var(--serif); font-size: 15px; font-weight: 600;
+  line-height: 1.34; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rel-foot {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line);
+}
+
+/* ═══ O'ng ustun ═══ */
+.detail-side { position: sticky; top: 140px; }
+.dl-btn { width: 100%; margin-bottom: 10px; }
+.dl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dl-row .btn { width: 100%; }
+.dl-stats {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--line);
+}
+
+.issue-card {
+  display: flex; gap: 14px; align-items: center;
+  text-decoration: none; transition: border-color .15s;
+}
+.issue-card:hover { border-color: var(--line-2); }
+.issue-cover {
+  width: 56px; flex-shrink: 0; aspect-ratio: 3 / 4;
+  border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--grey-3); border: 1px solid var(--line);
+}
+.issue-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.issue-name { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+
+/* ── Sahifa bo'ylab ── */
+.toc { display: flex; flex-direction: column; }
+.toc button {
+  text-align: left; border: 0; background: none; cursor: pointer;
+  font-family: var(--sans); font-size: 13.5px; color: var(--ink-2);
+  padding: 8px 0 8px 12px;
+  border-left: 2px solid var(--line);
+  transition: color .12s, border-color .12s;
+}
+.toc button:hover { color: var(--ink); border-left-color: var(--line-2); }
+.toc button.active {
+  color: var(--ink); font-weight: 600;
+  border-left-color: var(--accent);
+}
+
+/* ── Moslashuvchanlik ── */
+@media (max-width: 1080px) {
+  .detail-grid { grid-template-columns: 1fr; gap: 28px; }
+  .detail-side { display: none; }
+  .detail-title { font-size: 30px; }
+  .detail-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meta-cell:nth-child(4n) { border-right: 1px solid var(--line); }
+  .meta-cell:nth-child(2n) { border-right: 0; }
+  .rel-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .detail-title { font-size: 25px; }
+  .detail-meta { grid-template-columns: 1fr; }
+  .meta-cell { border-right: 0 !important; }
+  .detail-head h2 { font-size: 20px; }
+}

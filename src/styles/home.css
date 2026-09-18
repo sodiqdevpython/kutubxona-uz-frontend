@@ -1,66 +1,107 @@
 /* ═══════════════════ BOSH SAHIFA (Figma: «Asosiy») ═══════════════════ */
 
-/* ── 1. Hero ── */
-.hero { position: relative; background: var(--dark-2); overflow: hidden; }
+/* ── 1. Hero (Figma: 1440x585) ── */
+.hero {
+  position: relative; background: var(--dark-2); overflow: hidden;
+  height: 585px;
+}
 .hero-photo {
   position: absolute; inset: 0;
-  background-size: cover; background-position: center;
-  filter: grayscale(0.35);
+  background-size: cover;
+  background-position: center 38%;
+  background-repeat: no-repeat;
 }
+/* Chapdan o'ngga qorayish — matn o'qilsin, o'ngda foto ko'rinsin */
 .hero-veil {
   position: absolute; inset: 0;
-  background: linear-gradient(
-    95deg,
-    rgba(20,18,16,0.97) 0%,
-    rgba(20,18,16,0.86) 38%,
-    rgba(20,18,16,0.38) 72%,
-    rgba(20,18,16,0.58) 100%
-  );
+  background:
+    linear-gradient(
+      96deg,
+      rgba(12,11,10,0.95) 0%,
+      rgba(12,11,10,0.88) 26%,
+      rgba(12,11,10,0.52) 48%,
+      rgba(12,11,10,0.14) 68%,
+      rgba(12,11,10,0.30) 100%
+    ),
+    linear-gradient(180deg, rgba(12,11,10,0.50) 0%, rgba(12,11,10,0) 22%);
 }
-.hero-inner { position: relative; padding-top: 26px; padding-bottom: 44px; }
+.hero-inner {
+  position: relative; height: 100%;
+  display: flex; flex-direction: column;
+  padding-top: 52px; padding-bottom: 48px;
+}
 
-.hero-eyebrow { display: flex; align-items: center; gap: 18px; margin-bottom: 52px; }
+.hero-eyebrow { display: flex; align-items: center; gap: 18px; margin-bottom: 100px; }
 .hero-rule { flex: 1; height: 1px; background: rgba(255,255,255,0.16); }
 
 .hero-body {
   display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 40px; flex-wrap: wrap;
+  gap: 40px;
 }
-.hero-text { max-width: 660px; }
+.hero-text { max-width: 720px; }
 .hero .hero-title.h-display {
-  font-size: 56px; line-height: 1.08; color: #fff;
-  margin: 0 0 20px; letter-spacing: -0.02em;
+  font-size: 62px; line-height: 1.04; color: #fff;
+  margin: 0 0 14px; letter-spacing: -0.022em;
+  /* Figma'da sarlavha ikki qatorda — uzun nomlar kesiladi */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .hero-lede {
   font-family: var(--serif); font-style: italic;
-  font-size: 18px; line-height: 1.6;
-  color: rgba(255,255,255,0.72);
-  margin: 0 0 26px; max-width: 540px;
+  font-size: 18px; line-height: 1.62;
+  color: rgba(255,255,255,0.74);
+  margin: 0 0 23px; max-width: 540px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .hero-ghost {
-  background: transparent; color: #fff;
-  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.04); color: #fff;
+  border: 1px solid rgba(255,255,255,0.45);
 }
-.hero-ghost:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.6); }
+.hero-ghost:hover { background: rgba(255,255,255,0.14); border-color: #fff; }
 
-.hero-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.hero-stats { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 4px; }
 .hero-stat {
-  min-width: 86px; padding: 14px 18px 12px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
+  min-width: 86px; padding: 15px 18px 13px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.16);
   border-radius: var(--radius);
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  backdrop-filter: blur(6px);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  backdrop-filter: blur(8px);
 }
 .hero-stat-n {
-  font-family: var(--serif); font-size: 30px; font-weight: 600;
+  font-family: var(--serif); font-size: 34px; font-weight: 600;
   color: #fff; line-height: 1;
 }
 .hero-stat-l {
   font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
-  text-transform: uppercase; color: rgba(255,255,255,0.55);
+  text-transform: uppercase; color: rgba(255,255,255,0.58);
 }
+
+/* ── Karusel boshqaruvi ── */
+.hero-nav {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  margin-top: auto; padding-top: 40px;
+}
+.hero-arrow {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.10);
+  color: #fff; cursor: pointer;
+  display: grid; place-items: center;
+  backdrop-filter: blur(8px);
+  transition: background .15s, border-color .15s;
+}
+.hero-arrow:hover { background: rgba(255,255,255,0.20); border-color: rgba(255,255,255,0.45); }
+.hero-dots { display: flex; align-items: center; gap: 9px; }
+.hero-dots button {
+  width: 7px; height: 7px; border-radius: 50%; border: 0; padding: 0;
+  background: rgba(255,255,255,0.32); cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.hero-dots button:hover { background: rgba(255,255,255,0.6); }
+.hero-dots button.active { background: var(--accent); transform: scale(1.15); }
 
 /* ── Umumiy: yon kartalar va havolalar ── */
 .side-card {
@@ -227,12 +268,20 @@
   .cover-row { grid-template-columns: repeat(3, 1fr); }
   .home-cta-steps { grid-template-columns: 1fr; }
 }
+@media (max-width: 1080px) {
+  .hero { height: auto; min-height: 520px; }
+  .hero-body { flex-wrap: wrap; align-items: flex-start; }
+}
 @media (max-width: 900px) {
-  .hero .hero-title.h-display { font-size: 36px; }
+  .hero { min-height: 0; }
+  .hero-inner { padding-top: 28px; padding-bottom: 32px; }
+  .hero-eyebrow { margin-bottom: 40px; }
+  .hero .hero-title.h-display { font-size: 34px; -webkit-line-clamp: 3; }
   .hero-lede { font-size: 16px; }
-  .hero-eyebrow { margin-bottom: 30px; }
-  .hero-stat { min-width: 70px; padding: 10px 12px; }
+  .hero-body { padding-top: 34px; }
+  .hero-stat { min-width: 68px; padding: 10px 12px; }
   .hero-stat-n { font-size: 22px; }
+  .hero-nav { padding-top: 22px; }
 }
 @media (max-width: 620px) {
   .cover-row { grid-template-columns: repeat(2, 1fr); }
