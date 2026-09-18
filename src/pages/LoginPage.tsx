@@ -1,4 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
+import Captcha from '../components/ui/Captcha';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import PageLoadBar from '../components/ui/PageLoadBar';
@@ -13,6 +14,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  // CAPTCHA — backendda kalitlar bo'lsa avtomatik yoqiladi
+  const [captchaOn,    setCaptchaOn]    = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) navigate('/admin/submissions', { replace: true });
@@ -20,9 +24,16 @@ export default function LoginPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    // CAPTCHA yoqilgan, lekin hali yechilmagan bo'lsa — yubormaymiz
+    if (captchaOn && !captchaToken) {
+      setError("Avval «Men robot emasman» tekshiruvidan o'ting.");
+      return;
+    }
+
     setError(''); setLoading(true);
     try {
-      await login(username.trim(), password);
+      await login(username.trim(), password, captchaToken);
       navigate('/admin/submissions', { replace: true });
     } catch (err) {
       setError((err as Error).message);
@@ -102,6 +113,8 @@ export default function LoginPage() {
               />
             </div>
 
+            <Captcha onToken={setCaptchaToken} onReady={setCaptchaOn} />
+
             {error && (
               <div style={{
                 padding: '10px 14px',
@@ -114,13 +127,13 @@ export default function LoginPage() {
             )}
 
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={loading || (captchaOn && !captchaToken)}
               className="btn primary"
               style={{
                 width: '100%', height: 46, justifyContent: 'center',
                 fontSize: 14, marginTop: 4,
-                opacity: loading ? 0.6 : 1,
-                cursor: loading ? 'default' : 'pointer',
+                opacity: (loading || (captchaOn && !captchaToken)) ? 0.6 : 1,
+                cursor: (loading || (captchaOn && !captchaToken)) ? 'default' : 'pointer',
               }}
             >
               {loading ? 'Tekshirilmoqda…' : 'Kirish'}

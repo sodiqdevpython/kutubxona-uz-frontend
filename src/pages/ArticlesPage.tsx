@@ -93,7 +93,7 @@ function ArticleCard({ a }: { a: ApiArticle }) {
           <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--ink-3)', maxWidth: 620, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{a.excerpt}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
-          {a.authors[0] && <AuthorAvatar name={a.authors[0].initials} idx={a.authors[0].avatar_idx} size={22} />}
+          {a.authors[0] && <AuthorAvatar name={a.authors[0].initials} idx={a.authors[0].avatar_idx} src={a.authors[0].avatar_url} alt={a.authors[0].name} size={22} />}
           <span style={{ fontSize: 12.5, color: 'var(--ink-2)', fontWeight: 500, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
             {a.author_names?.[0] ?? a.author_label}
           </span>

@@ -1,8 +1,12 @@
 // ── API base ─────────────────────────────────────────────────────────────────
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+import { API_BASE, apiOrigin } from './config';
+
+const BASE = API_BASE;
 
 async function get<T>(path: string, params?: Record<string, string>): Promise<T> {
-  const url = new URL(`${BASE}${path}`);
+  // BASE bo'sh bo'lishi mumkin (Docker: nginx bir xil origin'da proksilaydi),
+  // shuning uchun nisbiy yo'lni joriy origin'ga nisbatan yechamiz.
+  const url = new URL(path, apiOrigin());
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   }
@@ -35,6 +39,8 @@ export interface ApiAuthorBrief {
   slug: string;
   initials: string;
   avatar_idx: number;
+  /** Profil rasmi — profilda bor bo'lsa maqola sahifasida ham ko'rinadi. */
+  avatar_url: string | null;
 }
 
 export interface ApiAuthor {
@@ -62,7 +68,6 @@ export interface ApiArticle {
   authors: ApiAuthorBrief[];
   author_label: string;
   author_names: string[];
-  status: 'open' | 'lock';
   year: number;
   quarter: number;
   pages: number;

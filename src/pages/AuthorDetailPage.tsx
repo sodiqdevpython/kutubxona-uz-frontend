@@ -3,17 +3,20 @@ import Topbar from '../components/layout/Topbar';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
 import LoadMoreButton from '../components/ui/LoadMoreButton';
-import { CheckIcon, LockIcon, EyeIcon, ArrowIcon } from '../components/ui/Icons';
+import { CheckIcon, EyeIcon, ArrowIcon } from '../components/ui/Icons';
 import { useFetch } from '../lib/hooks';
 import type { ApiAuthor, ApiArticle, PaginatedResponse } from '../lib/api';
 import Seo from '../components/Seo';
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
-function StatusTag({ status }: { status: string }) {
-  return status === 'open'
-    ? <span className="tag ok" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={10} /> Ochiq</span>
-    : <span className="tag line" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LockIcon size={10} /> Obunachi</span>;
+// Barcha chop etilgan maqolalar ochiq kirishda — obuna tizimi yo'q
+function OpenAccessTag() {
+  return (
+    <span className="tag ok" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <CheckIcon size={10} /> Ochiq
+    </span>
+  );
 }
 
 function formatDate(iso: string | null): string {
@@ -150,7 +153,7 @@ export default function AuthorDetailPage() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                         {art.category && <span className="tag navy-soft">{art.category.name}</span>}
-                        <StatusTag status={art.status} />
+                        <OpenAccessTag />
                       </div>
                       <h4 className="h-display" style={{ fontSize: 18, lineHeight: 1.25, letterSpacing: '-0.01em' }}>{art.title}</h4>
                     </div>

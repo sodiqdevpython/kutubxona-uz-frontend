@@ -6,6 +6,8 @@ import Footer from '../../components/layout/Footer';
 import AuthorAvatar from '../../components/ui/AuthorAvatar';
 import Pagination from '../../components/ui/Pagination';
 import { CheckIcon, DocIcon, SearchIcon } from '../../components/ui/Icons';
+import AiUnavailableModal from '../../components/ui/AiUnavailableModal';
+import { getAiStatus, isAiUnavailableError, resetAiStatus } from '../../lib/ai';
 import {
   adminApi,
   type AdminSubmission, type AdminIssue, type AdminCategory, type SubmissionEdit,
@@ -548,6 +550,8 @@ export default function AdminSubmissionsPage() {
   const [reject,  setReject]  = useState<AdminSubmission | null>(null);
   const [revert,  setRevert]  = useState<AdminSubmission | null>(null);
   const [aiBusyId, setAiBusyId] = useState<string | null>(null);
+  // Local AI ulanmagan bo'lsa - so'rov yubormasdan modal ko'rsatamiz
+  const [aiOff, setAiOff] = useState<{ action: string; reason?: string } | null>(null);
   const [trainBusyId, setTrainBusyId] = useState<string | null>(null);
   const [toast,   setToast]   = useState('');
   const [counts,  setCounts]  = useState<Record<string, number>>({});
@@ -595,12 +599,25 @@ export default function AdminSubmissionsPage() {
   // ── Actions ──────────────────────────────────────────────────────────────────
 
   async function doAiExtract(sub: AdminSubmission) {
+    const status = await getAiStatus();
+    if (!status.available) {
+      setAiOff({ action: "AI bilan to'ldirish", reason: status.reason });
+      return;
+    }
+
     setAiBusyId(sub.id);
     try {
       const updated = await adminApi.submissions.aiExtract(sub.id);
       setSubs(p => p.map(s => s.id === sub.id ? updated : s));
       flash('✨ AI to\'ldirdi. Tekshirib, kerak bo\'lsa tahrirlang.');
-    } catch (e) { flash(`AI xatosi: ${(e as Error).message}`); }
+    } catch (e) {
+      if (isAiUnavailableError(e)) {
+        resetAiStatus();
+        setAiOff({ action: "AI bilan to'ldirish" });
+      } else {
+        flash(`AI xatosi: ${(e as Error).message}`);
+      }
+    }
     finally { setAiBusyId(null); }
   }
 
@@ -659,13 +676,25 @@ export default function AdminSubmissionsPage() {
 
   async function doTrainAI(sub: AdminSubmission) {
     if (!sub.article_id) return;
+
+    const status = await getAiStatus();
+    if (!status.available) {
+      setAiOff({ action: "AI ga o'qitish", reason: status.reason });
+      return;
+    }
+
     setTrainBusyId(sub.id);
     try {
       const res = await adminApi.articles.trainAi(sub.article_id);
       setSubs(p => p.map(s => s.id === sub.id ? { ...s, article_ai_ready: res.ai_ready } : s));
       flash('✨ AI o\'qitildi. Endi saytda chat ochiq.');
     } catch (e) {
-      flash(`AI o'qitish xatosi: ${(e as Error).message}`);
+      if (isAiUnavailableError(e)) {
+        resetAiStatus();
+        setAiOff({ action: "AI ga o'qitish" });
+      } else {
+        flash(`AI o'qitish xatosi: ${(e as Error).message}`);
+      }
     } finally {
       setTrainBusyId(null);
     }
@@ -796,6 +825,12 @@ export default function AdminSubmissionsPage() {
       <Footer />
 
       {/* Modals */}
+      <AiUnavailableModal
+        open={aiOff !== null}
+        action={aiOff?.action}
+        reason={aiOff?.reason}
+        onClose={() => setAiOff(null)}
+      />
       {preview && <PreviewModal sub={preview} onClose={() => setPreview(null)} />}
       {edit && (
         <EditModal

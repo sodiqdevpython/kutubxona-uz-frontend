@@ -6,11 +6,34 @@ interface Props {
   name?: string;
   size?: number;
   idx?: number;
+  /**
+   * Profil rasmi. Berilgan bo'lsa — bosh harflar o'rniga rasm ko'rsatiladi.
+   * Rasm har doim muallif profilidan o'qiladi, shuning uchun maqola
+   * qo'shilganda rasm bo'lmagan bo'lsa ham, keyin yuklansa darhol chiqadi.
+   */
+  src?: string | null;
+  alt?: string;
 }
 
-export default function AuthorAvatar({ name = '?', size = 32, idx = 0 }: Props) {
+export default function AuthorAvatar({ name = '?', size = 32, idx = 0, src, alt }: Props) {
   const bg = VARIANTS[idx % VARIANTS.length];
   const fontSize = size <= 22 ? 9 : size <= 28 ? 10 : size <= 36 ? 12 : size <= 52 ? 14 : 20;
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={alt ?? name}
+        loading="lazy"
+        className="avatar"
+        style={{
+          width: size, height: size, borderRadius: '50%',
+          objectFit: 'cover', flexShrink: 0, background: bg,
+        }}
+      />
+    );
+  }
+
   return (
     <div className="avatar" style={{ width: size, height: size, background: bg, fontSize }}>
       {name}
@@ -18,8 +41,16 @@ export default function AuthorAvatar({ name = '?', size = 32, idx = 0 }: Props) 
   );
 }
 
+interface StackAuthor {
+  initials: string;
+  idx?: number;
+  avatar_idx?: number;
+  avatar_url?: string | null;
+  name?: string;
+}
+
 interface StackProps {
-  authors: { initials: string; idx?: number }[];
+  authors: StackAuthor[];
   size?: number;
 }
 
@@ -34,7 +65,13 @@ export function AvatarStack({ authors, size = 24 }: StackProps) {
           boxShadow: '0 0 0 2px #fff',
           borderRadius: '50%',
         }}>
-          <AuthorAvatar name={a.initials} idx={a.idx ?? i} size={size} />
+          <AuthorAvatar
+            name={a.initials}
+            idx={a.avatar_idx ?? a.idx ?? i}
+            src={a.avatar_url}
+            alt={a.name}
+            size={size}
+          />
         </div>
       ))}
     </div>

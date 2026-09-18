@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar, { AvatarStack } from '../components/ui/AuthorAvatar';
+import AiUnavailableModal from '../components/ui/AiUnavailableModal';
+import { getAiStatus, isAiUnavailableError, resetAiStatus } from '../lib/ai';
 import JournalCover from '../components/ui/JournalCover';
 import PdfViewer, { isPdf, isDocx } from '../components/ui/PdfViewer';
 import CommentsSection from '../components/CommentsSection';
@@ -72,6 +74,8 @@ function AskAISection({ slug }: { slug: string }) {
   const [msgs, setMsgs] = useState<Msg[]>(seed);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
+  // Local AI ulanmagan bo'lsa modal chiqadi
+  const [aiOff, setAiOff] = useState<{ reason?: string } | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const asked = msgs.filter(m => m.who === 'user').length;
 
@@ -82,6 +86,13 @@ function AskAISection({ slug }: { slug: string }) {
   async function ask(text: string) {
     const q = text.trim();
     if (!q || typing) return;
+
+    const status = await getAiStatus();
+    if (!status.available) {
+      setAiOff({ reason: status.reason });
+      return;
+    }
+
     setInput('');
     setMsgs(m => [...m, { who: 'user', name: "Anonim o'quvchi", src: null, text: q }]);
     setTyping(true);
@@ -89,6 +100,13 @@ function AskAISection({ slug }: { slug: string }) {
       const res = await articlesApi.ask(slug, q);
       setMsgs(m => [...m, { who: 'ai', name: 'Kutubxona AI', src: null, text: res.answer }]);
     } catch (e) {
+      if (isAiUnavailableError(e)) {
+        resetAiStatus();
+        setAiOff({});
+        setMsgs(m => m.slice(0, -1));   // savolni qaytarib olamiz
+        setTyping(false);
+        return;
+      }
       const msg = e instanceof Error ? e.message : String(e);
       let nice = "Hozir javob ololmadim. Iltimos, biroz kutib qayta urinib ko'ring.";
       if (/429/.test(msg)) nice = "Juda tez-tez savol berayapsiz. Bir oz kuting va qaytadan urinib ko'ring.";
@@ -101,6 +119,12 @@ function AskAISection({ slug }: { slug: string }) {
 
   return (
     <section className="bg-ai" style={{ padding: '72px 0 80px', position: 'relative', borderTop: '1px solid var(--line)', overflow: 'hidden' }}>
+      <AiUnavailableModal
+        open={aiOff !== null}
+        action="Maqola haqida so'rash"
+        reason={aiOff?.reason}
+        onClose={() => setAiOff(null)}
+      />
       <div style={{ position: 'absolute', left: '8%', top: '14%', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle,rgba(43,70,112,0.14),transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', right: '4%', bottom: '8%', width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle,rgba(94,117,149,0.22),transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ maxWidth: 1340, margin: '0 auto', padding: '0 var(--px)', position: 'relative' }}>
@@ -352,10 +376,8 @@ export default function ArticleDetailPage() {
           <header style={{ marginBottom: 36 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
               <span className="tag navy">{apiArticle?.category?.name ?? 'Arxiv ishi'}</span>
-              {(apiArticle?.status ?? 'open') === 'open'
-                ? <span className="tag ok"><CheckIcon size={10} /> Ochiq kirish</span>
-                : <span className="tag line">Obunachi</span>
-              }
+              {/* Barcha chop etilgan maqolalar ochiq kirishda — obuna tizimi yo'q */}
+              <span className="tag ok"><CheckIcon size={10} /> Ochiq kirish</span>
               <span className="tag line">Taqriz qilingan</span>
             </div>
             <h1 className="h-display h1-rsp" style={{ fontSize: 52, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 22 }}>
@@ -367,7 +389,7 @@ export default function ArticleDetailPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   {apiArticle
                     ? (apiArticle.authors[0]
-                        ? <AuthorAvatar name={apiArticle.authors[0].initials} idx={apiArticle.authors[0].avatar_idx} size={40} />
+                        ? <AuthorAvatar name={apiArticle.authors[0].initials} idx={apiArticle.authors[0].avatar_idx} src={apiArticle.authors[0].avatar_url} alt={apiArticle.authors[0].name} size={40} />
                         : <AuthorAvatar name={(apiArticle.author_names[0] ?? 'M')[0]} idx={0} size={40} />)
                     : <AvatarStack authors={a.authors} size={40} />
                   }
@@ -542,7 +564,7 @@ export default function ArticleDetailPage() {
             <div className="card-hover" style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, padding: '22px 22px' }}>
               <span className="eyebrow">Yuborgan muallif</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
-                <AuthorAvatar name={apiArticle.authors[0].initials} idx={apiArticle.authors[0].avatar_idx} size={48} />
+                <AuthorAvatar name={apiArticle.authors[0].initials} idx={apiArticle.authors[0].avatar_idx} src={apiArticle.authors[0].avatar_url} alt={apiArticle.authors[0].name} size={48} />
                 <div>
                   <div style={{ fontFamily: 'var(--serif)', fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{apiArticle.authors[0].name}</div>
                 </div>

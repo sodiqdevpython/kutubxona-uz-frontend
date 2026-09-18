@@ -298,7 +298,7 @@ export default function HomePage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12.5, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                         {featured.authors[0] && (
-                          <AuthorAvatar name={featured.authors[0].initials} idx={featured.authors[0].avatar_idx} size={26} />
+                          <AuthorAvatar name={featured.authors[0].initials} idx={featured.authors[0].avatar_idx} src={featured.authors[0].avatar_url} alt={featured.authors[0].name} size={26} />
                         )}
                         <span style={{ color: 'white', fontWeight: 500, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                           {featured.author_names?.[0] ?? featured.author_label}
@@ -386,7 +386,7 @@ export default function HomePage() {
                           marginTop: 'auto', paddingTop: 6, borderTop: '1px solid var(--line)',
                         }}>
                           {a.authors[0] && (
-                            <AuthorAvatar name={a.authors[0].initials} idx={a.authors[0].avatar_idx} size={18} />
+                            <AuthorAvatar name={a.authors[0].initials} idx={a.authors[0].avatar_idx} src={a.authors[0].avatar_url} alt={a.authors[0].name} size={18} />
                           )}
                           <span style={{
                             color: 'var(--ink-2)', fontWeight: 500,
@@ -490,7 +490,7 @@ export default function HomePage() {
                               </h3>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', fontSize: 11.5, color: 'var(--ink-3)' }}>
                                 {a.authors[0] && (
-                                  <AuthorAvatar name={a.authors[0].initials} idx={a.authors[0].avatar_idx} size={20} />
+                                  <AuthorAvatar name={a.authors[0].initials} idx={a.authors[0].avatar_idx} src={a.authors[0].avatar_url} alt={a.authors[0].name} size={20} />
                                 )}
                                 <span style={{ color: 'var(--ink-2)', fontWeight: 500, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                                   {trim(a.author_names?.[0] ?? a.author_label, 26)}

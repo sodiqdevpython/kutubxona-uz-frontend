@@ -19,7 +19,7 @@ interface AuthContextValue {
   user:            AdminUser | null;
   token:           string | null;
   isAuthenticated: boolean;
-  login:   (username: string, password: string) => Promise<void>;
+  login:   (username: string, password: string, captchaToken?: string) => Promise<void>;
   logout:  () => void;
 }
 
@@ -41,11 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function login(username: string, password: string) {
+  async function login(username: string, password: string, captchaToken?: string) {
     const res = await fetch(`${BASE}/api/admin/auth/login/`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ username, password }),
+      body:    JSON.stringify({
+        username, password,
+        // CAPTCHA o'chiq bo'lsa bo'sh ketadi — backend e'tibor bermaydi
+        captcha_token: captchaToken ?? '',
+      }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -65,6 +69,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    const access  = localStorage.getItem(KEY_ACCESS);
+    const refresh = localStorage.getItem(KEY_REFRESH);
+
+    // Refresh tokenni serverda qora ro'yxatga qo'shamiz — o'g'irlangan
+    // bo'lsa ham boshqa ishlamaydi. Javobni kutmaymiz.
+    if (access && refresh) {
+      fetch(`${BASE}/api/admin/auth/logout/`, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          Authorization:   `Bearer ${access}`,
+        },
+        body: JSON.stringify({ refresh }),
+        keepalive: true,
+      }).catch(() => { /* tarmoq yo'q — baribir lokal tozalaymiz */ });
+    }
+
     localStorage.removeItem(KEY_ACCESS);
     localStorage.removeItem(KEY_REFRESH);
     setToken(null);

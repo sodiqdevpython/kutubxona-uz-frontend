@@ -24,7 +24,6 @@ export interface Article {
   year: number;
   q: number;
   img: number;
-  status: 'open' | 'lock';
 }
 
 export interface Issue {
@@ -84,12 +83,12 @@ export const TRENDING = [
 ];
 
 export const ARTICLES: Article[] = [
-  { id: 'a1', cat: 'Arxiv ishi', title: "Sharq qo'lyozmalari kataloglashning raqamli usullari", excerpt: "O'zbekiston Milliy kutubxonasidagi XV–XIX asr qo'lyozmalarini RDF asosida tasniflash bo'yicha to'rt yillik tajriba xulosalari.", authors: [{ initials: 'DR', idx: 0 }, { initials: 'AY', idx: 1 }], authorLabel: "D. Rahimov, A. Yusupov", pages: 24, min: 14, cites: 24, year: 2026, q: 1, img: 0, status: 'open' },
-  { id: 'a2', cat: 'Nodir nashrlar', title: "«Mahbub ul-qulub»ning 1907-yilgi nashri — paleografik tahlil", excerpt: "Toshkent toshbosma nashriyotida chiqqan kamyob nusxaning matn varianti va marginaliya yozuvlari.", authors: [{ initials: 'NS', idx: 1 }], authorLabel: "N. Sodiqova", pages: 32, min: 22, cites: 48, year: 2026, q: 1, img: 1, status: 'open' },
-  { id: 'a3', cat: 'Katalogizatsiya', title: "BIBFRAME 2.0 standartining O'zbekiston kutubxonalarida joriy etilishi", excerpt: "MARC21'dan BIBFRAME ga o'tishdagi asosiy yo'qotishlar va imkoniyatlar — uchta shahar tajribasi.", authors: [{ initials: 'AY', idx: 2 }, { initials: '+2', idx: 3 }], authorLabel: "A. Yusupov + 2", pages: 18, min: 18, cites: 12, year: 2026, q: 1, img: 2, status: 'open' },
-  { id: 'a4', cat: 'Bibliografiya', title: "O'zbek matbuoti tarixi: 1870–1925 yillar bibliografik ko'rsatkichi", excerpt: "Ellik beshta davriy nashr va o'n besh ming maqolani qamragan ko'rsatkichning ish metodikasi.", authors: [{ initials: 'GK', idx: 3 }], authorLabel: "G. Karimova", pages: 48, min: 26, cites: 34, year: 2026, q: 1, img: 3, status: 'lock' },
-  { id: 'a5', cat: 'Arxiv ishi', title: "Termiz arxivlaridagi sovuq urush davri hujjatlarining konservatsiyasi", excerpt: "Past namlik sharoitida saqlangan hujjatlar va raqamli nusxa olishning optimal rejimlari.", authors: [{ initials: 'BT', idx: 4 }], authorLabel: "B. Tursunov", pages: 14, min: 16, cites: 8, year: 2026, q: 1, img: 0, status: 'open' },
-  { id: 'a6', cat: 'Raqamlashtirish', title: "OCR'ning eski o'zbek imlosiga moslashtirilgan modeli", excerpt: "Arab grafikasidagi bosma matnlar uchun fine-tuned transformer modelining dastlabki natijalari.", authors: [{ initials: 'MI', idx: 0 }, { initials: 'DR', idx: 1 }], authorLabel: "M. Iskandarova, D. Rahimov", pages: 12, min: 12, cites: 5, year: 2025, q: 4, img: 1, status: 'open' },
+  { id: 'a1', cat: 'Arxiv ishi', title: "Sharq qo'lyozmalari kataloglashning raqamli usullari", excerpt: "O'zbekiston Milliy kutubxonasidagi XV–XIX asr qo'lyozmalarini RDF asosida tasniflash bo'yicha to'rt yillik tajriba xulosalari.", authors: [{ initials: 'DR', idx: 0 }, { initials: 'AY', idx: 1 }], authorLabel: "D. Rahimov, A. Yusupov", pages: 24, min: 14, cites: 24, year: 2026, q: 1, img: 0 },
+  { id: 'a2', cat: 'Nodir nashrlar', title: "«Mahbub ul-qulub»ning 1907-yilgi nashri — paleografik tahlil", excerpt: "Toshkent toshbosma nashriyotida chiqqan kamyob nusxaning matn varianti va marginaliya yozuvlari.", authors: [{ initials: 'NS', idx: 1 }], authorLabel: "N. Sodiqova", pages: 32, min: 22, cites: 48, year: 2026, q: 1, img: 1 },
+  { id: 'a3', cat: 'Katalogizatsiya', title: "BIBFRAME 2.0 standartining O'zbekiston kutubxonalarida joriy etilishi", excerpt: "MARC21'dan BIBFRAME ga o'tishdagi asosiy yo'qotishlar va imkoniyatlar — uchta shahar tajribasi.", authors: [{ initials: 'AY', idx: 2 }, { initials: '+2', idx: 3 }], authorLabel: "A. Yusupov + 2", pages: 18, min: 18, cites: 12, year: 2026, q: 1, img: 2 },
+  { id: 'a4', cat: 'Bibliografiya', title: "O'zbek matbuoti tarixi: 1870–1925 yillar bibliografik ko'rsatkichi", excerpt: "Ellik beshta davriy nashr va o'n besh ming maqolani qamragan ko'rsatkichning ish metodikasi.", authors: [{ initials: 'GK', idx: 3 }], authorLabel: "G. Karimova", pages: 48, min: 26, cites: 34, year: 2026, q: 1, img: 3 },
+  { id: 'a5', cat: 'Arxiv ishi', title: "Termiz arxivlaridagi sovuq urush davri hujjatlarining konservatsiyasi", excerpt: "Past namlik sharoitida saqlangan hujjatlar va raqamli nusxa olishning optimal rejimlari.", authors: [{ initials: 'BT', idx: 4 }], authorLabel: "B. Tursunov", pages: 14, min: 16, cites: 8, year: 2026, q: 1, img: 0 },
+  { id: 'a6', cat: 'Raqamlashtirish', title: "OCR'ning eski o'zbek imlosiga moslashtirilgan modeli", excerpt: "Arab grafikasidagi bosma matnlar uchun fine-tuned transformer modelining dastlabki natijalari.", authors: [{ initials: 'MI', idx: 0 }, { initials: 'DR', idx: 1 }], authorLabel: "M. Iskandarova, D. Rahimov", pages: 12, min: 12, cites: 5, year: 2025, q: 4, img: 1 },
 ];
 
 export const AUTHORS: Author[] = [
@@ -153,14 +152,14 @@ export const PROFILE_AUTHOR = {
 };
 
 export const PROFILE_ARTICLES = [
-  { id: 'pa1', cat: 'Arxiv ishi',     title: "Sharq qo'lyozmalari kataloglashning raqamli usullari",         date: "Mart 2026",    min: 14, cites: 24, status: 'open' as const },
-  { id: 'pa2', cat: 'Katalogizatsiya',title: "BIBFRAME 2.0 standartining O'zbekiston kutubxonalarida joriy etilishi", date: "Yanvar 2026", min: 18, cites: 12, status: 'open' as const },
-  { id: 'pa3', cat: 'Arxiv ishi',     title: "XV asr Buxoro madrasalari fondining elektron tasnifi",          date: "Sentabr 2025", min: 22, cites: 48, status: 'open' as const },
-  { id: 'pa4', cat: 'Nodir nashrlar', title: "Boburnoma qo'lyozmalarining qiyosiy paleografik tahlili",       date: "Iyun 2025",    min: 26, cites: 67, status: 'open' as const },
-  { id: 'pa5', cat: 'Bibliografiya',  title: "Toshkent kutubxonalari fondining yo'qotilgan qatlamlari",       date: "Mart 2025",    min: 14, cites: 18, status: 'lock' as const },
-  { id: 'pa6', cat: 'Katalogizatsiya',title: "SKOS lug'atlarining sharqona mavzu sohalariga moslashuvi",      date: "Dekabr 2024",  min: 16, cites: 32, status: 'open' as const },
-  { id: 'pa7', cat: 'Arxiv ishi',     title: "Xiva xonligi davri hujjatlarining digitalizatsiyasi",          date: "Sentabr 2024", min: 20, cites: 54, status: 'open' as const },
-  { id: 'pa8', cat: 'Raqamlashtirish',title: "Mahalliy OCR modelini Sharq matnlariga moslashtirish",          date: "Iyun 2024",    min: 12, cites: 41, status: 'open' as const },
+  { id: 'pa1', cat: 'Arxiv ishi',     title: "Sharq qo'lyozmalari kataloglashning raqamli usullari",         date: "Mart 2026",    min: 14, cites: 24 },
+  { id: 'pa2', cat: 'Katalogizatsiya',title: "BIBFRAME 2.0 standartining O'zbekiston kutubxonalarida joriy etilishi", date: "Yanvar 2026", min: 18, cites: 12 },
+  { id: 'pa3', cat: 'Arxiv ishi',     title: "XV asr Buxoro madrasalari fondining elektron tasnifi",          date: "Sentabr 2025", min: 22, cites: 48 },
+  { id: 'pa4', cat: 'Nodir nashrlar', title: "Boburnoma qo'lyozmalarining qiyosiy paleografik tahlili",       date: "Iyun 2025",    min: 26, cites: 67 },
+  { id: 'pa5', cat: 'Bibliografiya',  title: "Toshkent kutubxonalari fondining yo'qotilgan qatlamlari",       date: "Mart 2025",    min: 14, cites: 18 },
+  { id: 'pa6', cat: 'Katalogizatsiya',title: "SKOS lug'atlarining sharqona mavzu sohalariga moslashuvi",      date: "Dekabr 2024",  min: 16, cites: 32 },
+  { id: 'pa7', cat: 'Arxiv ishi',     title: "Xiva xonligi davri hujjatlarining digitalizatsiyasi",          date: "Sentabr 2024", min: 20, cites: 54 },
+  { id: 'pa8', cat: 'Raqamlashtirish',title: "Mahalliy OCR modelini Sharq matnlariga moslashtirish",          date: "Iyun 2024",    min: 12, cites: 41 },
 ];
 
 export const DETAIL_ARTICLE = {
@@ -173,7 +172,6 @@ export const DETAIL_ARTICLE = {
   authorOrg: "O'zbekiston Milliy kutubxonasi · ToshDShI",
   date: '12 mart, 2026',
   min: 14,
-  status: 'open' as const,
   journal: { title: 'Kutubxona Arxivi', vol: 'Vol. 42', year: 2026, n: 1, issn: '2181-1394' },
 };
 

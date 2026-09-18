@@ -5,9 +5,19 @@ import PageLoadBar from '../../components/ui/PageLoadBar';
 import AuthorAvatar from '../../components/ui/AuthorAvatar';
 import { SearchIcon, SendIcon, DocIcon } from '../../components/ui/Icons';
 import { adminApi, type AdminChat, type ChatMessage } from '../../lib/admin-api';
+import { connectAdminChat, type ChatEvent, type ChatSocketStatus } from '../../lib/chat-socket';
+import { mediaUrl } from '../../lib/config';
 
-const POLL_MS  = 5000;   // har 5s chat ro'yxati va aktiv messages yangilanadi
 const PAGE_LIMIT = 20;   // bir sahifada nechta chat
+
+// Chatlarni oxirgi xabar vaqti bo'yicha saralash (backend tartibi bilan bir xil)
+function sortChats(list: AdminChat[]): AdminChat[] {
+  return [...list].sort((a, b) => {
+    const ta = new Date(a.last_message_at ?? a.created_at).getTime();
+    const tb = new Date(b.last_message_at ?? b.created_at).getTime();
+    return tb - ta;
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -54,6 +64,7 @@ export default function AdminChatPage() {
 
   const [msgs, setMsgs]         = useState<ChatMessage[]>([]);
   const [msgsLoading, setMsgsLoading] = useState(false);
+  const [wsStatus, setWsStatus] = useState<ChatSocketStatus>('connecting');
 
   const listRef     = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -98,11 +109,7 @@ export default function AdminChatPage() {
     setLoadingMore(false);
   }, [loadingMore, hasMore, nextOffset]);
 
-  useEffect(() => {
-    loadFirstPage(false);
-    const t = setInterval(() => loadFirstPage(true), POLL_MS);
-    return () => clearInterval(t);
-  }, [loadFirstPage]);
+  useEffect(() => { loadFirstPage(false); }, [loadFirstPage]);
 
   // ── Infinite scroll: sentinel ko'ringanda loadMore ──
   useEffect(() => {
@@ -133,9 +140,68 @@ export default function AdminChatPage() {
   useEffect(() => {
     if (!activeId) { setMsgs([]); return; }
     loadMessages(activeId);
-    const t = setInterval(() => loadMessages(activeId), POLL_MS);
-    return () => clearInterval(t);
   }, [activeId, loadMessages]);
+
+  // ── Real-time: WebSocket (polling o'rniga) ──────────────────────────────
+  // Ulanish bir marta ochiladi va sahifa yopilguncha turadi. Aktiv chat
+  // o'zgarganda ulanish uzilmasligi uchun ref ishlatamiz.
+  const activeIdRef = useRef<string | null>(activeId);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+
+  const upsertChat = useCallback((incoming: AdminChat) => {
+    setChats(prev => {
+      const exists = prev.some(c => c.id === incoming.id);
+      const merged = exists
+        ? prev.map(c => (c.id === incoming.id ? { ...c, ...incoming } : c))
+        : [incoming, ...prev];
+      return sortChats(merged);
+    });
+  }, []);
+
+  const handleEvent = useCallback((e: ChatEvent) => {
+    switch (e.event) {
+      case 'message.created': {
+        // Aktiv suhbat ochiq bo'lsa — xabarni darhol qo'shamiz
+        if (activeIdRef.current === e.chat_id) {
+          setMsgs(prev => (prev.some(m => m.id === e.message.id) ? prev : [...prev, e.message]));
+          // Ochiq suhbat — o'qildi deb belgilaymiz
+          if (e.message.sender === 'user') {
+            adminApi.chat.markRead(e.chat_id).catch(() => {});
+            upsertChat({ ...e.chat, unread_count: 0 });
+            return;
+          }
+        }
+        upsertChat(e.chat);
+        break;
+      }
+      case 'chat.updated':
+        upsertChat(e.chat);
+        break;
+      case 'chat.deleted':
+        setChats(prev => prev.filter(c => c.id !== e.chat_id));
+        if (activeIdRef.current === e.chat_id) { setActiveId(null); setMsgs([]); }
+        break;
+      case 'chat.read':
+        setChats(prev => prev.map(c => (c.id === e.chat_id ? { ...c, unread_count: 0 } : c)));
+        break;
+      default:
+        break;
+    }
+  }, [upsertChat]);
+
+  useEffect(() => {
+    const disconnect = connectAdminChat({
+      onEvent:  handleEvent,
+      onStatus: setWsStatus,
+      // Uzilish davomida kelgan xabarlarni bir marta yuklab olamiz
+      onResync: () => {
+        loadFirstPage(true);
+        if (activeIdRef.current) loadMessages(activeIdRef.current);
+      },
+      onAuthError: () => navigate('/login'),
+    });
+    return disconnect;
+  }, [handleEvent, loadFirstPage, loadMessages, navigate]);
 
   // ── Chat select ────────────────────────────────────────────────────────
   function selectChat(c: AdminChat) {
@@ -213,9 +279,22 @@ export default function AdminChatPage() {
         </div>
         <h1 className="h-display h1-rsp" style={{ fontSize: 36, marginBottom: 4 }}>Xabarlar</h1>
         <p style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>
-          Mualliflar bilan Telegram orqali suhbatlashish. Birinchi xabarni siz yuborasiz —
-          shundagina foydalanuvchi javob bera oladi.
+          Mualliflar bilan Telegram orqali suhbatlashish. Xabarlar real vaqtda keladi —
+          sahifani yangilash shart emas.
         </p>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          marginTop: 8, fontSize: 11.5, color: 'var(--ink-3)',
+        }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: wsStatus === 'open' ? '#16A34A'
+                      : wsStatus === 'connecting' ? '#D97706' : '#DC2626',
+          }} />
+          {wsStatus === 'open' ? 'Real vaqt ulanishi faol'
+            : wsStatus === 'connecting' ? 'Ulanmoqda…'
+            : "Ulanish uzildi — qayta urinilmoqda"}
+        </div>
       </div>
 
       {/* Telegram-style layout */}
@@ -504,14 +583,14 @@ function ChatPane({ chat, messages, loading, onSent, onToggleBlock, onDelete }: 
                   wordBreak: 'break-word',
                 }}>
                   {m.kind === 'photo' && m.image_url && (
-                    <img src={m.image_url} alt="" style={{
+                    <img src={mediaUrl(m.image_url) ?? undefined} alt="" style={{
                       width: '100%', maxWidth: 320, maxHeight: 280,
                       objectFit: 'cover', borderRadius: 8, display: 'block',
                       marginBottom: m.text ? 8 : 0,
                     }} />
                   )}
                   {m.kind === 'document' && m.document_url && (
-                    <a href={m.document_url} target="_blank" rel="noreferrer"
+                    <a href={mediaUrl(m.document_url) ?? undefined} target="_blank" rel="noreferrer"
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '8px 10px', borderRadius: 6,
