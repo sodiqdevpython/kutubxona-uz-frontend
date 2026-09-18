@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
+import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
 import LoadMoreButton from '../components/ui/LoadMoreButton';
@@ -145,6 +146,7 @@ export default function AuthorsPage() {
           )}
         </>
       )}
+      <Footer />
     </div>
   );
 }

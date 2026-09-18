@@ -14,6 +14,7 @@ import AuthorDetailPage     from './pages/AuthorDetailPage';
 import CentralAsiaPage       from './pages/CentralAsiaPage';
 import CentralAsiaDetailPage from './pages/CentralAsiaDetailPage';
 import LoginPage             from './pages/LoginPage';
+import { AboutJournal, AboutBoard, AboutPolicy, AboutGuide } from './pages/AboutPage';
 
 import AdminSubmissionsPage from './pages/admin/AdminSubmissionsPage';
 import AdminAuthorsPage     from './pages/admin/AdminAuthorsPage';
@@ -46,6 +47,15 @@ export default function App() {
           <Route path="/authors/:slug"      element={<AuthorDetailPage />} />
           <Route path="/central-asia"       element={<CentralAsiaPage />} />
           <Route path="/central-asia/:slug" element={<CentralAsiaDetailPage />} />
+
+          {/* Jurnal haqida bo'limi (Figma: 14–17-freymlar) */}
+          <Route path="/about"        element={<AboutJournal />} />
+          <Route path="/about/board"  element={<AboutBoard />} />
+          <Route path="/about/policy" element={<AboutPolicy />} />
+          <Route path="/about/guide"  element={<AboutGuide />} />
+
+          {/* Eski /issues/:id havolalari arxiv sahifasiga olib boradi */}
+          <Route path="/issues/:id"   element={<IssueDetailPage />} />
 
           {/* ── Auth ── */}
           <Route path="/login" element={<LoginPage />} />

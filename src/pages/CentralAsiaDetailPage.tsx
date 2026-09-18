@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
+import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import { ArrowIcon, EyeIcon } from '../components/ui/Icons';
 import { centralAsiaApi, type ApiCentralAsiaPostDetail } from '../lib/api';
@@ -194,6 +195,7 @@ export default function CentralAsiaDetailPage() {
           </>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
+import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
 import { DocIcon } from '../components/ui/Icons';
@@ -159,6 +160,7 @@ export default function JournalDetailPage() {
           </section>
         ))}
       </div>
+      <Footer />
     </div>
   );
 }

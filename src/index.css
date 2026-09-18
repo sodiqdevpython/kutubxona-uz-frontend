@@ -1,263 +1,369 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap');
 @import "tailwindcss";
+@import "./styles/home.css";
+@import "./styles/topbar-extra.css";
+@import "./styles/about.css";
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Kutubxona.uz — dizayn tizimi
+   Figma: journalkutubxona.uz → Design sahifasi
+   Iliq qog'oz foni + to'q sariq urg'u + uch shrift (serif/sans/mono)
+   ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --navy:    #0A192F;
-  --navy-90: #102441;
-  --navy-80: #1B3358;
-  --navy-70: #2B4670;
-  --navy-50: #5E7595;
-  --navy-30: #9DAEC4;
-  --navy-15: #D7DEE9;
-  --navy-08: #ECEFF5;
+  /* ── Urg'u (to'q sariq) ── */
+  --accent:      #F08418;
+  --accent-soft: #F79A3C;
+  --accent-08:   rgba(240,132,24,0.08);
+  --accent-12:   rgba(240,132,24,0.12);
+  --accent-20:   rgba(240,132,24,0.20);
+  --accent-40:   rgba(240,132,24,0.40);
 
-  --ink:   #0A192F;
-  --ink-2: #2A3447;
-  --ink-3: #586478;
-  --ink-4: #8B95A6;
+  /* ── Matn ── */
+  --ink:   #2B2B2B;
+  --ink-2: #5A564F;
+  --ink-3: #8B857B;
+  --ink-4: #A8A199;
 
+  /* ── Yuzalar (iliq qog'oz) ── */
   --paper:  #FFFFFF;
-  --grey-1: #FAFBFC;
-  --grey-2: #F5F7FA;
-  --grey-3: #EEF1F6;
-  --grey-4: #E4E8EF;
-  --line:   #E4E8EF;
-  --line-2: #D5DBE5;
+  --grey-1: #FAF8F5;
+  --grey-2: #F4F1EC;
+  --grey-3: #F2EEE8;
+  --grey-4: #E9E4DB;
+  --page:   #F2EEE8;
 
-  --ok: #1F6B4A;
+  /* ── Chiziqlar ── */
+  --line:   #E5E0D7;
+  --line-2: #CDC5B8;
 
-  /* Butun sayt bo'ylab yagona shrift — Inter. --serif va --mono ham
-     Inter'ga to'g'rilangan (eski komponentlar sindirmasin uchun aliaslar). */
-  --sans:  'Inter', ui-sans-serif, system-ui, sans-serif;
-  --serif: var(--sans);
-  --mono:  var(--sans);
+  /* ── To'q yuzalar (hero, footer) ── */
+  --dark:    #2B2B2B;
+  --dark-2:  #262320;
+  --dark-3:  #332F2A;
+  --dark-4:  #3A342C;
 
+  /* ── Holat ranglari ── */
+  --ok:      #2F6B4F;
+  --ok-soft: rgba(47,107,79,0.10);
+  --warn:    #B4761A;
+  --danger:  #B3261E;
+
+  /* ── Shriftlar ── */
+  --sans:  'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --mono:  'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* ── Burchaklar ── */
   --radius-sm: 4px;
   --radius:    8px;
   --radius-lg: 12px;
   --radius-xl: 18px;
+
+  /* ── Sahifa gutteri ── */
+  --px: 48px;
+  --maxw: 1440px;
+
+  /* ── Eski nomlar (mavjud komponentlar sinmasligi uchun aliaslar) ── */
+  --navy:    var(--accent);
+  --navy-90: #D9741166;
+  --navy-80: #D97411;
+  --navy-70: #C96A0F;
+  --navy-50: var(--ink-3);
+  --navy-30: var(--accent-40);
+  --navy-15: var(--accent-20);
+  --navy-08: var(--accent-08);
 }
+
+@media (max-width: 900px) { :root { --px: 20px; } }
+@media (max-width: 560px) { :root { --px: 16px; } }
 
 * { box-sizing: border-box; }
 
 body {
   font-family: var(--sans);
+  font-size: 14px;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--page);
   -webkit-font-smoothing: antialiased;
   margin: 0;
   padding: 0;
 }
 
-/* ── Page gradient backgrounds ── */
-.bg-home {
-  background:
-    radial-gradient(1200px 680px at -8% -18%, rgba(43,70,112,0.22), transparent 58%),
-    radial-gradient(1000px 560px at 112% -6%, rgba(94,117,149,0.26), transparent 60%),
-    radial-gradient(900px 700px at 60% 120%, rgba(157,174,196,0.20), transparent 62%),
-    linear-gradient(180deg, #F3F6FB 0%, #FBFCFE 38%, #EEF2F8 100%);
-}
-.bg-articles {
-  background:
-    radial-gradient(1000px 520px at 108% -12%, rgba(43,70,112,0.20), transparent 62%),
-    radial-gradient(760px 520px at -6% 16%, rgba(94,117,149,0.16), transparent 64%),
-    linear-gradient(180deg, #F4F7FC 0%, #F6F8FB 50%, #EEF2F8 100%);
-}
-.bg-detail {
-  background:
-    radial-gradient(1300px 560px at 50% -8%, rgba(43,70,112,0.16), transparent 66%),
-    radial-gradient(900px 680px at 106% 108%, rgba(94,117,149,0.18), transparent 60%),
-    linear-gradient(180deg, #FCFDFE 0%, #F7FAFD 55%, #EFF3F8 100%);
-}
-.bg-archive {
-  background:
-    radial-gradient(1000px 620px at -4% -8%, rgba(10,25,47,0.20), transparent 56%),
-    radial-gradient(880px 560px at 110% 44%, rgba(43,70,112,0.18), transparent 60%),
-    radial-gradient(900px 600px at 40% 116%, rgba(94,117,149,0.14), transparent 62%),
-    linear-gradient(180deg, #EEF2F8 0%, #F5F8FC 48%, #E9EFF6 100%);
-}
-.bg-authors {
-  background:
-    radial-gradient(1100px 560px at 106% -14%, rgba(43,70,112,0.20), transparent 60%),
-    radial-gradient(720px 520px at -6% 40%, rgba(157,174,196,0.22), transparent 66%),
-    linear-gradient(180deg, #F4F7FC 0%, #FBFCFE 46%, #EFF3F8 100%);
-}
-.bg-author {
-  background:
-    radial-gradient(1300px 720px at 50% -22%, rgba(43,70,112,0.30), transparent 58%),
-    radial-gradient(800px 560px at 104% 30%, rgba(94,117,149,0.16), transparent 62%),
-    linear-gradient(180deg, #F1F5FB 0%, #FAFBFE 52%, #EFF3F8 100%);
-}
-.bg-ai {
-  background:
-    radial-gradient(1000px 480px at -4% -10%, rgba(43,70,112,0.26), transparent 60%),
-    radial-gradient(820px 520px at 104% 112%, rgba(94,117,149,0.30), transparent 60%),
-    radial-gradient(640px 420px at 50% 50%, rgba(157,174,196,0.12), transparent 70%),
-    linear-gradient(180deg, #EEF2F9 0%, #FAFCFE 50%, #EDF1F8 100%);
+/* ── Sahifa fonlari ── */
+/* Figma'da fon tekis iliq qog'oz rangi — gradient yo'q */
+.bg-home, .bg-articles, .bg-detail, .bg-archive,
+.bg-authors, .bg-author { background: var(--page); }
+
+.bg-ai { background: var(--grey-1); }
+
+/* Sahifa ichidagi umumiy konteyner */
+.wrap {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding-left: var(--px);
+  padding-right: var(--px);
 }
 
-/* ── Typography ── */
+/* ── Tipografika ── */
 .h-display {
-  font-family: var(--sans);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: -0.015em;
   color: var(--ink);
-  line-height: 1.15;
+  line-height: 1.12;
 }
-.h-display em { font-style: italic; font-weight: 500; }
+.h-display em { font-style: italic; font-weight: 400; }
+
+/* Kichik, harflari yoyilgan mono yorliq — Figma'da hamma joyda shu */
 .eyebrow {
-  font-family: var(--sans);
-  font-size: 11px;
-  letter-spacing: 0.20em;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--navy);
-  font-weight: 700;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+.eyebrow.accent { color: var(--accent); }
+
+/* Meta matn (sana, bet, ko'rish soni) */
+.meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
 }
 
-/* ── Topbar ── */
+/* Bo'lim sarlavhasi: chapda mono yorliq, o'ngda havola, orasida chiziq */
+.section-head {
+  display: flex; align-items: baseline; gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+}
+.section-head .rule { flex: 1; }
+
+/* ── Topbar (Figma: ikki qatorli sarlavha) ── */
+/* 1-qator: logotip · qidiruv · til/tema/CTA   2-qator: navigatsiya · ISSN/DOI */
 .topbar {
-  min-height: 132px;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 48px;
+  gap: 24px;
+  height: 72px;
+  padding: 0 var(--px);
   background: var(--paper);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 50;
 }
-.brand { display: flex; align-items: center; gap: 14px; }
-.brand-logo {
-  width: 108px; height: 108px;
-  object-fit: contain;
-  flex-shrink: 0;
-  display: block;
+.topbar-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px;
+  height: 52px;
+  padding: 0 var(--px);
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 72px;
+  z-index: 49;
 }
-.brand-name {
+
+.brand { display: inline-flex; align-items: center; text-decoration: none; }
+
+/* ── Logotip (matn) ── */
+.wordmark { display: inline-flex; flex-direction: column; gap: 2px; line-height: 1; }
+.wordmark-main {
   font-family: var(--sans);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 21px; font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--ink);
-  line-height: 1.1;
+  white-space: nowrap;
 }
-.brand-name .sub {
+.wordmark-k  { color: var(--accent); }
+.wordmark-uz { color: var(--accent); }
+.wordmark-sub {
   font-family: var(--sans);
-  font-weight: 500;
-  color: var(--ink-3);
-  font-size: 11.5px;
-  display: block;
-  letter-spacing: 0.08em;
+  font-size: 6.6px; font-weight: 700;
+  letter-spacing: 0.035em;
+  color: var(--ink-2);
+  white-space: nowrap;
   text-transform: uppercase;
-  margin-top: 4px;
 }
-/* Sticky top offset — CentralAsia list has `top: 92` etc. that assume old value.
-   Consumers using it will visually scroll under the topbar; they can update if needed. */
-@media (max-width: 720px) {
-  .topbar { min-height: 84px; padding: 8px 20px; }
-  .brand-logo { width: 60px; height: 60px; }
-  .brand-name { font-size: 17px; }
+.wordmark-sub span { text-transform: none; font-weight: 500; }
+
+/* To'q fonda (footer) */
+.wordmark[data-light] .wordmark-main { color: #fff; }
+.wordmark[data-light] .wordmark-sub  { color: rgba(255,255,255,0.55); }
+
+@media (max-width: 560px) {
+  .wordmark-main { font-size: 18px; }
+  .wordmark-sub  { font-size: 5.8px; }
 }
-.topnav { display: flex; gap: 28px; }
+
+/* ── Navigatsiya ── */
+.topnav { display: flex; align-items: center; gap: 30px; }
+.topnav > *, .topnav a { flex-shrink: 0; }
 .topnav a {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink-2);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 400;
   position: relative;
-  padding: 24px 0;
+  padding: 16px 0;
   cursor: pointer;
   transition: color .15s;
   white-space: nowrap;
+  display: inline-flex; align-items: baseline; gap: 6px;
 }
-.topnav a:hover { color: var(--navy); }
-.topnav a.active { color: var(--navy); font-weight: 600; }
+.topnav a .count {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-4);
+}
+.topnav a:hover { color: var(--ink); }
+.topnav a.active { color: var(--ink); font-weight: 600; }
 .topnav a.active::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
-  height: 2px; background: var(--navy);
+  height: 2px; background: var(--accent);
 }
+
+/* ── Qidiruv ── */
 .searchbar {
-  display: flex; align-items: center; gap: 8px;
-  height: 38px;
-  padding: 0 12px;
+  display: flex; align-items: center; gap: 9px;
+  height: 40px;
+  padding: 0 14px;
   border: 1px solid var(--line);
-  background: var(--grey-2);
-  border-radius: 6px;
+  background: var(--grey-1);
+  border-radius: var(--radius);
   min-width: 260px;
+  transition: border-color .15s, background .15s;
 }
+.searchbar:focus-within { border-color: var(--line-2); background: var(--paper); }
 .searchbar input {
   border: 0; outline: 0; background: transparent;
-  font-family: var(--sans); font-size: 13px; color: var(--ink);
-  flex: 1;
+  font-family: var(--sans); font-size: 14px; color: var(--ink);
+  flex: 1; min-width: 0;
 }
+.searchbar input::placeholder { color: var(--ink-4); }
+/* «/» klavish ko'rsatkichi */
+.searchbar .kbd {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-4);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 1px 6px; background: var(--paper);
+}
+
+@media (max-width: 1080px) {
+  .searchbar { min-width: 160px; }
+}
+@media (max-width: 860px) {
+  .topbar { height: 60px; }
+  .topbar-nav { top: 60px; height: auto; padding-top: 6px; padding-bottom: 6px; }
+  .topnav { gap: 18px; overflow-x: auto; }
+}
+
+/* ── Til almashtirgich va ikonka tugmalari ── */
 .lang-switch {
-  display: inline-flex;
-  background: var(--grey-2);
+  display: inline-flex; align-items: center;
+  height: 40px; padding: 0 10px; gap: 5px;
+  background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 2px;
-  height: 38px;
-  align-items: center;
+  border-radius: var(--radius);
 }
 .lang-opt {
-  border: 0; background: transparent;
-  font-family: var(--sans);
-  font-size: 12px; font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--ink-3);
-  padding: 0 10px; height: 30px; border-radius: 4px;
-  cursor: pointer;
+  border: 0; background: transparent; cursor: pointer;
+  font-family: var(--sans); font-size: 13px; font-weight: 500;
+  color: var(--ink-3); padding: 0 4px; line-height: 1;
   transition: color .15s;
 }
-.lang-opt.active {
-  background: var(--paper);
-  color: var(--navy);
-  box-shadow: 0 1px 2px rgba(10,25,47,0.06);
-}
+.lang-opt:hover  { color: var(--ink); }
+.lang-opt.active { color: var(--ink); font-weight: 600; }
 
-/* ── Buttons ── */
+/* ── Tugmalar ── */
 .btn {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 40px; padding: 0 18px;
-  border-radius: 6px;
-  font-family: var(--sans); font-weight: 600; font-size: 13px;
+  border-radius: var(--radius);
+  font-family: var(--sans); font-weight: 600; font-size: 14px;
   cursor: pointer; border: 1px solid transparent;
   letter-spacing: -0.005em;
-  transition: background .15s, transform .18s ease, box-shadow .18s ease, color .18s ease, border-color .18s ease;
+  text-decoration: none;
+  transition: background .15s, box-shadow .18s ease, color .18s ease, border-color .18s ease;
 }
-.btn:hover { transform: translateY(-1px); }
-.btn.primary { background: var(--navy); color: white; }
-.btn.primary:hover { background: var(--navy-80); box-shadow: 0 6px 18px -6px rgba(10,25,47,0.45); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover { background: #DE7712; box-shadow: 0 4px 14px -4px rgba(240,132,24,0.55); }
 .btn.ghost { background: var(--paper); border-color: var(--line); color: var(--ink); }
-.btn.ghost:hover { border-color: var(--navy-50); background: var(--paper); box-shadow: 0 2px 8px rgba(10,25,47,0.06); }
+.btn.ghost:hover { border-color: var(--line-2); background: var(--paper); }
 .btn.subtle { background: var(--grey-2); color: var(--ink); }
-.btn.dark { background: var(--ink); color: white; }
+.btn.dark   { background: var(--dark); color: #fff; }
+.btn.dark:hover { background: var(--dark-3); }
+.btn.sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: default; box-shadow: none; }
 
 .icon-btn {
-  width: 38px; height: 38px; border-radius: 6px;
+  width: 40px; height: 40px; border-radius: var(--radius);
   display: grid; place-items: center;
   border: 1px solid var(--line); background: var(--paper);
   color: var(--ink-2);
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
-.icon-btn:hover { background: var(--grey-3); border-color: var(--navy-30); color: var(--navy); }
+.icon-btn:hover { background: var(--grey-1); border-color: var(--line-2); color: var(--ink); }
 
-/* ── Tags ── */
+/* ── Segmentli boshqaruv (Saralash: Eng yangi | Eng eski | …) ── */
+.segment {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  overflow: hidden;
+}
+.segment button {
+  border: 0; background: transparent; cursor: pointer;
+  font-family: var(--sans); font-size: 13.5px; color: var(--ink-2);
+  height: 38px; padding: 0 16px;
+  border-right: 1px solid var(--line);
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.segment button:last-child { border-right: 0; }
+.segment button:hover  { background: var(--grey-1); }
+.segment button.active { background: var(--grey-2); color: var(--ink); font-weight: 600; }
+
+/* ── Filtr chipi (Barchasi 14 · Kutubxonashunoslik 12 …) ── */
+.chip {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  height: 34px; padding: 0 14px;
+  border-radius: 17px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-family: var(--sans); font-size: 13.5px; color: var(--ink-2);
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.chip .count { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
+.chip:hover { border-color: var(--line-2); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip.active .count { color: rgba(255,255,255,0.75); }
+
+/* ── Yorliqlar ── */
 .tag {
   display: inline-flex; align-items: center; gap: 6px;
-  height: 22px; padding: 0 8px;
-  font-size: 10.5px; font-weight: 600;
-  border-radius: 3px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  height: 21px; padding: 0 8px;
+  font-size: 10.5px; font-weight: 500;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.04em;
   font-family: var(--sans);
   transition: background .15s ease, color .15s ease, border-color .15s ease;
 }
-.tag.navy      { background: var(--navy); color: white; }
-.tag.navy-soft { background: var(--navy-08); color: var(--navy); }
+/* Yo'nalish nomi — mono, katta harf, to'q sariq (Figma'dagi asosiy yorliq) */
+.tag.cat {
+  font-family: var(--mono); font-size: 10px; font-weight: 400;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); background: transparent; padding: 0; height: auto;
+}
+.tag.navy      { background: var(--accent); color: #fff; }
+.tag.navy-soft { background: var(--accent-08); color: var(--accent); }
 .tag.grey      { background: var(--grey-2); color: var(--ink-3); }
-.tag.line      { background: transparent; border: 1px solid var(--line-2); color: var(--ink-3); }
-.tag.ok        { background: rgba(31,107,74,0.10); color: var(--ok); }
+.tag.line      { background: transparent; border: 1px solid var(--line); color: var(--ink-3); }
+.tag.ok        { background: transparent; border: 1px solid rgba(47,107,79,0.35); color: var(--ok); }
 
 /* ── Field ── */
 .field {
@@ -469,10 +575,10 @@ body {
 
 @media (max-width: 768px) {
   .topnav            { display: none !important; }
-  .topbar-search     { display: none !important; }
-  .topbar-lang       { display: none !important; }
-  .topbar-upload-lbl { display: none !important; }
-  .topbar-hamburger  { display: inline-flex !important; }
+  .topbar-search-wrap { display: none !important; }
+  .topbar-ids         { display: none !important; }
+  .topbar-cta         { display: none !important; }
+  .topbar-hamburger   { display: inline-flex !important; }
   .brand-name .sub   { display: none; }
   .brand-name        { font-size: 15px; }
 }
@@ -512,8 +618,8 @@ body {
   text-decoration: none; cursor: pointer;
   transition: background .14s, color .14s;
 }
-.mobile-nav-links a:hover  { background: var(--grey-2); color: var(--navy); }
-.mobile-nav-links a.active { background: var(--navy-08); color: var(--navy); font-weight: 600; }
+.mobile-nav-links a:hover  { background: var(--grey-2); color: var(--ink); }
+.mobile-nav-links a.active { background: var(--accent-08); color: var(--accent); font-weight: 600; }
 .mobile-nav-foot {
   padding: 16px; border-top: 1px solid var(--line); flex-shrink: 0;
 }
@@ -709,3 +815,219 @@ body {
 /* ── Responsive page h1 sizes ── */
 @media (max-width: 640px) { .h1-rsp     { font-size: 28px !important; line-height: 1.15 !important; } }
 @media (max-width: 640px) { .year-num-rsp { font-size: 44px !important; } }
+
+/* ═══ Sayt pastki qismi (Figma: to'q, to'rt ustun) ═══ */
+.site-footer {
+  background: var(--dark-2);
+  color: rgba(255,255,255,0.72);
+  margin-top: 64px;
+}
+.site-footer-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 52px var(--px) 44px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.25fr) repeat(3, minmax(150px, 1fr));
+  gap: 40px;
+}
+.site-footer-brand .brand { align-items: flex-start; }
+.site-footer-about {
+  font-size: 13.5px; line-height: 1.6;
+  color: rgba(255,255,255,0.55);
+  max-width: 330px; margin: 0 0 18px;
+}
+.site-footer-badges { display: flex; flex-wrap: wrap; gap: 10px; }
+.issn-badge, .oa-badge {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em;
+  padding: 6px 11px; border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.65);
+  white-space: nowrap;
+}
+.oa-badge { border-color: var(--accent-40); color: var(--accent); }
+
+.site-footer-col { display: flex; flex-direction: column; gap: 11px; }
+.site-footer-col-title {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(255,255,255,0.4);
+  margin-bottom: 5px;
+}
+.site-footer-col a {
+  font-size: 13.5px; color: rgba(255,255,255,0.72);
+  text-decoration: none; transition: color .15s;
+}
+.site-footer-col a:hover { color: var(--accent); }
+
+.site-footer-bottom {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 18px var(--px);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 18px; flex-wrap: wrap;
+}
+.site-footer-langs { display: flex; gap: 20px; }
+.site-footer-langs button {
+  border: 0; background: none; cursor: pointer;
+  font-family: var(--sans); font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  transition: color .15s;
+}
+.site-footer-langs button:hover  { color: #fff; }
+.site-footer-langs button.active { color: var(--accent); }
+
+@media (max-width: 1000px) {
+  .site-footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+@media (max-width: 620px) {
+  .site-footer-inner { grid-template-columns: 1fr; gap: 28px; padding-top: 36px; }
+  .site-footer-bottom { flex-direction: column; align-items: flex-start; }
+}
+
+/* ═══ Ichki sahifa sarlavhasi (Figma: non-pon + H1 + boshqaruv) ═══ */
+.crumbs {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--ink-3); margin-bottom: 14px;
+}
+.crumbs a { color: var(--ink-3); text-decoration: none; }
+.crumbs a:hover { color: var(--accent); }
+.crumbs .cur { color: var(--ink); }
+
+.page-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+  padding-bottom: 26px;
+}
+.page-title { font-size: 40px; margin: 0 0 8px; }
+.page-sub   { font-size: 14px; color: var(--ink-3); margin: 0; }
+.page-head-ctrl { display: flex; align-items: center; gap: 14px; }
+.page-head-lbl  { font-size: 13.5px; color: var(--ink-3); }
+
+.state-box {
+  text-align: center; padding: 72px 20px;
+  color: var(--ink-3); font-size: 14px;
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+/* ═══ Filtr paneli ═══ */
+.articles-grid {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  gap: 36px;
+  padding-bottom: 72px;
+  align-items: start;
+}
+.filters { position: sticky; top: 140px; }
+.filters-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.filters-head button {
+  border: 0; background: none; cursor: pointer;
+  font-family: var(--sans); font-size: 12.5px; color: var(--ink-3);
+}
+.filters-head button:hover { color: var(--accent); }
+
+.filter-group { border-top: 1px solid var(--line); padding: 16px 0 4px; }
+.filter-group:first-of-type { border-top: 0; }
+.filter-group-head {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; border: 0; background: none; cursor: pointer;
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  color: var(--ink); padding: 0 0 12px;
+}
+.filter-group-toggle { color: var(--ink-4); font-size: 15px; line-height: 1; }
+.filter-group-items { display: flex; flex-direction: column; gap: 10px; }
+
+.filter-row {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; padding: 1px 0;
+}
+.filter-box {
+  width: 15px; height: 15px; border-radius: 3px; flex-shrink: 0;
+  border: 1px solid var(--line-2); background: var(--paper);
+  display: grid; place-items: center; color: #fff;
+  transition: background .12s, border-color .12s;
+}
+.filter-box[data-on] { background: var(--accent); border-color: var(--accent); }
+.filter-label { flex: 1; font-size: 13.5px; color: var(--ink-2); }
+.filter-row:hover .filter-label { color: var(--ink); }
+.filter-count { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
+.filter-more {
+  border: 0; background: none; cursor: pointer; padding: 12px 0 2px;
+  font-family: var(--sans); font-size: 13px; color: var(--ink-3);
+}
+.filter-more:hover { color: var(--accent); }
+
+/* ═══ Maqolalar jadvali (Figma: raqamlangan qatorlar) ═══ */
+.art-table {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.art-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 18px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background .12s;
+}
+.art-row:last-child { border-bottom: 0; }
+.art-row:hover { background: var(--grey-1); }
+
+.art-row-num {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-4);
+  padding-top: 2px;
+}
+.art-row-tags {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px; flex-wrap: wrap;
+}
+.art-row-title {
+  font-size: 17px; line-height: 1.34; margin: 0 0 7px;
+  font-weight: 600; color: var(--ink);
+}
+.art-row:hover .art-row-title { color: var(--accent); }
+.art-row-authors { font-size: 13px; color: var(--ink-2); }
+
+.art-row-meta {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  white-space: nowrap; text-align: right; min-width: 108px;
+}
+.art-row-pdf {
+  margin-top: 4px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 3px 9px; text-decoration: none;
+  transition: border-color .12s, color .12s;
+}
+.art-row-pdf:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ═══ Pagination qatori ═══ */
+.art-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+  padding: 24px 4px 0;
+}
+.art-pager-size { display: flex; align-items: center; gap: 10px; }
+.art-pager-size .segment button { height: 32px; padding: 0 12px; font-size: 13px; }
+
+@media (max-width: 1000px) {
+  .articles-grid { grid-template-columns: 1fr; gap: 24px; }
+  .filters { position: static; }
+  .page-title { font-size: 32px; }
+}
+@media (max-width: 680px) {
+  .art-row { grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 16px; }
+  .art-row-meta {
+    grid-column: 2; flex-direction: row; align-items: center;
+    flex-wrap: wrap; justify-content: flex-start; margin-top: 10px; text-align: left;
+  }
+  .art-pager { justify-content: center; }
+  .art-pager-size { display: none; }
+}

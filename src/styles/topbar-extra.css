@@ -1,0 +1,33 @@
+/* ── Topbar qo'shimchalari (Figma: ikki qatorli sarlavha) ── */
+
+.topbar-search-wrap { position: relative; flex: 1; max-width: 520px; }
+.topbar-search-wrap .searchbar { width: 100%; }
+
+.topnav > *, .topnav a { flex-shrink: 0; }
+
+/* «Jurnal haqida ▾» / «Admin ▾» tugmasi — .topnav a bilan bir xil ko'rinish */
+.topnav-trigger {
+  border: 0; background: none; cursor: pointer;
+  font-family: var(--sans); font-size: 14px; font-weight: 400;
+  color: var(--ink-2);
+  padding: 16px 0;
+  display: inline-flex; align-items: center; gap: 5px;
+  position: relative; white-space: nowrap; line-height: 1.4;
+  transition: color .15s;
+}
+.topnav-trigger svg { flex-shrink: 0; }
+.topnav-trigger:hover  { color: var(--ink); }
+.topnav-trigger.active { color: var(--ink); font-weight: 600; }
+.topnav-trigger.active::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 2px; background: var(--accent);
+}
+
+.topbar-ids { white-space: nowrap; letter-spacing: 0.04em; }
+
+@media (max-width: 1180px) { .topbar-ids { display: none; } }
+@media (max-width: 860px) {
+  .topbar-search-wrap { display: none !important; }
+  .topbar-cta         { display: none !important; }
+  .topbar-hamburger   { display: inline-flex !important; }
+}

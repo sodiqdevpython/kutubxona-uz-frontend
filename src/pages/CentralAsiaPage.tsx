@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
+import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import Pagination from '../components/ui/Pagination';
 import { SearchIcon, ArrowIcon, EyeIcon } from '../components/ui/Icons';
@@ -253,6 +254,7 @@ export default function CentralAsiaPage() {
             border-top: 1px solid var(--line); padding-top: 10px !important; }
         }
       `}</style>
+      <Footer />
     </div>
   );
 }

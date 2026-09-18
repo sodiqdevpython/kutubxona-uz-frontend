@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
+import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar, { AvatarStack } from '../components/ui/AuthorAvatar';
 import AiUnavailableModal from '../components/ui/AiUnavailableModal';
@@ -528,7 +529,7 @@ export default function ArticleDetailPage() {
         </article>
 
         {/* Metadata sidebar */}
-        <aside className="rsp-hide" style={{ position: 'sticky', top: 148, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <aside className="rsp-hide" style={{ position: 'sticky', top: 140, display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Journal cover — issue bo'lsa */}
           {apiArticle?.issue && (
             <div className="card-hover" style={{ background: 'var(--grey-2)', border: '1px solid var(--line)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
@@ -612,6 +613,7 @@ export default function ArticleDetailPage() {
 
       {apiArticle?.ai_ready && <AskAISection slug={apiArticle.slug} />}
       {apiArticle && <CommentsSection articleId={apiArticle.id} />}
+      <Footer />
     </div>
   );
 }

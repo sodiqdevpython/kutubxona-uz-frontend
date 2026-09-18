@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
+import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
 import LoadMoreButton from '../components/ui/LoadMoreButton';
@@ -181,7 +182,7 @@ export default function AuthorDetailPage() {
         </div>
 
         {/* Aside */}
-        <aside className="rsp-hide" style={{ position: 'sticky', top: 148, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <aside className="rsp-hide" style={{ position: 'sticky', top: 140, display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Author meta card */}
           {a && (
             <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, padding: '22px 22px' }}>
@@ -231,6 +232,7 @@ export default function AuthorDetailPage() {
           </button>
         </aside>
       </div>
+      <Footer />
     </div>
   );
 }

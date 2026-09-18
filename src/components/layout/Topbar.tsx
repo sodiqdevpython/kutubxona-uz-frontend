@@ -1,21 +1,35 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { SearchIcon, UploadIcon, ChevIcon } from '../ui/Icons';
+import { SearchIcon, ChevIcon } from '../ui/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { useLang, type Lang } from '../../context/LangContext';
 import { useT } from '../../lib/i18n';
 import { articlesApi, type ApiArticle } from '../../lib/api';
+import { API_BASE } from '../../lib/config';
 
 export type Page =
-  | 'home' | 'articles' | 'archive' | 'authors' | 'central-asia'
+  | 'home' | 'articles' | 'archive' | 'authors' | 'central-asia' | 'about'
   | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
 
-const PUBLIC_NAV: { key: Page; tKey: string; to: string }[] = [
-  { key: 'home',         tKey: 'nav.home',          to: '/' },
-  { key: 'articles',     tKey: 'nav.articles',      to: '/articles' },
-  { key: 'archive',      tKey: 'nav.archive',       to: '/archive' },
-  { key: 'authors',      tKey: 'nav.authors',       to: '/authors' },
-  { key: 'central-asia', tKey: 'nav.central_asia',  to: '/central-asia' },
+/** Sayt identifikatorlari — Figma'da sarlavhaning o'ng chetida turadi. */
+const ISSN = '2181-1732';
+const DOI_PREFIX = '10.62499';
+
+const PUBLIC_NAV: { key: Page; tKey: string; to: string; countKey?: CountKey }[] = [
+  { key: 'articles',     tKey: 'nav.articles',     to: '/articles',     countKey: 'articles' },
+  { key: 'archive',      tKey: 'nav.archive',      to: '/archive',      countKey: 'issues'   },
+  { key: 'authors',      tKey: 'nav.authors',      to: '/authors',      countKey: 'authors'  },
+  { key: 'central-asia', tKey: 'nav.central_asia', to: '/central-asia', countKey: 'central'  },
+];
+
+type CountKey = 'articles' | 'issues' | 'authors' | 'central';
+
+/** «Jurnal haqida ▾» ichidagi statik sahifalar (Figma: 14–17-freymlar). */
+const ABOUT_NAV: { label: string; to: string }[] = [
+  { label: 'Jurnal haqida',              to: '/about' },
+  { label: 'Tahririyat kengashi',        to: '/about/board' },
+  { label: 'Taqriz siyosati va etika',   to: '/about/policy' },
+  { label: 'Mualliflar uchun qo‘llanma', to: '/about/guide' },
 ];
 
 // Admin sahifa yorliqlari — hozircha faqat lotin (admin panel ichi uchun etarli).
@@ -26,22 +40,12 @@ const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
   { key: 'admin-chat',     label: 'Xabarlar',         to: '/admin/chat'        },
 ];
 
-const LANGS: { cc: string; code: string; value: Lang }[] = [
-  { cc: 'uz', code: 'UZ', value: 'uz-latn' },
-  { cc: 'uz', code: 'УЗ', value: 'uz-cyrl' },
-  { cc: 'ru', code: 'РУ', value: 'ru'      },
-  { cc: 'gb', code: 'EN', value: 'en'      },
+const LANGS: { code: string; value: Lang }[] = [
+  { code: "O'z", value: 'uz-latn' },
+  { code: 'Ўз',  value: 'uz-cyrl' },
+  { code: 'Ру',  value: 'ru'      },
+  { code: 'En',  value: 'en'      },
 ];
-
-/* Linklarning aynan o'zidagi padding — topnav a { padding: 24px 0 } */
-const LINK_STYLE: React.CSSProperties = {
-  padding: '24px 0',
-  fontSize: 13.5,
-  fontFamily: 'var(--sans)',
-  fontWeight: 500,
-  whiteSpace: 'nowrap',
-  cursor: 'pointer',
-};
 
 export default function Topbar({ active }: { active: Page }) {
   const navigate = useNavigate();
@@ -50,9 +54,35 @@ export default function Topbar({ active }: { active: Page }) {
   const t = useT();
   const activeLangIdx = Math.max(0, LANGS.findIndex(l => l.value === lang));
 
-  const [drawerOpen,  setDrawerOpen]  = useState(false);
-  const [adminDrop,   setAdminDrop]   = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [adminDrop,  setAdminDrop]  = useState(false);
+  const [aboutDrop,  setAboutDrop]  = useState(false);
+  const [langDrop,   setLangDrop]   = useState(false);
+  const dropRef  = useRef<HTMLDivElement>(null);
+  const aboutRef = useRef<HTMLDivElement>(null);
+  const langRef  = useRef<HTMLDivElement>(null);
+
+  // ── Navigatsiyadagi raqamlar ──────────────────────────────────────────────
+  const [counts, setCounts] = useState<Record<CountKey, number | null>>({
+    articles: null, issues: null, authors: null, central: null,
+  });
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      fetch(`${API_BASE}/api/articles/stats/`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${API_BASE}/api/central-asia/?page_size=1`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([stats, ca]) => {
+      if (!alive) return;
+      setCounts({
+        articles: stats?.articles ?? null,
+        issues:   stats?.issues   ?? null,
+        authors:  stats?.authors  ?? null,
+        central:  ca?.count       ?? null,
+      });
+    });
+    return () => { alive = false; };
+  }, []);
 
   // ── Qidiruv (live) ────────────────────────────────────────────────────────
   const [searchQ, setSearchQ] = useState('');
@@ -60,30 +90,43 @@ export default function Topbar({ active }: { active: Page }) {
   const [searching, setSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const q = searchQ.trim();
-    if (q.length < 2) {
-      setResults([]);
-      setSearching(false);
-      return;
-    }
+    if (q.length < 2) { setResults([]); setSearching(false); return; }
     setSearching(true);
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       articlesApi.search(q)
         .then(rs => { setResults(rs); setSearching(false); })
         .catch(() => { setResults([]); setSearching(false); });
     }, 300);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [searchQ]);
 
+  // Tashqariga bosilganda ochiq menyularni yopamiz
   useEffect(() => {
     function onOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node))
-        setSearchOpen(false);
+      const hit = (r: React.RefObject<HTMLDivElement | null>) =>
+        r.current && r.current.contains(e.target as Node);
+      if (!hit(searchRef)) setSearchOpen(false);
+      if (!hit(dropRef))   setAdminDrop(false);
+      if (!hit(aboutRef))  setAboutDrop(false);
+      if (!hit(langRef))   setLangDrop(false);
     }
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
+  }, []);
+
+  // «/» tugmasi — qidiruvga fokus (Figma'da qidiruv ichida shu ko'rsatkich bor)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = document.activeElement;
+      const typing = el && ['INPUT', 'TEXTAREA'].includes(el.tagName);
+      if (e.key === '/' && !typing) { e.preventDefault(); searchInputRef.current?.focus(); }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, []);
 
   function goToArticle(slug: string) {
@@ -100,207 +143,129 @@ export default function Topbar({ active }: { active: Page }) {
     navigate(`/articles?search=${encodeURIComponent(q)}`);
   }
 
-  useEffect(() => {
-    function onOutside(e: MouseEvent) {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node))
-        setAdminDrop(false);
-    }
-    document.addEventListener('mousedown', onOutside);
-    return () => document.removeEventListener('mousedown', onOutside);
-  }, []);
-
   const isAdminPage = ADMIN_NAV.some(n => n.key === active);
   const activeAdminLabel = ADMIN_NAV.find(n => n.key === active)?.label ?? t('nav.admin');
 
   return (
     <>
+      {/* ═══ 1-qator: logotip · qidiruv · til/tema/CTA ═══ */}
       <header className="topbar">
+        <Link to="/" className="brand" aria-label="Kutubxona.uz">
+          <Wordmark />
+        </Link>
 
-        {/* ── Chap: brand + nav ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
-          <div className="brand" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
-            <img src="/kutubxonauz.png" alt="kutubxona.uz" className="brand-logo" />
-            <div className="brand-name">
-              kutubxona.uz
-              <span className="sub">O'zbekiston Milliy kutubxonasi</span>
-            </div>
-          </div>
+        {/* Qidiruv — markazda */}
+        <div ref={searchRef} className="topbar-search-wrap">
+          <form onSubmit={submitSearch} className="searchbar">
+            <SearchIcon size={14} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
+            <input
+              ref={searchInputRef}
+              value={searchQ}
+              onChange={e => { setSearchQ(e.target.value); setSearchOpen(true); }}
+              onFocus={() => setSearchOpen(true)}
+              placeholder={t('common.search_placeholder')}
+            />
+            {searchQ
+              ? <button type="button" onClick={() => { setSearchQ(''); setResults([]); }}
+                  style={{ background: 'none', border: 0, padding: '0 2px', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 15, lineHeight: 1 }}>×</button>
+              : <span className="kbd">/</span>}
+          </form>
 
-          <nav className="topnav">
-            {/* Ommaviy sahifalar — CSS'dan o'zgarishsiz */}
-            {PUBLIC_NAV.map(n => (
-              <Link key={n.key} to={n.to} className={active === n.key ? 'active' : ''}>
-                {t(n.tKey)}
-              </Link>
-            ))}
-
-            {/* Admin dropdown — faqat kirganlar */}
-            {isAuthenticated && (
-              <div ref={dropRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-
-                {/* Trigger — .topnav a bilan bir xil padding */}
-                <button
-                  onClick={() => setAdminDrop(p => !p)}
-                  style={{
-                    ...LINK_STYLE,
-                    border: 0, background: 'none',
-                    color: isAdminPage ? 'var(--navy)' : 'var(--ink-2)',
-                    fontWeight: isAdminPage ? 600 : 500,
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    position: 'relative',
-                  }}
-                >
-                  {isAdminPage ? activeAdminLabel : t('nav.admin')}
-                  <ChevIcon size={9} style={{
-                    transform: adminDrop ? 'rotate(180deg)' : 'none',
-                    transition: 'transform .15s', opacity: 0.55,
-                  }} />
-                  {/* Active underline — .topnav a.active::after ni takrorlash */}
-                  {isAdminPage && (
-                    <span style={{
-                      position: 'absolute', left: 0, right: 0,
-                      bottom: -1, height: 2, background: 'var(--navy)',
-                    }} />
-                  )}
-                </button>
-
-                {/* Dropdown — HomePage category dropdown bilan bir xil stil */}
-                {adminDrop && (
-                  <div style={{
-                    position: 'absolute', top: '100%', right: 0, zIndex: 200,
-                    background: 'var(--paper)', border: '1px solid var(--line)',
-                    borderRadius: 10,
-                    boxShadow: '0 8px 32px -8px rgba(10,25,47,0.18)',
-                    padding: 6, minWidth: 210, marginTop: 2,
-                  }}>
-                    {ADMIN_NAV.map(n => (
-                      <Link
-                        key={n.key} to={n.to}
-                        onClick={() => setAdminDrop(false)}
-                        className="pill-hover"
-                        style={{
-                          display: 'flex', alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%', padding: '8px 10px', borderRadius: 6,
-                          border: 0, background: active === n.key ? 'rgba(10,25,47,0.05)' : 'transparent',
-                          fontFamily: 'var(--sans)', fontSize: 13,
-                          color: active === n.key ? 'var(--navy)' : 'var(--ink-2)',
-                          fontWeight: active === n.key ? 600 : 400,
-                          cursor: 'pointer', textDecoration: 'none',
-                        }}
-                      >
-                        {n.label}
-                        {active === n.key && (
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--navy)', flexShrink: 0 }} />
-                        )}
-                      </Link>
-                    ))}
-
-                    <div style={{ height: 1, background: 'var(--line)', margin: '4px 0' }} />
-
-                    <div style={{ padding: '4px 10px 2px', fontSize: 11.5, color: 'var(--ink-4)' }}>
-                      {user?.username}
-                    </div>
-                    <button
-                      onClick={() => { logout(); navigate('/'); setAdminDrop(false); }}
-                      className="pill-hover"
+          {searchOpen && searchQ.trim().length >= 2 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+              marginTop: 6, background: 'var(--paper)',
+              border: '1px solid var(--line)', borderRadius: 10,
+              boxShadow: '0 12px 36px -12px rgba(43,43,43,0.22)', padding: 6,
+              maxHeight: 420, overflowY: 'auto',
+            }}>
+              {searching ? (
+                <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--ink-3)' }}>
+                  {t('common.searching')}
+                </div>
+              ) : results.length === 0 ? (
+                <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--ink-3)' }}>
+                  {t('common.nothing_found')}
+                </div>
+              ) : (
+                <>
+                  {results.map(r => (
+                    <button key={r.id} onClick={() => goToArticle(r.slug)} className="pill-hover"
                       style={{
-                        display: 'flex', alignItems: 'center',
-                        width: '100%', padding: '8px 10px', borderRadius: 6,
-                        border: 0, background: 'transparent',
-                        fontFamily: 'var(--sans)', fontSize: 13,
-                        color: 'var(--ink-3)', cursor: 'pointer',
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      {t('nav.logout')}
+                        display: 'flex', gap: 10, alignItems: 'flex-start', width: '100%',
+                        padding: '9px 10px', borderRadius: 6, border: 0,
+                        background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                      }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {r.category && (
+                          <div className="tag cat" style={{ marginBottom: 3 }}>{r.category.name}</div>
+                        )}
+                        <div className="h-display" style={{
+                          fontSize: 14, lineHeight: 1.32, color: 'var(--ink)',
+                          display: '-webkit-box', WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}>
+                          {r.title}
+                        </div>
+                      </div>
                     </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </nav>
+                  ))}
+                  <button onClick={submitSearch} className="pill-hover"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', padding: '10px', borderRadius: 6, border: 0,
+                      background: 'transparent', cursor: 'pointer', fontSize: 13,
+                      color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--sans)',
+                      marginTop: 4, borderTop: '1px solid var(--line)',
+                    }}>
+                    {t('common.view_all_results')}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ── O'ng: qidiruv, til, tugmalar ── */}
+        {/* O'ng: til · tema · CTA */}
         <div className="top-actions">
-          <div ref={searchRef} style={{ position: 'relative', minWidth: 300 }}>
-            <form onSubmit={submitSearch} className="searchbar topbar-search" style={{ minWidth: 300 }}>
-              <SearchIcon size={14} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
-              <input
-                value={searchQ}
-                onChange={e => { setSearchQ(e.target.value); setSearchOpen(true); }}
-                onFocus={() => setSearchOpen(true)}
-                placeholder={t('common.search_placeholder')}
-              />
-              {searchQ && (
-                <button type="button" onClick={() => { setSearchQ(''); setResults([]); }}
-                  style={{ background: 'none', border: 0, padding: '0 4px', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 14, lineHeight: 1 }}>×</button>
-              )}
-            </form>
-
-            {searchOpen && searchQ.trim().length >= 2 && (
+          <div ref={langRef} style={{ position: 'relative' }}>
+            <button className="lang-switch" onClick={() => setLangDrop(p => !p)}
+              style={{ cursor: 'pointer', gap: 6 }}>
+              <span className="lang-opt active">{LANGS[activeLangIdx].code}</span>
+              <ChevIcon size={9} style={{ opacity: 0.5, transform: langDrop ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+            </button>
+            {langDrop && (
               <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 100,
-                background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 10,
-                boxShadow: '0 12px 40px -12px rgba(10,25,47,0.22), 0 2px 8px rgba(10,25,47,0.06)',
-                padding: 6, maxHeight: 420, overflowY: 'auto',
+                position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 200,
+                background: 'var(--paper)', border: '1px solid var(--line)',
+                borderRadius: 8, boxShadow: '0 10px 30px -10px rgba(43,43,43,0.2)',
+                padding: 5, minWidth: 120,
               }}>
-                {searching ? (
-                  <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-4)' }}>{t('common.searching')}</div>
-                ) : results.length === 0 ? (
-                  <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-4)' }}>{t('common.no_results')}</div>
-                ) : (
-                  <>
-                    {results.map(r => (
-                      <button key={r.id} onClick={() => goToArticle(r.slug)} className="pill-hover"
-                        style={{ display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%', padding: '8px 10px', borderRadius: 6, border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 4, background: 'var(--grey-2)',
-                          flexShrink: 0, overflow: 'hidden', border: '1px solid var(--line)',
-                        }}>
-                          {r.image_url && (
-                            <img src={r.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                          )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          {r.category && (
-                            <div style={{ fontSize: 9.5, color: 'var(--navy)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.18, marginBottom: 2 }}>{r.category.name}</div>
-                          )}
-                          <div className="h-display" style={{ fontSize: 13, lineHeight: 1.3, color: 'var(--ink)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {r.title}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                    <button onClick={submitSearch} className="pill-hover"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '10px', borderRadius: 6, border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: 'var(--navy)', fontWeight: 600, fontFamily: 'var(--sans)', marginTop: 4, borderTop: '1px solid var(--line)' }}>
-                      {t('common.view_all_results')}
-                    </button>
-                  </>
-                )}
+                {LANGS.map((l, i) => (
+                  <button key={i} onClick={() => { setLang(l.value); setLangDrop(false); }}
+                    className="pill-hover"
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left',
+                      padding: '7px 10px', borderRadius: 6, border: 0,
+                      background: activeLangIdx === i ? 'var(--accent-08)' : 'transparent',
+                      color: activeLangIdx === i ? 'var(--accent)' : 'var(--ink-2)',
+                      fontWeight: activeLangIdx === i ? 600 : 400,
+                      fontFamily: 'var(--sans)', fontSize: 13, cursor: 'pointer',
+                    }}>
+                    {l.code}
+                  </button>
+                ))}
               </div>
             )}
           </div>
-          <div className="lang-switch topbar-lang">
-            {LANGS.map((l, i) => (
-              <button key={i} className={`lang-opt${activeLangIdx === i ? ' active' : ''}`}
-                onClick={() => setLang(l.value)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 8px' }}>
-                <img src={`https://flagcdn.com/16x12/${l.cc}.png`} width="16" height="12" alt={l.cc}
-                  style={{ borderRadius: 1, display: 'block', flexShrink: 0 }} />{l.code}
-              </button>
-            ))}
-          </div>
-          <button
-            className="btn primary"
-            style={{ height: 38 }}
-            onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
-          >
-            <UploadIcon size={14} />
-            <span className="topbar-upload-lbl">{t('common.upload_article')}</span>
+
+          <ThemeToggle />
+
+          <button className="btn primary topbar-cta"
+            onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}>
+            {t('common.upload_article')}
           </button>
-          {/* Hamburger — CSS da mobile uchun ko'rinadi */}
+
           <button className="topbar-hamburger" onClick={() => setDrawerOpen(true)} aria-label={t('common.menu')}>
             <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
               <line x1="0" y1="1"  x2="22" y2="1"  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -311,6 +276,106 @@ export default function Topbar({ active }: { active: Page }) {
         </div>
       </header>
 
+      {/* ═══ 2-qator: navigatsiya · ISSN/DOI ═══ */}
+      <div className="topbar-nav">
+        <nav className="topnav">
+          {PUBLIC_NAV.map(n => {
+            const c = n.countKey ? counts[n.countKey] : null;
+            return (
+              <Link key={n.key} to={n.to} className={active === n.key ? 'active' : ''}>
+                {t(n.tKey)}
+                {c !== null && <span className="count">{c}</span>}
+              </Link>
+            );
+          })}
+
+          {/* Jurnal haqida ▾ */}
+          <div ref={aboutRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <button onClick={() => setAboutDrop(p => !p)}
+              className={active === 'about' ? 'topnav-trigger active' : 'topnav-trigger'}>
+              Jurnal haqida
+              <ChevIcon size={9} style={{ opacity: 0.55, transform: aboutDrop ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+            </button>
+            {aboutDrop && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, zIndex: 200,
+                background: 'var(--paper)', border: '1px solid var(--line)',
+                borderRadius: 10, boxShadow: '0 10px 30px -10px rgba(43,43,43,0.2)',
+                padding: 6, minWidth: 230,
+              }}>
+                {ABOUT_NAV.map(n => (
+                  <Link key={n.to} to={n.to} onClick={() => setAboutDrop(false)} className="pill-hover"
+                    style={{
+                      display: 'block', width: '100%', padding: '8px 10px', borderRadius: 6,
+                      fontFamily: 'var(--sans)', fontSize: 13.5, color: 'var(--ink-2)',
+                      textDecoration: 'none',
+                    }}>
+                    {n.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Admin dropdown — faqat kirganlar */}
+          {isAuthenticated && (
+            <div ref={dropRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <button onClick={() => setAdminDrop(p => !p)}
+                className={isAdminPage ? 'topnav-trigger active' : 'topnav-trigger'}>
+                {isAdminPage ? activeAdminLabel : t('nav.admin')}
+                <ChevIcon size={9} style={{ opacity: 0.55, transform: adminDrop ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+              </button>
+
+              {adminDrop && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, zIndex: 200,
+                  background: 'var(--paper)', border: '1px solid var(--line)',
+                  borderRadius: 10, boxShadow: '0 10px 30px -10px rgba(43,43,43,0.2)',
+                  padding: 6, minWidth: 210, marginTop: 2,
+                }}>
+                  {ADMIN_NAV.map(n => (
+                    <Link key={n.key} to={n.to} onClick={() => setAdminDrop(false)} className="pill-hover"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        width: '100%', padding: '8px 10px', borderRadius: 6, border: 0,
+                        background: active === n.key ? 'var(--accent-08)' : 'transparent',
+                        fontFamily: 'var(--sans)', fontSize: 13,
+                        color: active === n.key ? 'var(--accent)' : 'var(--ink-2)',
+                        fontWeight: active === n.key ? 600 : 400,
+                        cursor: 'pointer', textDecoration: 'none',
+                      }}>
+                      {n.label}
+                      {active === n.key && (
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+                      )}
+                    </Link>
+                  ))}
+
+                  <div style={{ height: 1, background: 'var(--line)', margin: '4px 0' }} />
+                  <div style={{ padding: '4px 10px 2px', fontSize: 11.5, color: 'var(--ink-4)' }}>
+                    {user?.username}
+                  </div>
+                  <button onClick={() => { logout(); navigate('/'); setAdminDrop(false); }}
+                    className="pill-hover"
+                    style={{
+                      display: 'flex', alignItems: 'center', width: '100%',
+                      padding: '8px 10px', borderRadius: 6, border: 0, background: 'transparent',
+                      fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink-3)',
+                      cursor: 'pointer', boxSizing: 'border-box',
+                    }}>
+                    {t('nav.logout')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </nav>
+
+        <div className="meta topbar-ids">
+          ISSN {ISSN} · DOI {DOI_PREFIX}
+        </div>
+      </div>
+
       {/* ── Mobil drawer ── */}
       <div className={`mobile-nav${drawerOpen ? ' open' : ''}`}>
         <div className="mobile-nav-bg" onClick={() => setDrawerOpen(false)} />
@@ -318,9 +383,7 @@ export default function Topbar({ active }: { active: Page }) {
           <div className="mobile-nav-head">
             <div className="brand" style={{ cursor: 'pointer' }}
               onClick={() => { setDrawerOpen(false); navigate('/'); }}>
-              <img src="/kutubxonauz.png" alt="kutubxona.uz"
-                style={{ width: 56, height: 56, objectFit: 'contain' }} />
-              <div className="brand-name" style={{ fontSize: 17 }}>kutubxona.uz</div>
+              <Wordmark />
             </div>
             <button className="mobile-nav-close" onClick={() => setDrawerOpen(false)}>✕</button>
           </div>
@@ -333,15 +396,16 @@ export default function Topbar({ active }: { active: Page }) {
                 {t(n.tKey)}
               </Link>
             ))}
+            {ABOUT_NAV.map(n => (
+              <Link key={n.to} to={n.to} onClick={() => setDrawerOpen(false)}>{n.label}</Link>
+            ))}
 
             {isAuthenticated && (
               <>
                 <span style={{ display: 'block', height: 1, background: 'var(--line)', margin: '6px 0' }} />
-                <span style={{
-                  display: 'block', fontSize: 10.5, color: 'var(--ink-4)',
-                  fontWeight: 700, letterSpacing: 0.18, textTransform: 'uppercase',
-                  padding: '4px 0 6px',
-                }}>{t('nav.admin')}</span>
+                <span className="eyebrow" style={{ display: 'block', padding: '4px 0 6px' }}>
+                  {t('nav.admin')}
+                </span>
                 {ADMIN_NAV.map(n => (
                   <Link key={n.key} to={n.to}
                     className={active === n.key ? 'active' : ''}
@@ -352,8 +416,7 @@ export default function Topbar({ active }: { active: Page }) {
                 <button
                   onClick={() => { logout(); navigate('/'); setDrawerOpen(false); }}
                   style={{
-                    background: 'none', border: 0,
-                    padding: '12px 0', fontSize: 14,
+                    background: 'none', border: 0, padding: '12px 0', fontSize: 14,
                     fontFamily: 'var(--sans)', color: 'var(--ink-3)',
                     cursor: 'pointer', textAlign: 'left', width: '100%',
                   }}>
@@ -366,26 +429,63 @@ export default function Topbar({ active }: { active: Page }) {
           <div className="mobile-nav-foot">
             <button
               className="btn primary"
-              style={{ width: '100%', height: 42, justifyContent: 'center' }}
+              style={{ width: '100%', height: 42 }}
               onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
             >
-              <UploadIcon size={14} /> {t('common.upload_article')}
+              {t('common.upload_article')}
             </button>
-            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
-              <div className="lang-switch">
-                {LANGS.map((l, i) => (
-                  <button key={i} className={`lang-opt${activeLangIdx === i ? ' active' : ''}`}
-                    onClick={() => setLang(l.value)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 8px' }}>
-                    <img src={`https://flagcdn.com/16x12/${l.cc}.png`} width="16" height="12" alt={l.cc}
-                      style={{ borderRadius: 1, display: 'block', flexShrink: 0 }} />{l.code}
-                  </button>
-                ))}
-              </div>
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', gap: 4 }}>
+              {LANGS.map((l, i) => (
+                <button key={i} className={`lang-opt${activeLangIdx === i ? ' active' : ''}`}
+                  onClick={() => setLang(l.value)}
+                  style={{ padding: '6px 10px', cursor: 'pointer' }}>
+                  {l.code}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Logotip — Figma'da bu alohida rasm emas, matn:
+ * «K» va «.UZ» to'q sariq, qolgani to'q rangda; pastida mayda tavsif.
+ */
+export function Wordmark({ light = false }: { light?: boolean }) {
+  return (
+    <span className="wordmark" data-light={light ? 'on' : undefined}>
+      <span className="wordmark-main">
+        <span className="wordmark-k">K</span>UTUBXONA<span className="wordmark-uz">.UZ</span>
+      </span>
+      <span className="wordmark-sub">
+        AXBOROT-KUTUBXONA <span>texnologiyalari</span> JURNALI
+      </span>
+    </span>
+  );
+}
+
+/** Yorug'/qorong'i tema tugmasi (Figma: qidiruv yonidagi yarim doira ikonka). */
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => {
+    try { return localStorage.getItem('kb_theme') === 'dark'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    try { localStorage.setItem('kb_theme', dark ? 'dark' : 'light'); } catch { /* ignore */ }
+  }, [dark]);
+
+  return (
+    <button className="icon-btn" onClick={() => setDark(d => !d)}
+      aria-label={dark ? 'Yorug‘ rejim' : 'Qorong‘i rejim'}
+      title={dark ? 'Yorug‘ rejim' : 'Qorong‘i rejim'}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M8 1.6a6.4 6.4 0 0 0 0 12.8V1.6Z" fill="currentColor" />
+      </svg>
+    </button>
   );
 }

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
+import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
 import { ArrowIcon, ChevIcon, DocIcon } from '../components/ui/Icons';
@@ -178,6 +179,7 @@ export default function ArchivePage() {
         )}
         {groups.map(g => <YearGroupSection key={g.year} g={g} />)}
       </div>
+      <Footer />
     </div>
   );
 }
