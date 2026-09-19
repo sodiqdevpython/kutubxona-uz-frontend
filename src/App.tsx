@@ -14,12 +14,15 @@ import AuthorDetailPage     from './pages/AuthorDetailPage';
 import CentralAsiaPage       from './pages/CentralAsiaPage';
 import CentralAsiaDetailPage from './pages/CentralAsiaDetailPage';
 import LoginPage             from './pages/LoginPage';
+import NotFoundPage          from './pages/NotFoundPage';
+import ErrorBoundary         from './components/ErrorBoundary';
 import { AboutJournal, AboutBoard, AboutPolicy, AboutGuide } from './pages/AboutPage';
 
 import AdminDashboardPage   from './pages/admin/AdminDashboardPage';
 import AdminSubmissionsPage from './pages/admin/AdminSubmissionsPage';
 import AdminSubmissionDetailPage from './pages/admin/AdminSubmissionDetailPage';
 import AdminSettingsPage    from './pages/admin/AdminSettingsPage';
+import AdminNotFoundPage    from './pages/admin/AdminNotFoundPage';
 import AdminAuthorsPage     from './pages/admin/AdminAuthorsPage';
 import AdminJournalsPage    from './pages/admin/AdminJournalsPage';
 import AdminChatPage        from './pages/admin/AdminChatPage';
@@ -40,6 +43,7 @@ export default function App() {
     <LangProvider>
     <AuthProvider>
       <BrowserRouter>
+        <ErrorBoundary>
         <Routes>
           {/* ── Ommaviy sahifalar ── */}
           <Route path="/"                   element={<HomePage />} />
@@ -66,6 +70,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
 
           {/* ── Admin panel (himoyalangan) ── */}
+          {/* Eski Django admin manzillari (brauzer tarixi/keshi) — React login sahifasiga */}
+          <Route path="/admin/login/*" element={<Navigate to="/login" replace />} />
           <Route path="/admin"             element={<Protected><AdminDashboardPage /></Protected>} />
           <Route path="/admin/submissions" element={<Protected><AdminSubmissionsPage /></Protected>} />
           <Route path="/admin/submissions/:id" element={<Protected><AdminSubmissionDetailPage /></Protected>} />
@@ -73,7 +79,12 @@ export default function App() {
           <Route path="/admin/authors"     element={<Protected><AdminAuthorsPage /></Protected>} />
           <Route path="/admin/journals"    element={<Protected><AdminJournalsPage /></Protected>} />
           <Route path="/admin/chat"        element={<Protected><AdminChatPage /></Protected>} />
+          <Route path="/admin/*"           element={<Protected><AdminNotFoundPage /></Protected>} />
+
+          {/* ── 404 ── */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
     </LangProvider>
