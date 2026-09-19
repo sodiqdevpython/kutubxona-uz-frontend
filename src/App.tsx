@@ -24,7 +24,9 @@ import AdminSubmissionDetailPage from './pages/admin/AdminSubmissionDetailPage';
 import AdminSettingsPage    from './pages/admin/AdminSettingsPage';
 import AdminNotFoundPage    from './pages/admin/AdminNotFoundPage';
 import AdminAuthorsPage     from './pages/admin/AdminAuthorsPage';
+import AdminAuthorDetailPage from './pages/admin/AdminAuthorDetailPage';
 import AdminJournalsPage    from './pages/admin/AdminJournalsPage';
+import AdminIssueDetailPage from './pages/admin/AdminIssueDetailPage';
 import AdminChatPage        from './pages/admin/AdminChatPage';
 
 // ── Himoyalangan route ────────────────────────────────────────────────────────
@@ -77,7 +79,9 @@ export default function App() {
           <Route path="/admin/submissions/:id" element={<Protected><AdminSubmissionDetailPage /></Protected>} />
           <Route path="/admin/settings"    element={<Protected><AdminSettingsPage /></Protected>} />
           <Route path="/admin/authors"     element={<Protected><AdminAuthorsPage /></Protected>} />
+          <Route path="/admin/authors/:id" element={<Protected><AdminAuthorDetailPage /></Protected>} />
           <Route path="/admin/journals"    element={<Protected><AdminJournalsPage /></Protected>} />
+          <Route path="/admin/journals/:id" element={<Protected><AdminIssueDetailPage /></Protected>} />
           <Route path="/admin/chat"        element={<Protected><AdminChatPage /></Protected>} />
           <Route path="/admin/*"           element={<Protected><AdminNotFoundPage /></Protected>} />
 

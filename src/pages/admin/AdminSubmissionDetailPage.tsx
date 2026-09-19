@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminShell from '../../components/admin/AdminShell';
 import AiUnavailableModal from '../../components/ui/AiUnavailableModal';
 import PdfViewer, { isPdf } from '../../components/ui/PdfViewer';
+import DocxViewer from '../../components/article/DocxViewer';
 import { ApproveModal, RejectModal, RevertModal } from '../../components/admin/SubmissionModals';
 import { getAiStatus, isAiUnavailableError, resetAiStatus } from '../../lib/ai';
 import { adminApi, type AdminCategory, type AdminIssue, type AdminSubmission, type SubmissionEdit } from '../../lib/admin-api';
@@ -40,8 +41,11 @@ export default function AdminSubmissionDetailPage() {
 
   function flash(t: string) { setToast(t); setTimeout(() => setToast(''), 4000); }
 
+  // id o'zgarsa — eski topshirish render vaqtida darhol tozalanadi
+  const [shownId, setShownId] = useState(id);
+  if (shownId !== id) { setShownId(id); setSub(null); setForm(null); setFailed(false); }
+
   useEffect(() => {
-    setFailed(false);
     adminApi.submissions.get(id).then(s => { setSub(s); setForm(toForm(s)); }).catch(() => setFailed(true));
     adminApi.issues.list().then(setIssues).catch(() => {});
     adminApi.categories.list().then(setCats).catch(() => {});
@@ -113,10 +117,12 @@ export default function AdminSubmissionDetailPage() {
             <div className="det-file-body">
               {fileUrl && isPdf(fileUrl) ? (
                 <PdfViewer url={fileUrl} title={sub.title || 'Qo‘lyozma'} />
+              ) : fileUrl && sub.preview_html ? (
+                <div className="docx-wrap"><DocxViewer title={sub.title || sub.file_name || 'Qo‘lyozma'} html={sub.preview_html} /></div>
               ) : fileUrl ? (
                 <div className="det-file-empty">
                   <b style={{ display: 'block', color: 'var(--ink)', marginBottom: 6 }}>{sub.file_name}</b>
-                  DOCX faylni brauzerda ko‘rsatib bo‘lmaydi — «Yuklab olish» orqali oching.
+                  Bu fayl turini brauzerda ko‘rsatib bo‘lmaydi — «Yuklab olish» orqali oching.
                   {sub.image_url && <img src={sub.image_url} alt="" style={{ display: 'block', maxWidth: 360, margin: '20px auto 0', borderRadius: 8, border: '1px solid var(--line)' }} />}
                 </div>
               ) : (

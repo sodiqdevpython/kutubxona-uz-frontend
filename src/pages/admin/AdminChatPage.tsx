@@ -1,697 +1,321 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import AdminShell from '../../components/admin/AdminShell';
 import AuthorAvatar from '../../components/ui/AuthorAvatar';
-import { SearchIcon, SendIcon, DocIcon } from '../../components/ui/Icons';
-import { adminApi, type AdminChat, type ChatMessage } from '../../lib/admin-api';
+import { adminApi, type AdminAuthorDetail, type AdminChat, type ChatMessage } from '../../lib/admin-api';
 import { connectAdminChat, type ChatEvent, type ChatSocketStatus } from '../../lib/chat-socket';
 import { mediaUrl } from '../../lib/config';
 
-const PAGE_LIMIT = 20;   // bir sahifada nechta chat
+/**
+ * Xabarlar — Figma «Xabarlar»: chapda suhbatlar (filtr, qidiruv), o'rtada suhbat
+ * (banner, sana ajratgichlari, tez javoblar), o'ngda muallif kartasi + ko'rib
+ * chiqilayotgan maqola + statistika.
+ *
+ * Tuzatishlar: yuborilgan xabar ikki marta ko'rinmaydi (REST javobi + WS hodisasi
+ * id bo'yicha birlashtiriladi); WS ulanmasa sahifa hech qayerga o'tmaydi —
+ * har 8 soniyada HTTP orqali yangilanadi.
+ */
 
-// Chatlarni oxirgi xabar vaqti bo'yicha saralash (backend tartibi bilan bir xil)
-function sortChats(list: AdminChat[]): AdminChat[] {
-  return [...list].sort((a, b) => {
-    const ta = new Date(a.last_message_at ?? a.created_at).getTime();
-    const tb = new Date(b.last_message_at ?? b.created_at).getTime();
-    return tb - ta;
-  });
-}
+const PAGE_LIMIT = 20;
+const POLL_MS = 8000;
+type Filter = 'all' | 'waiting' | 'closed';
+const QUICK: { label: string; text: string }[] = [
+  { label: 'Taqrizga yuborildi', text: "Assalomu alaykum! Maqolangiz taqrizga yuborildi. Xulosa 21 kun ichida bo'ladi." },
+  { label: 'Tuzatish kerak',     text: "Maqolangizda tuzatish talab qilinadi: adabiyotlar ro'yxati va annotatsiyani jurnal talablariga moslab qayta yuboring." },
+  { label: 'Shablonni yuborish', text: "Maqolani jurnal shabloniga muvofiq rasmiylashtiring — qo'llanma: journalkutubxona.uz/about/guide" },
+];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function relTime(iso: string | null): string {
+const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+const hhmm = (iso: string) => { const x = new Date(iso); return `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };
+function listTime(iso: string | null): string {
   if (!iso) return '';
-  const d = new Date(iso);
-  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (diff < 60)    return 'hozir';
-  if (diff < 3600)  return `${Math.floor(diff / 60)} daq.`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} soat`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)} kun`;
-  return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' });
+  const x = new Date(iso), now = new Date();
+  if (x.toDateString() === now.toDateString()) return hhmm(iso);
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (x.toDateString() === y.toDateString()) return 'kecha';
+  return `${x.getDate()}-${MONTHS[x.getMonth()].slice(0, 3)}`;
 }
-
-function fullTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+const dayLabel = (iso: string) => { const x = new Date(iso); return `${x.getDate()}-${MONTHS[x.getMonth()]}${x.getFullYear() !== new Date().getFullYear() ? ` ${x.getFullYear()}` : ''}`; };
+function waitingHours(c: AdminChat): number | null {
+  if (!c.last_message || c.last_message.sender !== 'user' || !c.last_message_at) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(c.last_message_at).getTime()) / 3600000));
 }
-
-function lastPreview(c: AdminChat): string {
-  const lm = c.last_message;
-  if (!lm) return 'Suhbat boshlanmagan';
-  const prefix = lm.sender === 'admin' ? 'Siz: ' : '';
-  if (lm.kind === 'photo')    return `${prefix}🖼 Rasm${lm.text ? ` · ${lm.text}` : ''}`;
-  if (lm.kind === 'document') return `${prefix}📎 Fayl${lm.text ? ` · ${lm.text}` : ''}`;
-  return prefix + lm.text;
+function preview(c: AdminChat): string {
+  const lm = c.last_message; if (!lm) return 'Suhbat boshlanmagan';
+  const p = lm.sender === 'admin' ? 'Siz: ' : '';
+  return p + (lm.kind === 'photo' ? `Rasm${lm.text ? ` · ${lm.text}` : ''}` : lm.kind === 'document' ? `Fayl${lm.text ? ` · ${lm.text}` : ''}` : lm.text);
 }
-
-// ── Asosiy sahifa ─────────────────────────────────────────────────────────────
+const sortChats = (l: AdminChat[]) => [...l].sort((a, b) => new Date(b.last_message_at ?? b.created_at).getTime() - new Date(a.last_message_at ?? a.created_at).getTime());
 
 export default function AdminChatPage() {
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const initialChatId = params.get('chat') ?? null;
-
-  const [chats, setChats]       = useState<AdminChat[]>([]);
-  const [chatsLoading, setChatsLoading] = useState(true);
-  const [loadingMore, setLoadingMore]   = useState(false);
-  const [hasMore, setHasMore]           = useState(false);
-  const [nextOffset, setNextOffset]     = useState(0);
-  const [search, setSearch]     = useState('');
-
-  const [activeId, setActiveId] = useState<string | null>(initialChatId);
-  const activeChat = chats.find(c => c.id === activeId) ?? null;
-
-  const [msgs, setMsgs]         = useState<ChatMessage[]>([]);
-  const [msgsLoading, setMsgsLoading] = useState(false);
+  const [chats, setChats]   = useState<AdminChat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [search, setSearch] = useState('');
+  const [activeId, setActiveId] = useState<string | null>(params.get('chat'));
+  const [msgs, setMsgs]     = useState<ChatMessage[]>([]);
   const [wsStatus, setWsStatus] = useState<ChatSocketStatus>('connecting');
-
-  const listRef     = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // ── Chat ro'yxati: birinchi sahifa (yoki polling — birinchi sahifani yangilash) ──
-  // `refresh = true` bo'lsa: birinchi sahifani qaytadan oladi va mavjudlarga merge qiladi
-  //   (scroll qilingan keyingi sahifalar saqlanadi, lekin yangi xabarlar ko'rinadi).
-  // `refresh = false` bo'lsa: tozadan boshlab birinchi sahifani yuklaydi.
-  const loadFirstPage = useCallback(async (refresh: boolean) => {
-    try {
-      const data = await adminApi.chat.list({ offset: 0, limit: PAGE_LIMIT });
-      if (refresh) {
-        // Polling: birinchi sahifa elementlarini yangilaymiz, qolganlarini saqlaymiz
-        setChats(prev => {
-          const firstIds = new Set(data.results.map(c => c.id));
-          const tail = prev.filter(c => !firstIds.has(c.id));
-          return [...data.results, ...tail];
-        });
-      } else {
-        setChats(data.results);
-        setNextOffset(data.next_offset);
-        setHasMore(data.has_more);
-      }
-    } catch { /* ignore */ }
-    setChatsLoading(false);
-  }, []);
-
-  // ── Keyingi sahifa ──
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
-    try {
-      const data = await adminApi.chat.list({ offset: nextOffset, limit: PAGE_LIMIT });
-      setChats(prev => {
-        const seen = new Set(prev.map(c => c.id));
-        const fresh = data.results.filter(c => !seen.has(c.id));
-        return [...prev, ...fresh];
-      });
-      setNextOffset(data.next_offset);
-      setHasMore(data.has_more);
-    } catch { /* ignore */ }
-    setLoadingMore(false);
-  }, [loadingMore, hasMore, nextOffset]);
-
-  useEffect(() => { loadFirstPage(false); }, [loadFirstPage]);
-
-  // ── Infinite scroll: sentinel ko'ringanda loadMore ──
-  useEffect(() => {
-    const root = listRef.current;
-    const sentinel = sentinelRef.current;
-    if (!root || !sentinel) return;
-    const io = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) loadMore(); },
-      { root, rootMargin: '120px', threshold: 0 }
-    );
-    io.observe(sentinel);
-    return () => io.disconnect();
-  }, [loadMore]);
-
-  // ── Faol chat xabarlari ────────────────────────────────────────────────
-  const loadMessages = useCallback(async (cid: string) => {
-    setMsgsLoading(true);
-    try {
-      const data = await adminApi.chat.messages(cid);
-      setMsgs(data);
-      // Faol chatga kirgan zahoti — markRead
-      await adminApi.chat.markRead(cid);
-      setChats(prev => prev.map(c => c.id === cid ? { ...c, unread_count: 0 } : c));
-    } catch { /* ignore */ }
-    setMsgsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (!activeId) { setMsgs([]); return; }
-    loadMessages(activeId);
-  }, [activeId, loadMessages]);
-
-  // ── Real-time: WebSocket (polling o'rniga) ──────────────────────────────
-  // Ulanish bir marta ochiladi va sahifa yopilguncha turadi. Aktiv chat
-  // o'zgarganda ulanish uzilmasligi uchun ref ishlatamiz.
+  const [author, setAuthor] = useState<AdminAuthorDetail | null>(null);
+  const [menu, setMenu]     = useState(false);
+  const [toast, setToast]   = useState('');
   const activeIdRef = useRef<string | null>(activeId);
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+  const activeChat = chats.find(c => c.id === activeId) ?? null;
+  function flash(t: string) { setToast(t); setTimeout(() => setToast(''), 3500); }
 
-  const upsertChat = useCallback((incoming: AdminChat) => {
-    setChats(prev => {
-      const exists = prev.some(c => c.id === incoming.id);
-      const merged = exists
-        ? prev.map(c => (c.id === incoming.id ? { ...c, ...incoming } : c))
-        : [incoming, ...prev];
-      return sortChats(merged);
-    });
-  }, []);
-
-  const handleEvent = useCallback((e: ChatEvent) => {
-    switch (e.event) {
-      case 'message.created': {
-        // Aktiv suhbat ochiq bo'lsa — xabarni darhol qo'shamiz
-        if (activeIdRef.current === e.chat_id) {
-          setMsgs(prev => (prev.some(m => m.id === e.message.id) ? prev : [...prev, e.message]));
-          // Ochiq suhbat — o'qildi deb belgilaymiz
-          if (e.message.sender === 'user') {
-            adminApi.chat.markRead(e.chat_id).catch(() => {});
-            upsertChat({ ...e.chat, unread_count: 0 });
-            return;
-          }
-        }
-        upsertChat(e.chat);
-        break;
+  // ── Ro'yxat ──
+  const loadFirst = useCallback((merge: boolean) =>
+    adminApi.chat.list({ offset: 0, limit: PAGE_LIMIT }).then(d => {
+      if (!merge) { setNextOffset(d.next_offset); setHasMore(d.has_more); setChats(d.results); }
+      else {
+        const ids = new Set(d.results.map(c => c.id));
+        setChats(prev => sortChats([...d.results, ...prev.filter(c => !ids.has(c.id))]));
       }
-      case 'chat.updated':
-        upsertChat(e.chat);
-        break;
-      case 'chat.deleted':
-        setChats(prev => prev.filter(c => c.id !== e.chat_id));
-        if (activeIdRef.current === e.chat_id) { setActiveId(null); setMsgs([]); }
-        break;
-      case 'chat.read':
-        setChats(prev => prev.map(c => (c.id === e.chat_id ? { ...c, unread_count: 0 } : c)));
-        break;
-      default:
-        break;
-    }
-  }, [upsertChat]);
-
-  useEffect(() => {
-    const disconnect = connectAdminChat({
-      onEvent:  handleEvent,
-      onStatus: setWsStatus,
-      // Uzilish davomida kelgan xabarlarni bir marta yuklab olamiz
-      onResync: () => {
-        loadFirstPage(true);
-        if (activeIdRef.current) loadMessages(activeIdRef.current);
-      },
-      onAuthError: () => navigate('/login'),
-    });
-    return disconnect;
-  }, [handleEvent, loadFirstPage, loadMessages, navigate]);
-
-  // ── Chat select ────────────────────────────────────────────────────────
-  function selectChat(c: AdminChat) {
-    setActiveId(c.id);
-    setParams(prev => { prev.set('chat', c.id); return prev; }, { replace: true });
+    }).catch(() => {}).finally(() => setLoading(false)),
+  []);
+  async function loadMore() {
+    if (!hasMore) return;
+    try { const d = await adminApi.chat.list({ offset: nextOffset, limit: PAGE_LIMIT }); setChats(p => { const s = new Set(p.map(c => c.id)); return [...p, ...d.results.filter(c => !s.has(c.id))]; }); setNextOffset(d.next_offset); setHasMore(d.has_more); } catch { /* */ }
   }
+  useEffect(() => { loadFirst(false); }, [loadFirst]);
 
-  // ── Yangi chat ochish (mualliflar sahifadan ?author=slug bilan kelinsa) ──
+  // ── Faol suhbat ──
+  const loadMessages = useCallback((cid: string, silent = false) =>
+    adminApi.chat.messages(cid).then(data => {
+      setMsgs(prev => (silent && prev.length === data.length && prev[prev.length - 1]?.id === data[data.length - 1]?.id ? prev : data));
+      if (!silent) return adminApi.chat.markRead(cid).then(() => setChats(p => p.map(c => (c.id === cid ? { ...c, unread_count: 0 } : c))));
+    }).catch(() => {}),
+  []);
+  // Suhbat almashganda eski xabarlar/muallif render vaqtida darhol tozalanadi
+  const [msgsFor, setMsgsFor] = useState<string | null>(activeId);
+  if (msgsFor !== activeId) { setMsgsFor(activeId); setMsgs([]); setAuthor(null); }
+  useEffect(() => { if (activeId) loadMessages(activeId); }, [activeId, loadMessages]);
+  const activeAuthorId = activeChat?.author_id;
+  useEffect(() => {
+    if (!activeAuthorId) return;
+    adminApi.authors.get(activeAuthorId).then(setAuthor).catch(() => setAuthor(null));
+  }, [activeAuthorId]);
+
+  // ── WebSocket ──
+  const upsert = useCallback((c: AdminChat) => setChats(p => sortChats(p.some(x => x.id === c.id) ? p.map(x => (x.id === c.id ? { ...x, ...c } : x)) : [c, ...p])), []);
+  const onEvent = useCallback((e: ChatEvent) => {
+    switch (e.event) {
+      case 'message.created':
+        if (activeIdRef.current === e.chat_id) {
+          setMsgs(p => (p.some(m => m.id === e.message.id) ? p : [...p, e.message]));
+          if (e.message.sender === 'user') { adminApi.chat.markRead(e.chat_id).catch(() => {}); upsert({ ...e.chat, unread_count: 0 }); return; }
+        }
+        upsert(e.chat); break;
+      case 'chat.updated': upsert(e.chat); break;
+      case 'chat.deleted': setChats(p => p.filter(c => c.id !== e.chat_id)); if (activeIdRef.current === e.chat_id) setActiveId(null); break;
+      case 'chat.read': setChats(p => p.map(c => (c.id === e.chat_id ? { ...c, unread_count: 0 } : c))); break;
+      default: break;
+    }
+  }, [upsert]);
+  useEffect(() => connectAdminChat({
+    onEvent, onStatus: setWsStatus,
+    onResync: () => { loadFirst(true); if (activeIdRef.current) loadMessages(activeIdRef.current, true); },
+    // Token bilan ulanib bo'lmasa — sahifadan chiqib ketmaymiz, HTTP yangilash ishlayveradi
+    onAuthError: () => setWsStatus('offline'),
+  }), [onEvent, loadFirst, loadMessages]);
+
+  // ── WS yo'q bo'lsa — HTTP orqali yangilab turamiz ──
+  useEffect(() => {
+    if (wsStatus === 'open') return;
+    const t = setInterval(() => { loadFirst(true); if (activeIdRef.current) loadMessages(activeIdRef.current, true); }, POLL_MS);
+    return () => clearInterval(t);
+  }, [wsStatus, loadFirst, loadMessages]);
+
+  // ── ?author=slug bilan kelinsa ──
   const authorParam = params.get('author');
   useEffect(() => {
     if (!authorParam) return;
-    (async () => {
-      try {
-        const ch = await adminApi.chat.byAuthor(authorParam);
-        // List'da bormi?
-        setChats(prev => {
-          if (prev.some(c => c.id === ch.id)) return prev;
-          return [ch, ...prev];
-        });
-        setActiveId(ch.id);
-        setParams(prev => { prev.delete('author'); prev.set('chat', ch.id); return prev; }, { replace: true });
-      } catch (e) {
-        alert(`Chat ochib bo'lmadi: ${(e as Error).message}`);
-      }
-    })();
+    adminApi.chat.byAuthor(authorParam).then(ch => {
+      setChats(p => (p.some(c => c.id === ch.id) ? p : [ch, ...p]));
+      setActiveId(ch.id);
+      setParams(prev => { prev.delete('author'); prev.set('chat', ch.id); return prev; }, { replace: true });
+    }).catch(e => flash(`Chat ochib bo‘lmadi: ${(e as Error).message}`));
   }, [authorParam, setParams]);
 
-  // ── Filtered list ─────────────────────────────────────────────────────
-  const filteredChats = useMemo(() => {
+  function select(c: AdminChat) { setActiveId(c.id); setMenu(false); setParams(prev => { prev.set('chat', c.id); return prev; }, { replace: true }); }
+
+  const counts = useMemo(() => ({ all: chats.length, waiting: chats.filter(c => c.unread_count > 0).length, closed: chats.filter(c => c.unread_count === 0).length }), [chats]);
+  const list = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return chats;
-    return chats.filter(c =>
-      c.author_name.toLowerCase().includes(q) ||
-      c.telegram_username.toLowerCase().includes(q) ||
-      (c.last_message?.text ?? '').toLowerCase().includes(q)
-    );
-  }, [chats, search]);
+    return chats.filter(c => (filter === 'all' || (filter === 'waiting' ? c.unread_count > 0 : c.unread_count === 0))
+      && (!q || c.author_name.toLowerCase().includes(q) || c.telegram_username.toLowerCase().includes(q)));
+  }, [chats, filter, search]);
 
-  // ── Block toggle ──────────────────────────────────────────────────────
-  async function toggleBlock() {
-    if (!activeChat) return;
-    try {
-      const res = await adminApi.chat.toggleBlock(activeChat.id);
-      setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, is_blocked: res.is_blocked } : c));
-    } catch (e) { alert(`Xatolik: ${(e as Error).message}`); }
+  async function toggleBlock() { if (!activeChat) return; try { const r = await adminApi.chat.toggleBlock(activeChat.id); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, is_blocked: r.is_blocked } : c))); } catch (e) { flash(`Xatolik: ${(e as Error).message}`); } setMenu(false); }
+  async function removeChat() {
+    if (!activeChat || !confirm(`«${activeChat.author_name}» bilan suhbat va xabarlar o‘chirilsinmi?`)) return;
+    try { await adminApi.chat.remove(activeChat.id); setChats(p => p.filter(c => c.id !== activeChat.id)); setActiveId(null); setParams(prev => { prev.delete('chat'); return prev; }, { replace: true }); } catch (e) { flash(`Xatolik: ${(e as Error).message}`); }
+    setMenu(false);
   }
-
-  // ── Delete ────────────────────────────────────────────────────────────
-  async function deleteChat() {
-    if (!activeChat) return;
-    const ok = window.confirm(
-      `«${activeChat.author_name}» bilan butun suhbat va xabarlar o'chiriladi. Davom etilsinmi?`
-    );
-    if (!ok) return;
-    try {
-      await adminApi.chat.remove(activeChat.id);
-      setChats(prev => prev.filter(c => c.id !== activeChat.id));
-      setActiveId(null);
-      setMsgs([]);
-      setParams(prev => { prev.delete('chat'); return prev; }, { replace: true });
-    } catch (e) { alert(`O'chirib bo'lmadi: ${(e as Error).message}`); }
-  }
+  async function markClosed() { if (!activeChat) return; try { await adminApi.chat.markRead(activeChat.id); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, unread_count: 0, last_message: c.last_message ? { ...c.last_message, sender: 'admin' } : c.last_message } : c))); } catch { /* */ } }
 
   return (
-    <AdminShell active="chat" crumb="Xabarlar"><div className="adm-legacy"><div className="bg-articles">
-
-      {/* Header */}
-      <div style={{ padding: '32px var(--px) 20px', maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, fontSize: 12.5, color: 'var(--ink-3)' }}>
-          <a onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Bosh sahifa</a>
-          <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>Xabarlar</span>
-        </div>
-        <h1 className="h-display h1-rsp" style={{ fontSize: 36, marginBottom: 4 }}>Xabarlar</h1>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>
-          Mualliflar bilan Telegram orqali suhbatlashish. Xabarlar real vaqtda keladi —
-          sahifani yangilash shart emas.
-        </p>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          marginTop: 8, fontSize: 11.5, color: 'var(--ink-3)',
-        }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: wsStatus === 'open' ? '#16A34A'
-                      : wsStatus === 'connecting' ? '#D97706' : '#DC2626',
-          }} />
-          {wsStatus === 'open' ? 'Real vaqt ulanishi faol'
-            : wsStatus === 'connecting' ? 'Ulanmoqda…'
-            : "Ulanish uzildi — qayta urinilmoqda"}
-        </div>
-      </div>
-
-      {/* Telegram-style layout */}
-      <div style={{
-        padding: '0 var(--px) 32px', maxWidth: 1400, margin: '0 auto',
-        display: 'grid', gridTemplateColumns: '340px 1fr', gap: 16,
-        minHeight: 'calc(100vh - 280px)',
-      }}>
-
-        {/* ── LEFT: Chats list ── */}
-        <div style={{
-          background: 'var(--paper)', border: '1px solid var(--line)',
-          borderRadius: 12, overflow: 'hidden',
-          display: 'flex', flexDirection: 'column',
-          minHeight: 0,
-        }}>
-          {/* Search */}
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-            <div className="searchbar" style={{ height: 38, width: '100%', minWidth: 'auto' }}>
-              <SearchIcon size={14} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Qidirish…" style={{ fontSize: 13 }} />
-              {search && <button onClick={() => setSearch('')}
-                style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 14, lineHeight: 1 }}>×</button>}
-            </div>
+    <AdminShell active="chat" crumb="Xabarlar">
+      <div className="ch-wrap">
+        {/* ── Chap: suhbatlar ── */}
+        <div className="ch-list">
+          <div className="ch-filters">
+            {([['all', 'Barchasi'], ['waiting', 'Javob kutmoqda'], ['closed', 'Yopilgan']] as [Filter, string][]).map(([k, l]) => (
+              <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}<span>{counts[k]}</span></button>
+            ))}
           </div>
-
-          {/* Chats */}
-          <div ref={listRef} style={{ flex: 1, overflowY: 'auto' }}>
-            {chatsLoading ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
-            ) : filteredChats.length === 0 ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>
-                {search ? 'Topilmadi' : (
-                  <>
-                    Hali suhbat yo'q.<br/>
-                    <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                      Foydalanuvchidan Telegram orqali xabar kelganda bu yerda ko'rinadi.
-                    </span>
-                  </>
-                )}
-              </div>
-            ) : (
-              filteredChats.map(c => {
-                const active = c.id === activeId;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => selectChat(c)}
-                    style={{
-                      display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: 10,
-                      width: '100%', padding: '12px 16px', border: 0,
-                      background: active ? 'rgba(10,25,47,0.06)' : 'transparent',
-                      cursor: 'pointer', borderBottom: '1px solid var(--line)',
-                      textAlign: 'left', alignItems: 'center',
-                      fontFamily: 'var(--sans)',
-                    }}
-                    className="pill-hover"
-                  >
-                    <AuthorAvatar name={c.author_initials} idx={c.author_avatar_idx} size={44} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <span style={{
-                          fontSize: 14, fontWeight: 600, color: 'var(--ink)',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          flex: 1, minWidth: 0,
-                        }}>
-                          {c.author_name}
-                        </span>
-                        {c.is_blocked && (
-                          <span style={{ fontSize: 9.5, color: '#DC2626', fontWeight: 700, letterSpacing: 0.18, textTransform: 'uppercase', flexShrink: 0 }}>
-                            BLOK
-                          </span>
-                        )}
-                      </div>
-                      <div style={{
-                        fontSize: 12, color: c.unread_count > 0 ? 'var(--ink-2)' : 'var(--ink-3)',
-                        marginTop: 2,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        fontWeight: c.unread_count > 0 ? 500 : 400,
-                      }}>
-                        {lastPreview(c)}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                      <span style={{ fontSize: 10.5, color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>
-                        {relTime(c.last_message_at)}
-                      </span>
-                      {c.unread_count > 0 && (
-                        <span style={{
-                          minWidth: 18, height: 18, padding: '0 5px',
-                          borderRadius: 9, background: 'var(--navy)', color: 'white',
-                          fontSize: 10.5, fontWeight: 700,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          {c.unread_count > 99 ? '99+' : c.unread_count}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-
-            {/* Infinite-scroll sentinel + loader */}
-            {!chatsLoading && !search && hasMore && (
-              <div ref={sentinelRef} style={{
-                padding: '14px 16px', textAlign: 'center',
-                color: 'var(--ink-3)', fontSize: 12,
-              }}>
-                {loadingMore ? 'Yuklanmoqda…' : ''}
-              </div>
-            )}
+          <div className="ch-search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ism yoki @username" />
+          </div>
+          <div className="ch-items" onScroll={e => { const el = e.currentTarget; if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) loadMore(); }}>
+            {loading && <div className="sub-empty" style={{ padding: 30 }}>Yuklanmoqda…</div>}
+            {!loading && list.length === 0 && <div className="sub-empty" style={{ padding: 30 }}>{search ? 'Topilmadi' : 'Hali suhbat yo‘q'}</div>}
+            {list.map(c => (
+              <button key={c.id} className={`ch-item${c.id === activeId ? ' on' : ''}`} onClick={() => select(c)}>
+                <span className="ava"><AuthorAvatar name={c.author_initials} idx={c.author_avatar_idx} size={40} />{c.unread_count > 0 && <span className="un" />}</span>
+                <span style={{ minWidth: 0 }}>
+                  <span className="top"><span className="nm">{c.author_name}</span><span className="tm">{listTime(c.last_message_at)}</span></span>
+                  <span className="pv">{preview(c)}</span>
+                  {c.unread_count > 0 && <span className="chip-m accent">Javob kutmoqda</span>}
+                  {c.is_blocked && <span className="chip-m red" style={{ marginTop: 6 }}>Bloklangan</span>}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* ── RIGHT: Active chat ── */}
-        <div style={{
-          background: 'var(--paper)', border: '1px solid var(--line)',
-          borderRadius: 12, overflow: 'hidden',
-          display: 'flex', flexDirection: 'column',
-          minHeight: 0,
-        }}>
-          {activeChat ? (
-            <ChatPane chat={activeChat} messages={msgs} loading={msgsLoading}
-              onSent={(m: ChatMessage) => {
-                setMsgs(prev => [...prev, m]);
-                // List'da last_message yangilash
-                setChats(prev => prev.map(c => c.id === activeChat.id
-                  ? { ...c, last_message_at: m.created_at, last_message: { text: m.text, kind: m.kind, sender: 'admin', created_at: m.created_at } }
-                  : c
-                ));
-              }}
-              onToggleBlock={toggleBlock}
-              onDelete={deleteChat}
-            />
-          ) : (
-            <div style={{
-              flex: 1, display: 'grid', placeItems: 'center',
-              color: 'var(--ink-3)', fontSize: 14,
-              background: 'var(--grey-1)',
-            }}>
-              <div style={{ textAlign: 'center', padding: 40 }}>
-                <div style={{ fontSize: 40, opacity: 0.3, marginBottom: 12 }}>💬</div>
-                Suhbat tanlang yoki yangi suhbat boshlang
-              </div>
-            </div>
+        {/* ── O'rta: suhbat ── */}
+        <div className="ch-main">
+          {!activeChat ? <div className="ch-empty">Suhbat tanlang</div> : (
+            <Conversation chat={activeChat} msgs={msgs} wsStatus={wsStatus} menu={menu} setMenu={setMenu}
+              onSent={m => { setMsgs(p => (p.some(x => x.id === m.id) ? p : [...p, m])); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, last_message_at: m.created_at, last_message: { text: m.text, kind: m.kind, sender: 'admin', created_at: m.created_at } } : c))); }}
+              onBlock={toggleBlock} onDelete={removeChat} onClose={markClosed} author={author} />
           )}
         </div>
+
+        {/* ── O'ng: muallif ── */}
+        <aside className="ch-side">
+          {activeChat && (
+            <>
+              <div className="ch-side-card">
+                <div className="ava-lg">{author?.avatar_url ? <img src={mediaUrl(author.avatar_url) ?? undefined} alt="" /> : activeChat.author_initials}</div>
+                <div className="nm">{activeChat.author_name}</div>
+                <div className="org">{author ? ([author.org, author.role].filter(Boolean).join(' · ') || (activeChat.telegram_username ? `@${activeChat.telegram_username}` : 'Telegram')) : '…'}</div>
+                <Link to={`/admin/authors/${activeChat.author_id}`} className="ab sm block">Profilni ochish</Link>
+              </div>
+              <div className="ch-side-card">
+                <div className="lbl">Ko‘rib chiqilayotgan maqola</div>
+                {author?.pending_submission ? (
+                  <div className="ch-art">
+                    <span className="chip-m blue">Taqrizda</span>
+                    <div className="t">{author.pending_submission.title || 'Sarlavhasiz'}</div>
+                    <div className="m">{dayLabel(author.pending_submission.submitted_at)}</div>
+                    <Link to={`/admin/submissions/${author.pending_submission.id}`} className="ab sm block">Maqolaga o‘tish</Link>
+                  </div>
+                ) : <div className="meta" style={{ fontSize: 13, color: 'var(--ink-3)' }}>Hozir ko‘rib chiqilayotgan maqola yo‘q.</div>}
+              </div>
+              <div className="ch-side-card" style={{ borderBottom: 0 }}>
+                <div className="lbl">Muallif statistikasi</div>
+                <div className="ch-stat"><span>Nashr etilgan</span><b>{author?.stats.published ?? '—'}</b></div>
+                <div className="ch-stat"><span>Ko‘rib chiqilmoqda</span><b className={author?.stats.pending ? 'accent' : ''}>{author?.stats.pending || '—'}</b></div>
+                <div className="ch-stat"><span>Rad etilgan</span><b>{author?.stats.rejected || '—'}</b></div>
+              </div>
+            </>
+          )}
+        </aside>
       </div>
-    </div></div></AdminShell>
+      {toast && <div className="adm-toast">{toast}</div>}
+    </AdminShell>
   );
 }
 
-// ── Chat pane (suhbat oynasi) ───────────────────────────────────────────────
+// ── Suhbat oynasi ─────────────────────────────────────────────────────────────
 
-function ChatPane({ chat, messages, loading, onSent, onToggleBlock, onDelete }: {
-  chat: AdminChat;
-  messages: ChatMessage[];
-  loading: boolean;
-  onSent: (m: ChatMessage) => void;
-  onToggleBlock: () => void;
-  onDelete: () => void;
+function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, onDelete, onClose, author }: {
+  chat: AdminChat; msgs: ChatMessage[]; wsStatus: ChatSocketStatus; menu: boolean; setMenu: (v: boolean) => void;
+  onSent: (m: ChatMessage) => void; onBlock: () => void; onDelete: () => void; onClose: () => void; author: AdminAuthorDetail | null;
 }) {
-  const navigate = useNavigate();
-  const [text, setText]     = useState('');
+  const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
-  const [image, setImage]   = useState<File | null>(null);
-  const [doc, setDoc]       = useState<File | null>(null);
-  const fileImgRef = useRef<HTMLInputElement>(null);
-  const fileDocRef = useRef<HTMLInputElement>(null);
-  const scrollRef  = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs.length, chat.id]);
 
-  // Auto-scroll pastga
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages.length]);
-
-  function pickImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!f.type.startsWith('image/')) { alert('Rasm fayl tanlang'); return; }
-    setImage(f); setDoc(null);
-  }
-  function pickDoc(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setDoc(f); setImage(null);
-  }
+  const waiting = waitingHours(chat);
 
   async function send() {
-    const t = text.trim();
-    if (!t && !image && !doc) return;
+    const t = text.trim(); if (!t && !file) return;
     setSending(true);
     try {
-      const m = await adminApi.chat.send(chat.id, { text: t, image, document: doc });
-      onSent(m);
-      setText(''); setImage(null); setDoc(null);
-      if (fileImgRef.current) fileImgRef.current.value = '';
-      if (fileDocRef.current) fileDocRef.current.value = '';
-    } catch (e) {
-      alert(`Yuborib bo'lmadi: ${(e as Error).message}`);
-    }
+      const isImg = !!file && file.type.startsWith('image/');
+      const m = await adminApi.chat.send(chat.id, { text: t, image: isImg ? file : null, document: !isImg ? file : null });
+      onSent(m); setText(''); setFile(null); if (fileRef.current) fileRef.current.value = '';
+    } catch (e) { alert(`Yuborib bo‘lmadi: ${(e as Error).message}`); }
     setSending(false);
   }
 
   return (
     <>
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '12px 18px', borderBottom: '1px solid var(--line)',
-        background: 'var(--paper)',
-      }}>
-        <AuthorAvatar name={chat.author_initials} idx={chat.author_avatar_idx} size={40} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink)' }}>{chat.author_name}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 1 }}>
-            {chat.telegram_username ? `@${chat.telegram_username}` : 'Telegram'}
-            {chat.is_blocked && <span style={{ color: '#DC2626', fontWeight: 600, marginLeft: 8 }}>· BLOKLANGAN</span>}
-          </div>
+      <div className="ch-head">
+        <AuthorAvatar name={chat.author_initials} idx={chat.author_avatar_idx} src={mediaUrl(author?.avatar_url)} size={40} />
+        <div style={{ minWidth: 0 }}>
+          <div className="nm">{chat.author_name}</div>
+          <div className="sb"><span className={chat.is_blocked ? 'off' : 'on'} />{chat.telegram_username ? `@${chat.telegram_username}` : 'Telegram'}{chat.last_message_at && ` · oxirgi xabar ${listTime(chat.last_message_at)}`}{chat.is_blocked && ' · bloklangan'}</div>
         </div>
-        <button onClick={() => navigate(`/authors/${chat.author_slug}`)}
-          className="btn ghost" style={{ height: 32, fontSize: 12 }}>
-          Profil
-        </button>
-        <button onClick={onToggleBlock}
-          style={{
-            height: 32, padding: '0 12px', borderRadius: 6,
-            border: `1px solid ${chat.is_blocked ? 'var(--line)' : 'rgba(220,38,38,0.25)'}`,
-            background: chat.is_blocked ? 'var(--paper)' : 'rgba(220,38,38,0.06)',
-            color: chat.is_blocked ? 'var(--ink-2)' : '#DC2626',
-            cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--sans)',
-          }}>
-          {chat.is_blocked ? '🔓 Bloklikni olib tashlash' : '🚫 Bloklash'}
-        </button>
-        <button onClick={onDelete}
-          title="Suhbatni o'chirish"
-          style={{
-            height: 32, padding: '0 12px', borderRadius: 6,
-            border: '1px solid rgba(220,38,38,0.35)',
-            background: '#DC2626',
-            color: 'white',
-            cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--sans)',
-          }}>
-          🗑 O'chirish
-        </button>
+        <div className="ch-menu">
+          <button onClick={() => setMenu(!menu)} aria-label="Menyu">⋯</button>
+          {menu && (
+            <div className="ch-menu-dd" onMouseLeave={() => setMenu(false)}>
+              <a className="ab text" style={{ display: 'block', textAlign: 'left', height: 36, padding: '0 12px', fontWeight: 400, fontSize: 13.5 }} href={`/authors/${chat.author_slug}`} target="_blank" rel="noreferrer">Saytdagi profil ↗</a>
+              <button onClick={onBlock}>{chat.is_blocked ? 'Blokdan chiqarish' : 'Bloklash'}</button>
+              <button className="red" onClick={onDelete}>Suhbatni o‘chirish</button>
+            </div>
+          )}
+        </div>
       </div>
+      {waiting !== null && chat.unread_count > 0 && (
+        <div className="ch-banner"><span className="dot" />Muallif javobingizni <b style={{ margin: '0 4px' }}>{waiting ? `${waiting} soatdan beri` : 'hozirgina'}</b> kutmoqda<button onClick={onClose}>Yopilgan deb belgilash</button></div>
+      )}
+      {wsStatus !== 'open' && <div className={`ch-status${wsStatus === 'offline' ? ' bad' : ''}`}>{wsStatus === 'connecting' ? 'Real vaqt ulanishi o‘rnatilmoqda…' : 'Real vaqt ulanishi yo‘q — xabarlar har 8 soniyada yangilanadi'}</div>}
 
-      {/* Messages */}
-      <div ref={scrollRef} style={{
-        flex: 1, overflowY: 'auto', padding: '20px 22px',
-        background: 'linear-gradient(180deg, var(--grey-1), var(--paper))',
-        display: 'flex', flexDirection: 'column', gap: 8,
-      }}>
-        {loading && messages.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--ink-3)', fontSize: 13, padding: 30 }}>
-            Yuklanmoqda…
-          </div>
-        ) : messages.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--ink-3)', fontSize: 13, padding: 30, fontStyle: 'italic' }}>
-            Hozircha xabar yo'q. Birinchi xabarni yozing — foydalanuvchi shundan keyin javob bera oladi.
-          </div>
-        ) : (
-          messages.map((m, i) => {
-            const prev = messages[i - 1];
-            const sameAuthor = prev && prev.sender === m.sender;
-            const isAdmin = m.sender === 'admin';
-            return (
-              <div key={m.id} style={{
-                display: 'flex',
-                justifyContent: isAdmin ? 'flex-end' : 'flex-start',
-                marginTop: sameAuthor ? 0 : 6,
-              }}>
-                <div style={{
-                  maxWidth: '70%',
-                  padding: m.kind === 'photo' && !m.text ? 4 : '8px 12px 6px',
-                  borderRadius: isAdmin ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-                  background: isAdmin ? 'var(--navy)' : 'var(--paper)',
-                  color: isAdmin ? 'white' : 'var(--ink)',
-                  border: isAdmin ? 'none' : '1px solid var(--line)',
-                  boxShadow: '0 1px 2px rgba(10,25,47,0.04)',
-                  fontSize: 14, lineHeight: 1.5,
-                  wordBreak: 'break-word',
-                }}>
-                  {m.kind === 'photo' && m.image_url && (
-                    <img src={mediaUrl(m.image_url) ?? undefined} alt="" style={{
-                      width: '100%', maxWidth: 320, maxHeight: 280,
-                      objectFit: 'cover', borderRadius: 8, display: 'block',
-                      marginBottom: m.text ? 8 : 0,
-                    }} />
-                  )}
-                  {m.kind === 'document' && m.document_url && (
-                    <a href={mediaUrl(m.document_url) ?? undefined} target="_blank" rel="noreferrer"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '8px 10px', borderRadius: 6,
-                        background: isAdmin ? 'rgba(255,255,255,0.1)' : 'var(--grey-2)',
-                        color: isAdmin ? 'white' : 'var(--ink-2)',
-                        textDecoration: 'none', fontSize: 13, fontWeight: 500,
-                        marginBottom: m.text ? 8 : 0,
-                      }}>
-                      <DocIcon size={16} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {m.document_name || 'Fayl'}
-                      </span>
-                    </a>
-                  )}
-                  {m.text && (
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>
-                  )}
-                  <div style={{
-                    fontSize: 10.5, color: isAdmin ? 'rgba(255,255,255,0.55)' : 'var(--ink-4)',
-                    marginTop: 4, textAlign: 'right', fontFamily: 'var(--mono)',
-                  }}>
-                    {fullTime(m.created_at)}
-                  </div>
-                </div>
+      <div ref={scrollRef} className="ch-msgs">
+        {msgs.length === 0 && <div className="sub-empty" style={{ padding: 30 }}>Hozircha xabar yo‘q — birinchi xabarni yozing.</div>}
+        {msgs.map((m, i) => {
+          const day = new Date(m.created_at).toDateString();
+          const sep = i === 0 || day !== new Date(msgs[i - 1].created_at).toDateString();
+          const out = m.sender === 'admin';
+          return (
+            <div key={m.id} style={{ display: 'contents' }}>
+              {sep && <div className="ch-date">{dayLabel(m.created_at)}</div>}
+              <div className={`bub ${out ? 'out' : 'in'}`}>
+                {m.kind === 'photo' && m.image_url && <img src={mediaUrl(m.image_url) ?? undefined} alt="" />}
+                {m.kind === 'document' && m.document_url && <a className="doc" href={mediaUrl(m.document_url) ?? undefined} target="_blank" rel="noreferrer">📎 {m.document_name || 'Fayl'}</a>}
+                {m.text && <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>}
+                <span className="tm">{hhmm(m.created_at)}{out ? (m.is_read ? ' ✓✓' : ' ✓') : ''}</span>
               </div>
-            );
-          })
-        )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Composer */}
-      <div style={{ borderTop: '1px solid var(--line)', padding: '12px 16px', background: 'var(--paper)' }}>
-        {(image || doc) && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '8px 12px', marginBottom: 10,
-            background: 'var(--grey-2)', borderRadius: 8,
-            fontSize: 12.5, color: 'var(--ink-2)',
-          }}>
-            {image && (
-              <>
-                <img src={URL.createObjectURL(image)} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4 }} />
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{image.name}</span>
-              </>
-            )}
-            {doc && (
-              <>
-                <DocIcon size={16} style={{ color: 'var(--ink-3)' }} />
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.name}</span>
-              </>
-            )}
-            <button onClick={() => { setImage(null); setDoc(null); }}
-              style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 16, lineHeight: 1 }}>✕</button>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-          {/* Attach buttons */}
-          <input ref={fileImgRef} type="file" accept="image/*" onChange={pickImage} style={{ display: 'none' }} />
-          <input ref={fileDocRef} type="file" onChange={pickDoc} style={{ display: 'none' }} />
-          <button onClick={() => fileImgRef.current?.click()}
-            title="Rasm yuborish" disabled={chat.is_blocked || sending}
-            className="icon-btn"
-            style={{ width: 38, height: 38 }}>
-            🖼
-          </button>
-          <button onClick={() => fileDocRef.current?.click()}
-            title="Fayl yuborish" disabled={chat.is_blocked || sending}
-            className="icon-btn"
-            style={{ width: 38, height: 38 }}>
-            📎
-          </button>
-
-          {/* Textarea */}
-          <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-            }}
-            placeholder={chat.is_blocked ? 'Bu suhbat bloklangan' : 'Xabar yozing… (Enter — yuborish)'}
-            disabled={chat.is_blocked || sending}
-            rows={1}
-            style={{
-              flex: 1, resize: 'none', maxHeight: 120,
-              border: '1px solid var(--line-2)', borderRadius: 8,
-              padding: '10px 12px',
-              fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)',
-              background: 'var(--grey-2)', outline: 'none',
-              lineHeight: 1.4, minHeight: 38,
-            }}
-          />
-
-          <button onClick={send} disabled={(!text.trim() && !image && !doc) || sending || chat.is_blocked}
-            style={{
-              width: 40, height: 40, borderRadius: 8, border: 0,
-              background: ((!text.trim() && !image && !doc) || sending || chat.is_blocked)
-                ? 'var(--navy-30)' : 'var(--navy)',
-              color: 'white', cursor: 'pointer',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
-            }}>
-            <SendIcon size={16} />
-          </button>
-        </div>
+      <div className="ch-quick">
+        <span className="lbl">Tez javob</span>
+        {QUICK.map(q => <button key={q.label} type="button" onClick={() => setText(q.text)}>{q.label}</button>)}
+      </div>
+      {file && <div className="ch-attach">📎 {file.name}<button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }}>✕</button></div>}
+      <div className="ch-composer">
+        <button className="att" title="Fayl yoki rasm" disabled={chat.is_blocked || sending} onClick={() => fileRef.current?.click()}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.5 3.5 0 0 1 5 5l-9 9a1.5 1.5 0 0 1-2.1-2.1l8-8"/></svg>
+        </button>
+        <input ref={fileRef} type="file" hidden onChange={e => setFile(e.target.files?.[0] ?? null)} />
+        <textarea value={text} onChange={e => setText(e.target.value)} placeholder={chat.is_blocked ? 'Bu suhbat bloklangan' : 'Xabar yozing…'} disabled={chat.is_blocked || sending}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
+        <button className="ab primary" onClick={send} disabled={(!text.trim() && !file) || sending || chat.is_blocked}>{sending ? '…' : 'Yuborish'}</button>
       </div>
     </>
   );

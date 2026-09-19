@@ -27,7 +27,7 @@ export function Modal({ title, sub, onClose, children, foot, small }: {
 }
 
 /** «12–19» / «12-19» / «12» → [12, 19] */
-export function parsePages(s: string): { page_start?: number; page_end?: number } {
+function parsePages(s: string): { page_start?: number; page_end?: number } {
   const m = s.replace(/\s/g, '').match(/^(\d+)(?:[-–—](\d+))?$/);
   if (!m) return {};
   const a = parseInt(m[1], 10), b = m[2] ? parseInt(m[2], 10) : undefined;
@@ -233,15 +233,15 @@ export function RevertModal({ sub, onDone, onClose }: {
 
 // ── Qo'lda maqola qo'shish ────────────────────────────────────────────────────
 
-export function ManualAddModal({ categories, issues, onAddCategory, onDone, onClose }: {
-  categories: AdminCategory[]; issues: AdminIssue[];
+export function ManualAddModal({ categories, issues, defaultIssueId, onAddCategory, onDone, onClose }: {
+  categories: AdminCategory[]; issues: AdminIssue[]; defaultIssueId?: string;
   onAddCategory: (name: string) => Promise<AdminCategory>;
   onDone: (created: { id: string; title: string; slug: string }) => void; onClose: () => void;
 }) {
   const [title, setTitle]     = useState('');
   const [authors, setAuthors] = useState('');
   const [catId, setCatId]     = useState('');
-  const [issueId, setIssue]   = useState('');
+  const [issueId, setIssue]   = useState(defaultIssueId ?? '');
   const [pages, setPages]     = useState('');
   const [udk, setUdk]         = useState('');
   const [file, setFile]       = useState<File | null>(null);

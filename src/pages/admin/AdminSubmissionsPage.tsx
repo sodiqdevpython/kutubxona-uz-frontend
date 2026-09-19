@@ -151,26 +151,24 @@ export default function AdminSubmissionsPage() {
 
   function flash(t: string) { setToast(t); setTimeout(() => setToast(''), 4000); }
 
-  useEffect(() => { const q = params.get('q') ?? ''; setSearch(q); setDebQ(q); }, [params]);
+  // Yuqori paneldagi qidiruv ?q= bilan kelsa — holatni render vaqtida moslaymiz
+  const qParam = params.get('q') ?? '';
+  const [seenQ, setSeenQ] = useState(qParam);
+  if (seenQ !== qParam) { setSeenQ(qParam); setSearch(qParam); setDebQ(qParam); }
   useEffect(() => { const t = setTimeout(() => { setDebQ(search); setPage(1); }, 350); return () => clearTimeout(t); }, [search]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const d = await adminApi.submissions.list({ status: tab === 'all' ? undefined : tab, search: debQ || undefined, page, page_size: PAGE_SIZE });
-      setSubs(d.results); setCount(d.count);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, [tab, debQ, page]);
+  // «Yuklanmoqda…» faqat birinchi yuklashda; keyin eski kartalar yangisi kelguncha turadi
+  const load = useCallback(() =>
+    adminApi.submissions.list({ status: tab === 'all' ? undefined : tab, search: debQ || undefined, page, page_size: PAGE_SIZE })
+      .then(d => { setSubs(d.results); setCount(d.count); })
+      .catch(() => {}).finally(() => setLoading(false)),
+  [tab, debQ, page]);
 
-  const loadCounts = useCallback(async () => {
-    const out: Record<string, number> = {};
-    await Promise.all((['pending', 'approved', 'rejected'] as const).map(async s => {
-      try { out[s] = (await adminApi.submissions.list({ status: s, page_size: 1 })).count; } catch { out[s] = 0; }
-    }));
-    out.all = (out.pending ?? 0) + (out.approved ?? 0) + (out.rejected ?? 0);
-    setCounts(out);
-  }, []);
+  const loadCounts = useCallback(() =>
+    Promise.all((['pending', 'approved', 'rejected'] as const).map(s =>
+      adminApi.submissions.list({ status: s, page_size: 1 }).then(d => d.count).catch(() => 0),
+    )).then(([pending, approved, rejected]) => setCounts({ pending, approved, rejected, all: pending + approved + rejected })),
+  []);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {

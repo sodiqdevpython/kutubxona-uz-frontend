@@ -77,7 +77,7 @@ export default function AdminShell({ active, crumb, children }: Props) {
       <aside className="adm-side">
         <Link to="/admin" className="adm-logo">
           <Wordmark light />
-          <span className="adm-logo-tag">Tahririyat paneli</span>
+          <span className="adm-logo-tag">Admin paneli</span>
         </Link>
 
         <nav className="adm-nav">

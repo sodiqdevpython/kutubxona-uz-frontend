@@ -36,11 +36,27 @@ async function apiFetchForm<T>(path: string, init: RequestInit = {}): Promise<T>
 export interface AdminAuthor {
   id: string; name: string; slug: string; initials: string;
   role: string; org: string; degree: string; bio: string;
+  orcid: string; email: string; scopus_id: string;
   avatar_idx: number; avatar_url: string | null;
   source: 'telegram' | 'manual' | 'parser';
   telegram_chat_id: number | null; telegram_username: string;
-  article_count: number; created_at: string;
+  article_count: number; is_incomplete: boolean; created_at: string;
 }
+
+export interface AuthorArticleRow {
+  id: string; title: string; slug: string; year: number; quarter: number;
+  published_at: string | null; issue_label: string | null; doi: string; views: number;
+  page_start: number | null; page_end: number | null;
+}
+export interface AdminAuthorDetail extends AdminAuthor {
+  stats: { published: number; pending: number; rejected: number; views: number };
+  articles: AuthorArticleRow[];
+  pending_submission: { id: string; title: string; status: string; submitted_at: string } | null;
+  activity: { kind: 'created' | 'submitted' | 'approved' | 'rejected' | 'published'; time: string; text: string }[];
+  chat_id: string | null;
+}
+export type AuthorFilter = 'all' | 'incomplete' | 'telegram' | 'parser' | 'manual';
+export interface AuthorCounts { all: number; incomplete: number; telegram: number; parser: number; manual: number }
 
 // ── PDF parser (ajratilgan maqola nomzodlari) ──────────────────────────────────
 
@@ -94,6 +110,8 @@ export interface AdminSubmission {
   file_name: string | null;
   file_size: number | null;
   udk: string; org: string;
+  /** DOCX fayl — admin ko'rish sahifasi uchun HTML (backend mammoth bilan o'giradi) */
+  preview_html: string;
   /** Telegram orqali yuborgan muallif profili (bo'lsa) */
   author: SubmissionAuthor | null;
 }
@@ -161,7 +179,9 @@ export interface AdminIssue {
   volume: number; number: number; year: number;
   season: string; date_label: string; palette: number;
   is_current: boolean; is_upcoming: boolean;
+  total_pages: number; views: number; editorial_note: string; editor_name: string;
   article_count: number; cover_image_url: string | null; pdf_file_url: string | null;
+  pdf_size: number | null; doi_suffix: string;
   created_at: string;
 }
 
@@ -188,6 +208,7 @@ export interface AdminIssueDetail extends AdminIssue {
 export interface AdminArticleInIssue {
   id: string; title: string; slug: string; status: string;
   year: number; quarter: number; pages: number; min_read: number;
+  page_start: number | null; page_end: number | null; doi: string; views: number;
   authors_label: string; category_name: string | null; published_at: string | null;
 }
 
@@ -196,6 +217,7 @@ export interface PaginatedAuthors {
   total:       number;
   has_more:    boolean;
   next_offset: number;
+  counts:      AuthorCounts;
 }
 
 export interface AdminJournal { id: string; title: string; issn: string; }
@@ -243,18 +265,34 @@ export const adminApi = {
     apiFetch<AdminDashboard>(`/api/admin/dashboard/${fresh ? '?fresh=1' : ''}`),
 
   authors: {
-    list: (params: { offset?: number; limit?: number; search?: string } = {}) => {
+    list: (params: { offset?: number; limit?: number; search?: string; filter?: AuthorFilter } = {}) => {
       const p = new URLSearchParams();
       if (params.offset !== undefined) p.set('offset', String(params.offset));
       if (params.limit  !== undefined) p.set('limit',  String(params.limit));
       if (params.search)               p.set('search', params.search);
+      if (params.filter && params.filter !== 'all') p.set('filter', params.filter);
       const q = p.toString();
       return apiFetch<PaginatedAuthors>(`/api/admin/authors/${q ? `?${q}` : ''}`);
     },
-    create: (d: Partial<AdminAuthor>) =>
-      apiFetch<AdminAuthor>('/api/admin/authors/', { method: 'POST', body: JSON.stringify(d) }),
-    update: (id: string, d: Partial<AdminAuthor>) =>
-      apiFetch<AdminAuthor>(`/api/admin/authors/${id}/`, { method: 'PATCH', body: JSON.stringify(d) }),
+    get: (id: string) => apiFetch<AdminAuthorDetail>(`/api/admin/authors/${id}/`),
+    create: (d: Partial<AdminAuthor>, avatar?: File | null) => {
+      if (avatar) {
+        const fd = new FormData();
+        Object.entries(d).forEach(([k, v]) => v !== undefined && v !== null && fd.append(k, String(v)));
+        fd.append('avatar', avatar);
+        return apiFetchForm<AdminAuthor>('/api/admin/authors/', { method: 'POST', body: fd });
+      }
+      return apiFetch<AdminAuthor>('/api/admin/authors/', { method: 'POST', body: JSON.stringify(d) });
+    },
+    update: (id: string, d: Partial<AdminAuthor>, avatar?: File | null) => {
+      if (avatar) {
+        const fd = new FormData();
+        Object.entries(d).forEach(([k, v]) => v !== undefined && v !== null && fd.append(k, String(v)));
+        fd.append('avatar', avatar);
+        return apiFetchForm<AdminAuthor>(`/api/admin/authors/${id}/`, { method: 'PATCH', body: fd });
+      }
+      return apiFetch<AdminAuthor>(`/api/admin/authors/${id}/`, { method: 'PATCH', body: JSON.stringify(d) });
+    },
     remove: (id: string, mode: 'soft' | 'full') =>
       apiFetch<void>(`/api/admin/authors/${id}/?mode=${mode}`, { method: 'DELETE' }),
   },
