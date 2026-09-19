@@ -49,6 +49,7 @@ export default function ArticleDetailPage() {
 
   const [copied, setCopied] = useState<string | null>(null);
   const [active, setActive] = useState('annotatsiya');
+  const [pdfPages, setPdfPages] = useState(0);   // PdfViewer'dan sahifalar soni
 
   useEffect(() => {
     if (!slug) return;
@@ -236,9 +237,9 @@ export default function ArticleDetailPage() {
           {(fileUrl || a.content) && (
             <section id="matn" className="detail-section">
               <SectionHead title="To‘liq matn"
-                right={isPdf(fileUrl) ? 'PDF' : isDocx(fileUrl) ? 'DOCX' : undefined} />
+                right={isPdf(fileUrl) ? (pdfPages ? `PDF · ${pdfPages} bet` : 'PDF') : isDocx(fileUrl) ? 'DOCX' : undefined} />
               {isPdf(fileUrl) && fileUrl
-                ? <PdfViewer url={fileUrl} title={a.title} />
+                ? <PdfViewer url={fileUrl} title={a.title} onInfo={i => setPdfPages(i.pages)} />
                 : a.content
                   ? <DocxViewer title={a.title} html={a.content} />
                   : <div className="state-box">Fayl mavjud emas.</div>}
@@ -302,11 +303,7 @@ export default function ArticleDetailPage() {
         {/* ═══ O'ng ustun ═══ */}
         <aside className="detail-side rsp-hide">
           <div className="side-card">
-            {fileUrl ? (
-              <a className="btn primary dl-btn" href={fileUrl} target="_blank" rel="noreferrer">
-                PDF yuklab olish
-              </a>
-            ) : (
+            {!fileUrl && (
               <div className="meta" style={{ padding: '6px 0 10px' }}>Fayl biriktirilmagan</div>
             )}
 

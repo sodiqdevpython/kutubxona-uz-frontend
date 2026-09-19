@@ -216,7 +216,7 @@ export default function AuthorDetailPage() {
                     <span>{x.year} · №&nbsp;{x.quarter}</span>
                     {x.page_start && x.page_end && <span>{x.page_start}–{x.page_end}&nbsp;b.</span>}
                     <span>{x.views.toLocaleString()} ko‘rish</span>
-                    <Link to={`/articles/${x.slug}`} className="art-row-pdf" onClick={e => e.stopPropagation()}>PDF</Link>
+                    <Link to={`/articles/${x.slug}`} className="art-row-pdf" onClick={e => e.stopPropagation()}>O‘qish</Link>
                   </div>
                 </article>
               );

@@ -32,10 +32,6 @@ function IssueCard({ i }: { i: ApiIssue }) {
         <div className="ic-count">{i.article_count} maqola</div>
         <div className="ic-actions">
           <Link to={`/archive/${i.id}`} className="ic-btn">Mundarija</Link>
-          {i.pdf_file_url && (
-            <a href={mediaUrl(i.pdf_file_url) ?? undefined} target="_blank" rel="noreferrer"
-              className="ic-btn ic-btn-pdf">PDF</a>
-          )}
         </div>
       </div>
     </div>
@@ -85,7 +81,7 @@ export default function ArchivePage() {
 
   return (
     <div className="bg-archive" style={{ minHeight: '100vh' }}>
-      <Seo title="Jurnal arxivi" description="Jurnalning barcha sonlari — muqova, mundarija va to'liq PDF." />
+      <Seo title="Jurnal arxivi" description="Jurnalning barcha sonlari — muqova va mundarija." />
       <PageLoadBar />
       <Topbar active="archive" />
 
@@ -100,7 +96,7 @@ export default function ArchivePage() {
             <h1 className="h-display page-title">Jurnal arxivi</h1>
             <p className="page-sub">
               {archState.status === 'ok'
-                ? `${yearMin ?? ''}-yildan bugungacha chiqqan ${published.length} son. Har sonda muqova, mundarija va to‘liq PDF.`
+                ? `${yearMin ?? ''}-yildan bugungacha chiqqan ${published.length} son. Har sonda muqova va mundarija.`
                 : '…'}
             </p>
           </div>

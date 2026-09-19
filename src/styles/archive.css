@@ -139,3 +139,6 @@
   .toc-author, .toc-pages { grid-column: 2; text-align: left; }
   .page-title { font-size: 32px; }
 }
+
+.issue-facts { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--ink-2); }
+.issue-facts b { font-family: var(--serif); font-size: 18px; color: var(--ink); font-weight: 600; margin-right: 4px; }

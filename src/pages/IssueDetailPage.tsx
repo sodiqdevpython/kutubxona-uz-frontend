@@ -10,15 +10,9 @@ import Seo from '../components/Seo';
 
 /**
  * Son sahifasi — Figma «Jurnal arxiv detail» freymi.
- * Muqova + tahririyat so'zi + meta jadval, o'ngda yuklash kartasi,
+ * Muqova + tahririyat so'zi + meta jadval, o'ngda statistika kartasi,
  * pastda yo'nalishlar bo'yicha guruhlangan mundarija.
  */
-
-function fmtSize(bytes: number | null): string {
-  if (!bytes) return '';
-  const mb = bytes / (1024 * 1024);
-  return mb >= 1 ? `${mb.toFixed(mb >= 10 ? 0 : 1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
 
 function pageRange(a: number | null, b: number | null): string {
   if (a && b) return a === b ? `${a}` : `${a}–${b}`;
@@ -42,7 +36,6 @@ export default function IssueDetailPage() {
 
   const journal = issue?.journal_title ?? 'Kutubxona';
   const cover   = mediaUrl(issue?.cover_image_url);
-  const pdf     = mediaUrl(issue?.pdf_file_url);
   const totalArts = issue?.sections.reduce((n, s) => n + s.articles.length, 0) ?? 0;
 
   if (loading) {
@@ -140,22 +133,11 @@ export default function IssueDetailPage() {
         {/* Yon karta */}
         <aside className="issue-side rsp-hide">
           <div className="side-card">
-            {pdf ? (
-              <a className="btn primary dl-btn" href={pdf} target="_blank" rel="noreferrer"
-                style={{ justifyContent: 'space-between' }}>
-                <span>Butun sonni yuklash</span>
-                {issue.pdf_size && <span className="meta" style={{ color: 'rgba(255,255,255,.8)' }}>{fmtSize(issue.pdf_size)}</span>}
-              </a>
-            ) : (
-              <div className="meta" style={{ padding: '6px 0 10px' }}>PDF biriktirilmagan</div>
-            )}
-            {cover && (
-              <a className="btn ghost sm" href={cover} target="_blank" rel="noreferrer" style={{ width: '100%' }}>
-                Muqova skanini yuklash
-              </a>
-            )}
-            <div className="dl-stats meta">
-              <span>{issue.views.toLocaleString()} ko‘rish</span>
+            <div className="side-card-title">Son haqida</div>
+            <div className="issue-facts">
+              <span><b>{issue.views.toLocaleString()}</b> ko‘rish</span>
+              <span><b>{totalArts}</b> maqola</span>
+              {issue.total_pages > 0 && <span><b>{issue.total_pages}</b> bet</span>}
             </div>
           </div>
 

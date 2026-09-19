@@ -72,7 +72,7 @@ function ArticleRow({ a, index }: { a: ApiArticle; index: number }) {
         {a.pages > 0 && <span>{a.pages}&nbsp;b.</span>}
         <span>{a.views.toLocaleString()} ko‘rish</span>
         <Link to={`/articles/${a.slug}`} className="art-row-pdf"
-          onClick={e => e.stopPropagation()}>PDF</Link>
+          onClick={e => e.stopPropagation()}>O‘qish</Link>
       </div>
     </article>
   );

@@ -171,11 +171,6 @@ export default function HomePage() {
           </p>
 
           <div className="home-issue-actions">
-            {current?.pdf_file_url && (
-              <a className="btn primary" href={current.pdf_file_url} target="_blank" rel="noreferrer">
-                Butun sonni yuklab olish
-              </a>
-            )}
             {current && <Link className="btn ghost" to={`/archive/${current.id}`}>Mundarija</Link>}
           </div>
         </div>
@@ -196,7 +191,7 @@ export default function HomePage() {
             <div className="side-card-title">Jurnal haqida</div>
             <p className="side-text">
               2019-yildan chiqadigan choraklik nashr. Barcha maqolalar ochiq kirishda —
-              o‘qish ham, yuklab olish ham bepul.
+              o‘qish bepul.
             </p>
             <Link to="/about/board" className="side-link">Tahririyat kengashi →</Link>
           </div>
@@ -226,7 +221,7 @@ export default function HomePage() {
                 {featured.views.toLocaleString()} ko‘rish
               </div>
               <Link to={`/articles/${featured.slug}`} className="side-link" style={{ marginTop: 14 }}>
-                PDF ochish →
+                Maqolani o‘qish →
               </Link>
             </div>
           </div>
@@ -272,7 +267,7 @@ export default function HomePage() {
                 <div className="art-row-meta">
                   {a.pages > 0 && <span>{a.pages} b.</span>}
                   <span>{a.views.toLocaleString()} ko‘rish</span>
-                  <span className="art-row-pdf">PDF</span>
+                  <span className="art-row-pdf">O‘qish</span>
                 </div>
               </article>
             ))}

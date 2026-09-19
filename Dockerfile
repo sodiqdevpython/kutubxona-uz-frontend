@@ -17,6 +17,8 @@ RUN npm run build
 
 # ── Runtime ──────────────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine
+# .mjs (ES module) fayllar to'g'ri MIME bilan berilsin - pdf.js worker va boshqa modullar
+RUN sed -i 's/ js;/ js mjs;/' /etc/nginx/mime.types
 
 COPY --from=build /app/dist /usr/share/nginx/html
 # nginx:alpine ishga tushganda ${VAR} larni env bilan almashtiradi
