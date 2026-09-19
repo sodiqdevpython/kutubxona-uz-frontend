@@ -27,6 +27,9 @@ export default function AdminJournalsPage() {
     articles: issues.reduce((s, i) => s + i.article_count, 0),
   }), [issues]);
 
+  // Ajratish tugallanmagan sonlar — nomzodlari saqlanmagan
+  const todo = useMemo(() => issues.filter(i => i.parsed_pending > 0), [issues]);
+
   const years = useMemo(() => {
     const m = new Map<number, AdminIssue[]>();
     for (const i of issues) m.set(i.year, [...(m.get(i.year) ?? []), i]);
@@ -49,6 +52,13 @@ export default function AdminJournalsPage() {
         ))}
       </div>
 
+      {todo.length > 0 && (
+        <div className="jr-notice">
+          <b>{todo.length} sonda ajratilgan nomzodlar hali saqlanmagan:</b>
+          {todo.map(i => <button key={i.id} onClick={() => setParsing(i)}>{i.year} № {i.number} · {i.parsed_pending} nomzod</button>)}
+        </div>
+      )}
+
       {loading && <div className="sub-empty">Yuklanmoqda…</div>}
       {!loading && issues.length === 0 && <div className="sub-empty">Hali son yaratilmagan — «+ Yangi son» bosing.</div>}
 
@@ -60,13 +70,17 @@ export default function AdminJournalsPage() {
           </div>
           <div className="jr-grid">
             {list.map(i => (
-              <article key={i.id} className="jr-card">
+              <article key={i.id} className={`jr-card${i.parsed_pending > 0 ? ' todo' : ''}`}>
                 <div className="jr-body">
                   <Link to={`/admin/journals/${i.id}`} className={`jr-cover${i.cover_image_url ? '' : ' ph'}`}>
                     {i.cover_image_url ? <img src={i.cover_image_url} alt="" /> : <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M20 16l-5-5-7 7"/></svg><span>Muqova</span></>}
                   </Link>
                   <div style={{ minWidth: 0 }}>
-                    <span className={`chip-m ${i.is_upcoming ? 'accent' : 'green'}`}>{i.is_upcoming ? 'Qoralama' : 'Nashr etilgan'}</span>
+                    <div className="jr-chips">
+                      <span className={`chip-m ${i.is_upcoming ? 'accent' : 'green'}`}>{i.is_upcoming ? 'Qoralama' : 'Nashr etilgan'}</span>
+                      {i.parsed_pending > 0 && <span className="chip-m red">{i.parsed_pending} nomzod saqlanmagan</span>}
+                      {i.pdf_file_url && i.parsed_total === 0 && i.article_count === 0 && <span className="chip-m grey">PDF ajratilmagan</span>}
+                    </div>
                     <div className="jr-title">{i.year} · № {i.number}</div>
                     <div className="jr-sub">{i.season ? i.season.charAt(0).toUpperCase() + i.season.slice(1) : '—'} · {i.article_count} maqola{i.is_upcoming ? ' biriktirilgan' : ''}</div>
                     <div className={`jr-pdf${i.pdf_file_url ? '' : ' no'}`}>{i.pdf_file_url ? `PDF · ${fmtBytes(i.pdf_size)}` : 'PDF yuklanmagan'}</div>
@@ -75,7 +89,7 @@ export default function AdminJournalsPage() {
                 </div>
                 <div className="jr-foot">
                   <Link to={`/admin/journals/${i.id}`}>Tahrirlash</Link>
-                  <button className="accent" onClick={() => setParsing(i)}>PDF’dan ajratish</button>
+                  <button className="accent" onClick={() => setParsing(i)}>PDF’dan ajratish{i.parsed_pending > 0 ? ` · ${i.parsed_pending}` : ''}</button>
                 </div>
               </article>
             ))}

@@ -182,6 +182,8 @@ export interface AdminIssue {
   total_pages: number; views: number; editorial_note: string; editor_name: string;
   article_count: number; cover_image_url: string | null; pdf_file_url: string | null;
   pdf_size: number | null; doi_suffix: string;
+  /** PDF parser: saqlanmagan (pending) nomzodlar va jami nomzodlar soni */
+  parsed_pending: number; parsed_total: number;
   created_at: string;
 }
 

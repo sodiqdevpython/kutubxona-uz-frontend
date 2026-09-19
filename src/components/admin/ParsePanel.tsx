@@ -87,7 +87,9 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
   const [loading, setLoading] = useState(true);
   const [parsing, setParsing] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
-  const [open, setOpen]       = useState<string | null>(null);
+  // Saqlanmagan nomzodlar sukut bo'yicha OCHIQ turadi; «Yopish» bosilganlari shu to'plamda
+  const [closed, setClosed]   = useState<Set<string>>(() => new Set());
+  const toggle = (id: string) => setClosed(p => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [err, setErr]         = useState('');
   const saveFns = useRef<Map<string, () => Promise<boolean>>>(new Map());
   const registerSave   = useCallback((id: string, fn: () => Promise<boolean>) => { saveFns.current.set(id, fn); }, []);
@@ -99,12 +101,12 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
 
   async function runParse() {
     setParsing(true); setErr('');
-    try { const d = await adminApi.issues.parsePdf(issue.id); setItems(d.results); setOpen(null); }
+    try { const d = await adminApi.issues.parsePdf(issue.id); setItems(d.results); setClosed(new Set()); }
     catch (e) { setErr((e as Error).message); }
     finally { setParsing(false); }
   }
-  const handleSaved = useCallback((s: ParsedArticle) => { setItems(p => p.map(i => (i.id === s.id ? s : i))); setOpen(null); onSaved(); refreshDashboard(); }, [onSaved]);
-  const handleRemoved = useCallback((id: string) => { setItems(p => p.filter(i => i.id !== id)); setOpen(null); }, []);
+  const handleSaved = useCallback((s: ParsedArticle) => { setItems(p => p.map(i => (i.id === s.id ? s : i))); onSaved(); refreshDashboard(); }, [onSaved]);
+  const handleRemoved = useCallback((id: string) => { setItems(p => p.filter(i => i.id !== id)); }, []);
 
   async function saveAll() {
     setSavingAll(true);
@@ -147,6 +149,7 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
           {items.map(it => {
             const warn = needsCheck(it);
             const isSaved = it.status === 'saved';
+            const isOpen = !isSaved && !closed.has(it.id);
             return (
               <div key={it.id}>
                 <div className={`pm-row ${isSaved ? '' : warn ? 'warn' : 'pending'}`}>
@@ -158,9 +161,9 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
                   <span className={`st ${isSaved ? 'saved' : warn ? 'check' : 'pend'}`}>{isSaved ? 'Saqlandi' : warn ? 'Tekshirish' : 'Kutilmoqda'}</span>
                   {isSaved
                     ? (it.article_slug ? <a className="ab sm" href={`/articles/${it.article_slug}`} target="_blank" rel="noreferrer">Ko‘rish</a> : <span className="ab sm soft">Saqlandi</span>)
-                    : <button className="ab sm" onClick={() => setOpen(open === it.id ? null : it.id)}>{open === it.id ? 'Yopish' : warn ? 'To‘ldirish' : 'Ko‘rish'}</button>}
+                    : <button className="ab sm" onClick={() => toggle(it.id)}>{isOpen ? 'Yopish' : warn ? 'To‘ldirish' : 'Ochish'}</button>}
                 </div>
-                {open === it.id && !isSaved && (
+                {isOpen && (
                   <Editor item={it} onSaved={handleSaved} onRemoved={handleRemoved} registerSave={registerSave} unregisterSave={unregisterSave} />
                 )}
               </div>

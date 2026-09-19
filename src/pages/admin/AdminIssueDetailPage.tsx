@@ -80,7 +80,7 @@ export default function AdminIssueDetailPage() {
         <Link to="/admin/journals" className="ab">‹ Jurnal sonlari</Link>
         {issue && <span className="lbl">{issue.year} · № {issue.number} ({issue.volume}) {issue.is_upcoming ? 'Qoralama' : 'Nashr etilgan'}</span>}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-          <button className="ab" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => setParsing(true)} disabled={!issue}>PDF’dan ajratish</button>
+          <button className="ab" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => setParsing(true)} disabled={!issue}>PDF’dan ajratish{issue && issue.parsed_pending > 0 ? ` · ${issue.parsed_pending}` : ''}</button>
           <button className="ab primary" onClick={save} disabled={!dirty || saving}>{saving ? 'Saqlanmoqda…' : 'Saqlash'}</button>
         </div>
       </div>
@@ -100,6 +100,11 @@ export default function AdminIssueDetailPage() {
               {issue.pdf_file_url ? (
                 <div className="iss-file"><span className="ico">PDF</span><div style={{ minWidth: 0 }}><b title={pdfName}>{pdfName}</b><span>{fmtBytes(issue.pdf_size)}</span></div></div>
               ) : <div className="meta" style={{ fontSize: 13, color: 'var(--adm-red)', marginBottom: 12 }}>PDF yuklanmagan — mundarijani ajratish uchun kerak.</div>}
+              {issue.parsed_pending > 0 && (
+                <div className="meta" style={{ fontSize: 12.5, color: 'var(--adm-red)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                  {issue.parsed_pending} ta ajratilgan nomzod hali saqlanmagan — «PDF’dan ajratish» orqali yakunlang.
+                </div>
+              )}
               <button className="ab block" onClick={() => pdfRef.current?.click()}>{issue.pdf_file_url ? 'Faylni almashtirish' : 'PDF yuklash'}</button>
               <input ref={pdfRef} type="file" accept=".pdf" hidden onChange={e => upload('pdf', e.target.files?.[0])} />
             </div>
