@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState('');
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/admin/submissions', { replace: true });
+    if (isAuthenticated) navigate('/admin', { replace: true });
   }, [isAuthenticated, navigate]);
 
   async function handleSubmit(e: FormEvent) {
@@ -34,7 +34,7 @@ export default function LoginPage() {
     setError(''); setLoading(true);
     try {
       await login(username.trim(), password, captchaToken);
-      navigate('/admin/submissions', { replace: true });
+      navigate('/admin', { replace: true });
     } catch (err) {
       setError((err as Error).message);
     } finally {

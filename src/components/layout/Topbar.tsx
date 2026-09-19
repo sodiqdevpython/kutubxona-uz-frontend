@@ -9,7 +9,7 @@ import { API_BASE } from '../../lib/config';
 
 export type Page =
   | 'home' | 'articles' | 'archive' | 'authors' | 'central-asia' | 'about'
-  | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
+  | 'admin-dashboard' | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
 
 /** Sayt identifikatorlari — Figma'da sarlavhaning o'ng chetida turadi. */
 const ISSN = '2181-1732';
@@ -35,6 +35,7 @@ const ABOUT_NAV: { label: string; to: string }[] = [
 
 // Admin sahifa yorliqlari — hozircha faqat lotin (admin panel ichi uchun etarli).
 const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
+  { key: 'admin-dashboard', label: 'Asosiy panel',    to: '/admin'             },
   { key: 'submissions',    label: 'Kelgan maqolalar', to: '/admin/submissions' },
   { key: 'admin-authors',  label: 'Mualliflar',       to: '/admin/authors'     },
   { key: 'admin-journals', label: 'Jurnal sonlari',   to: '/admin/journals'    },

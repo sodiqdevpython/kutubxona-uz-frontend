@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
+import AdminShell from '../../components/admin/AdminShell';
 import { useNavigate } from 'react-router-dom';
-import Topbar from '../../components/layout/Topbar';
-import PageLoadBar from '../../components/ui/PageLoadBar';
-import Footer from '../../components/layout/Footer';
 import JournalCover from '../../components/ui/JournalCover';
 import { DocIcon } from '../../components/ui/Icons';
 import ParsePanel from '../../components/admin/ParsePanel';
@@ -579,9 +577,7 @@ export default function AdminJournalsPage() {
   const minYear = issues.length ? Math.min(...issues.map(i => i.year)) : new Date().getFullYear();
 
   return (
-    <div className="bg-archive" style={{ minHeight: '100vh' }}>
-      <PageLoadBar />
-      <Topbar active="admin-journals" />
+    <AdminShell active="journals" crumb="Jurnal sonlari"><div className="adm-legacy"><div className="bg-archive">
 
       {/* Header */}
       <div style={{ padding: '40px var(--px) 28px', maxWidth: 1400, margin: '0 auto' }}>
@@ -652,7 +648,6 @@ export default function AdminJournalsPage() {
         ))}
       </div>
 
-      <Footer />
 
       {creating && (
         <IssueFormModal
@@ -686,6 +681,6 @@ export default function AdminJournalsPage() {
           }}
         />
       )}
-    </div>
+    </div></div></AdminShell>
   );
 }

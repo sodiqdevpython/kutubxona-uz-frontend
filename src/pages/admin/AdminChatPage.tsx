@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Topbar from '../../components/layout/Topbar';
-import PageLoadBar from '../../components/ui/PageLoadBar';
+import AdminShell from '../../components/admin/AdminShell';
 import AuthorAvatar from '../../components/ui/AuthorAvatar';
 import { SearchIcon, SendIcon, DocIcon } from '../../components/ui/Icons';
 import { adminApi, type AdminChat, type ChatMessage } from '../../lib/admin-api';
@@ -266,9 +265,7 @@ export default function AdminChatPage() {
   }
 
   return (
-    <div className="bg-articles" style={{ minHeight: '100vh' }}>
-      <PageLoadBar />
-      <Topbar active="admin-chat" />
+    <AdminShell active="chat" crumb="Xabarlar"><div className="adm-legacy"><div className="bg-articles">
 
       {/* Header */}
       <div style={{ padding: '32px var(--px) 20px', maxWidth: 1400, margin: '0 auto' }}>
@@ -445,7 +442,7 @@ export default function AdminChatPage() {
           )}
         </div>
       </div>
-    </div>
+    </div></div></AdminShell>
   );
 }
 

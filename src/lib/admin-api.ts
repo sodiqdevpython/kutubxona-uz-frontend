@@ -87,13 +87,66 @@ export interface AdminSubmission {
   article_category: { id: string; name: string } | null;
   article_issue: { id: string; volume: number; number: number; year: number; label: string } | null;
   article_ai_ready: boolean;
+  article_doi: string | null;
+  article_pages: { start: number | null; end: number | null } | null;
   source_file_url: string | null;
   image_url: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  udk: string; org: string;
+  /** Telegram orqali yuborgan muallif profili (bo'lsa) */
+  author: SubmissionAuthor | null;
+}
+
+export interface SubmissionAuthor {
+  id: string; name: string; slug: string; initials: string;
+  role: string; org: string; avatar_idx: number; avatar_url: string | null;
+  telegram_username: string;
 }
 
 export interface SubmissionEdit {
   title?: string; keywords?: string; abstract?: string;
   references?: string; extracted_authors?: string;
+  udk?: string; org?: string;
+}
+
+export interface ApproveData {
+  category_id?: string; category_name?: string;
+  issue_id?: string; page_start?: number; page_end?: number;
+  udk?: string; notify?: boolean;
+}
+
+// ── Boshqaruv paneli ──────────────────────────────────────────────────────────
+
+export interface DashboardQueueItem {
+  key: string; title: string; sub: string; meta: string;
+  count: number; unit: string; color: 'accent' | 'blue' | 'ink' | 'muted'; to: string;
+}
+export interface DashboardUpcoming {
+  id: string; label: string; status: string; cover_url: string | null;
+  articles: number; has_cover: boolean; has_pdf: boolean;
+  steps_done: number; steps: number; note: string; days: number;
+}
+export interface DashboardActivity {
+  kind: 'submitted' | 'approved' | 'rejected' | 'parsed' | 'issue';
+  time: string; text: string; who: string;
+}
+export interface DashboardNotification {
+  id: string; kind: 'submission' | 'chat' | 'parsed'; text: string; time: string; to: string;
+}
+export interface AdminDashboard {
+  date: string;
+  counts: {
+    pending: number; pending_overdue: number; pending_oldest_days: number;
+    published: number; published_quarter: number;
+    authors: number; authors_incomplete: number;
+    views_30d: number; views_delta_pct: number | null;
+    issues: number; unread_chats: number;
+  };
+  queue: DashboardQueueItem[];
+  upcoming_issue: DashboardUpcoming | null;
+  activity: DashboardActivity[];
+  notifications: DashboardNotification[];
 }
 
 export interface AdminCategory { id: string; name: string; slug: string; }
@@ -122,6 +175,9 @@ export interface NewArticle {
   category_id?: string;
   category_name?: string;
   issue_id?: string;
+  page_start?: number;
+  page_end?: number;
+  udk?: string;
   source_file?: File | null;
 }
 
@@ -183,6 +239,9 @@ export interface PaginatedChats {
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const adminApi = {
+  dashboard: (fresh = false) =>
+    apiFetch<AdminDashboard>(`/api/admin/dashboard/${fresh ? '?fresh=1' : ''}`),
+
   authors: {
     list: (params: { offset?: number; limit?: number; search?: string } = {}) => {
       const p = new URLSearchParams();
@@ -210,6 +269,7 @@ export const adminApi = {
       const q = p.toString();
       return apiFetch<PaginatedSubmissions>(`/api/admin/submissions/${q ? `?${q}` : ''}`);
     },
+    get: (id: string) => apiFetch<AdminSubmission>(`/api/admin/submissions/${id}/`),
     aiExtract: (id: string) =>
       apiFetch<AdminSubmission>(`/api/admin/submissions/${id}/ai-extract/`, { method: 'POST' }),
     update: (id: string, data: SubmissionEdit) =>
@@ -218,9 +278,9 @@ export const adminApi = {
       }),
     remove: (id: string) =>
       apiFetch<void>(`/api/admin/submissions/${id}/`, { method: 'DELETE' }),
-    approve: (id: string, category?: { category_id?: string; category_name?: string }) =>
+    approve: (id: string, data?: ApproveData) =>
       apiFetch<AdminSubmission>(`/api/admin/submissions/${id}/approve/`, {
-        method: 'POST', body: JSON.stringify(category ?? {}),
+        method: 'POST', body: JSON.stringify(data ?? {}),
       }),
     reject: (id: string, reason: string) =>
       apiFetch<AdminSubmission>(`/api/admin/submissions/${id}/reject/`, {
@@ -248,6 +308,9 @@ export const adminApi = {
       if (a.category_id)  fd.append('category_id', a.category_id);
       if (a.category_name) fd.append('category_name', a.category_name);
       if (a.issue_id)     fd.append('issue_id', a.issue_id);
+      if (a.page_start)   fd.append('page_start', String(a.page_start));
+      if (a.page_end)     fd.append('page_end', String(a.page_end));
+      if (a.udk)          fd.append('udk', a.udk);
       if (a.source_file)  fd.append('source_file', a.source_file);
       return apiFetchForm<{ id: string; title: string; slug: string; issue_id: string | null }>(
         '/api/admin/articles/', { method: 'POST', body: fd },

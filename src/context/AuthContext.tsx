@@ -13,6 +13,11 @@ export interface AdminUser {
   email: string;
   is_staff: boolean;
   is_superuser: boolean;
+  // /api/admin/auth/me/ — admin panel sidebar'i uchun
+  full_name?: string;
+  short_name?: string;
+  initials?: string;
+  role_label?: string;
 }
 
 interface AuthContextValue {
@@ -66,6 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       is_staff:    true,
       is_superuser: data.is_superuser ?? false,
     });
+    // To'liq profil (ism, lavozim, bosh harflar) — admin panel sidebar'i uchun
+    fetch(`${BASE}/api/admin/auth/me/`, { headers: { Authorization: `Bearer ${data.access}` } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d) setUser(d); })
+      .catch(() => {});
   }
 
   function logout() {

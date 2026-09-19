@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Topbar from '../../components/layout/Topbar';
-import PageLoadBar from '../../components/ui/PageLoadBar';
-import Footer from '../../components/layout/Footer';
+import AdminShell from '../../components/admin/AdminShell';
 import AuthorAvatar from '../../components/ui/AuthorAvatar';
 import { PinIcon, SearchIcon } from '../../components/ui/Icons';
 import { adminApi, type AdminAuthor } from '../../lib/admin-api';
@@ -330,9 +328,7 @@ export default function AdminAuthorsPage() {
   }
 
   return (
-    <div className="bg-authors" style={{ minHeight: '100vh' }}>
-      <PageLoadBar />
-      <Topbar active="admin-authors" />
+    <AdminShell active="authors" crumb="Mualliflar"><div className="adm-legacy"><div className="bg-authors">
 
       {/* Header */}
       <div style={{ padding: '48px var(--px) 32px', maxWidth: 1400, margin: '0 auto' }}>
@@ -421,7 +417,6 @@ export default function AdminAuthorsPage() {
         </>
       )}
 
-      <Footer />
 
       {creating && (
         <AuthorFormModal
@@ -450,6 +445,6 @@ export default function AdminAuthorsPage() {
       {deleting && (
         <DeleteModal author={deleting} onConfirm={handleDelete} onClose={() => setDeleting(null)} />
       )}
-    </div>
+    </div></div></AdminShell>
   );
 }

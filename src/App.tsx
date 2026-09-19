@@ -16,7 +16,10 @@ import CentralAsiaDetailPage from './pages/CentralAsiaDetailPage';
 import LoginPage             from './pages/LoginPage';
 import { AboutJournal, AboutBoard, AboutPolicy, AboutGuide } from './pages/AboutPage';
 
+import AdminDashboardPage   from './pages/admin/AdminDashboardPage';
 import AdminSubmissionsPage from './pages/admin/AdminSubmissionsPage';
+import AdminSubmissionDetailPage from './pages/admin/AdminSubmissionDetailPage';
+import AdminSettingsPage    from './pages/admin/AdminSettingsPage';
 import AdminAuthorsPage     from './pages/admin/AdminAuthorsPage';
 import AdminJournalsPage    from './pages/admin/AdminJournalsPage';
 import AdminChatPage        from './pages/admin/AdminChatPage';
@@ -24,7 +27,9 @@ import AdminChatPage        from './pages/admin/AdminChatPage';
 // ── Himoyalangan route ────────────────────────────────────────────────────────
 
 function Protected({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, token, user } = useAuth();
+  // Token bor, profil hali yuklanmagan (sahifa yangilanganda) — login'ga qaytarmaymiz
+  if (token && !user) return <div style={{ padding: 48, color: 'var(--ink-3)', fontSize: 14 }}>Yuklanmoqda…</div>;
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
@@ -61,8 +66,10 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
 
           {/* ── Admin panel (himoyalangan) ── */}
-          <Route path="/admin" element={<Navigate to="/admin/submissions" replace />} />
+          <Route path="/admin"             element={<Protected><AdminDashboardPage /></Protected>} />
           <Route path="/admin/submissions" element={<Protected><AdminSubmissionsPage /></Protected>} />
+          <Route path="/admin/submissions/:id" element={<Protected><AdminSubmissionDetailPage /></Protected>} />
+          <Route path="/admin/settings"    element={<Protected><AdminSettingsPage /></Protected>} />
           <Route path="/admin/authors"     element={<Protected><AdminAuthorsPage /></Protected>} />
           <Route path="/admin/journals"    element={<Protected><AdminJournalsPage /></Protected>} />
           <Route path="/admin/chat"        element={<Protected><AdminChatPage /></Protected>} />
