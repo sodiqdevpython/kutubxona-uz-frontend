@@ -5,10 +5,12 @@ import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
 import JournalCover from '../components/ui/JournalCover';
-import PdfViewer, { isPdf, isDocx } from '../components/ui/PdfViewer';
+import PdfViewer from '../components/ui/PdfViewer';
+import { isPdf, isDocx } from '../lib/file-kind';
 import CommentsSection from '../components/CommentsSection';
 import AskAISection from '../components/article/AskAISection';
 import DocxViewer from '../components/article/DocxViewer';
+import MetaGrid from '../components/ui/MetaGrid';
 import Seo from '../components/Seo';
 import { articlesApi, type ApiArticle, type ApiArticleDetail } from '../lib/api';
 import { mediaUrl } from '../lib/config';
@@ -51,9 +53,12 @@ export default function ArticleDetailPage() {
   const [active, setActive] = useState('annotatsiya');
   const [pdfPages, setPdfPages] = useState(0);   // PdfViewer'dan sahifalar soni
 
+  // slug o'zgarsa — holat render vaqtida tozalanadi
+  const [seenSlug, setSeenSlug] = useState(slug);
+  if (seenSlug !== slug) { setSeenSlug(slug); setLoading(true); setFailed(false); }
+
   useEffect(() => {
     if (!slug) return;
-    setLoading(true); setFailed(false);
     articlesApi.detail(slug)
       .then(d => { setArticle(d); setLoading(false); })
       .catch(() => { setFailed(true); setLoading(false); });
@@ -234,73 +239,9 @@ export default function ArticleDetailPage() {
             </section>
           )}
 
-          {(fileUrl || a.content) && (
-            <section id="matn" className="detail-section">
-              <SectionHead title="To‘liq matn"
-                right={isPdf(fileUrl) ? (pdfPages ? `PDF · ${pdfPages} bet` : 'PDF') : isDocx(fileUrl) ? 'DOCX' : undefined} />
-              {isPdf(fileUrl) && fileUrl
-                ? <PdfViewer url={fileUrl} title={a.title} onInfo={i => setPdfPages(i.pages)} />
-                : a.content
-                  ? <DocxViewer title={a.title} html={a.content} />
-                  : <div className="state-box">Fayl mavjud emas.</div>}
-            </section>
-          )}
-
-          {refs.length > 0 && (
-            <section id="adabiyot" className="detail-section">
-              <SectionHead title="Adabiyotlar"
-                right={`${refs.length} manba${refsWithDoi ? ` · ${refsWithDoi} tasida DOI` : ''}`} />
-              <ol className="ref-list">
-                {refs.map((r, i) => {
-                  const m = r.match(DOI_RE);
-                  return (
-                    <li key={i}>
-                      <span className="ref-n">{i + 1}</span>
-                      <span>
-                        {m ? r.replace(m[0], '').replace(/[—–-]\s*DOI:?\s*$/i, '').trim() : r}
-                        {m && (
-                          <a className="ref-doi" href={`https://doi.org/${m[1]}`}
-                            target="_blank" rel="noreferrer">doi:{m[1]}</a>
-                        )}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </section>
-          )}
-
-          {/* CommentsSection o'z sarlavhasini chizadi — takrorlamaymiz */}
-          <section id="sharh" className="detail-section">
-            <CommentsSection articleId={a.id} />
-          </section>
-
-          {related.length > 0 && (
-            <section id="oxshash" className="detail-section">
-              <SectionHead title="O‘xshash maqolalar" right="kalit so‘z va yo‘nalish bo‘yicha" />
-              <div className="rel-grid">
-                {related.slice(0, 3).map(r => (
-                  <Link key={r.id} to={`/articles/${r.slug}`} className="rel-card">
-                    <div className="rel-media">
-                      {r.image_url ? <img src={r.image_url} alt="" /> : <div className="home-featured-ph" />}
-                    </div>
-                    <div className="rel-body">
-                      {r.category && <span className="tag cat">{r.category.name}</span>}
-                      <span className="rel-title">{r.title}</span>
-                      <span className="meta">{r.authors.map(x => x.name).join(', ') || r.author_label}</span>
-                      <span className="rel-foot meta">
-                        <span>{r.year} · № {r.quarter}</span>
-                        <span>{r.views.toLocaleString()}</span>
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
         </article>
 
-        {/* ═══ O'ng ustun ═══ */}
+        {/* ═══ O'ng ustun — faqat sarlavha qismi yonida (Figma), sahifa bo'ylab yopishmaydi ═══ */}
         <aside className="detail-side rsp-hide">
           <div className="side-card">
             {!fileUrl && (
@@ -348,6 +289,76 @@ export default function ArticleDetailPage() {
         </aside>
       </div>
 
+      {/* ═══ To'liq matn — butun kenglikda (Figma); keyin adabiyotlar va sharhlar chap ustun kengligida ═══ */}
+      <div className="wrap detail-rest">
+          {(fileUrl || a.content) && (
+            <section id="matn" className="detail-section detail-full">
+              <SectionHead title="To‘liq matn"
+                right={isPdf(fileUrl) ? (pdfPages ? `PDF · ${pdfPages} bet` : 'PDF') : isDocx(fileUrl) ? 'DOCX' : undefined} />
+              {isPdf(fileUrl) && fileUrl
+                ? <PdfViewer url={fileUrl} title={a.title} onInfo={i => setPdfPages(i.pages)} />
+                : a.content
+                  ? <DocxViewer title={a.title} html={a.content} />
+                  : <div className="state-box">Fayl mavjud emas.</div>}
+            </section>
+          )}
+
+        <div className="detail-main">
+          {refs.length > 0 && (
+            <section id="adabiyot" className="detail-section">
+              <SectionHead title="Adabiyotlar"
+                right={`${refs.length} manba${refsWithDoi ? ` · ${refsWithDoi} tasida DOI` : ''}`} />
+              <ol className="ref-list">
+                {refs.map((r, i) => {
+                  const m = r.match(DOI_RE);
+                  return (
+                    <li key={i}>
+                      <span className="ref-n">{i + 1}</span>
+                      <span>
+                        {m ? r.replace(m[0], '').replace(/[—–-]\s*DOI:?\s*$/i, '').trim() : r}
+                        {m && (
+                          <a className="ref-doi" href={`https://doi.org/${m[1]}`}
+                            target="_blank" rel="noreferrer">doi:{m[1]}</a>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          )}
+
+          {/* CommentsSection o'z sarlavhasini chizadi — takrorlamaymiz */}
+          <section id="sharh" className="detail-section">
+            <CommentsSection articleId={a.id} />
+          </section>
+        </div>
+
+          {related.length > 0 && (
+            <section id="oxshash" className="detail-section">
+              <SectionHead title="O‘xshash maqolalar" right="kalit so‘z va yo‘nalish bo‘yicha" />
+              <div className="rel-grid">
+                {related.slice(0, 3).map(r => (
+                  <Link key={r.id} to={`/articles/${r.slug}`} className="rel-card">
+                    <div className="rel-media">
+                      {r.image_url ? <img src={r.image_url} alt="" /> : <div className="home-featured-ph" />}
+                    </div>
+                    <div className="rel-body">
+                      {r.category && <span className="tag cat">{r.category.name}</span>}
+                      <span className="rel-title">{r.title}</span>
+                      <span className="meta">{r.authors.map(x => x.name).join(', ') || r.author_label}</span>
+                      <span className="rel-foot meta">
+                        <span>{r.year} · № {r.quarter}</span>
+                        <span>{r.views.toLocaleString()}</span>
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+      </div>
+
       {a.ai_ready && <AskAISection slug={a.slug} />}
 
       <Footer />
@@ -366,29 +377,3 @@ function SectionHead({ title, right }: { title: string; right?: string }) {
   );
 }
 
-/**
- * Meta jadval — bo'sh qiymatli kataklar tushib qoladi, oxirgi qatorda
- * bo'shliq qolmasligi uchun so'nggi katak qolgan ustunlarni egallaydi.
- */
-function MetaGrid({ cells }: { cells: [string, string][] }) {
-  const filled = cells.filter(([, v]) => v && v !== '—');
-  if (filled.length === 0) return null;
-
-  const cols = Math.min(4, filled.length);
-  const rest = filled.length % cols;          // oxirgi qatordagi kataklar soni
-
-  return (
-    <div className="detail-meta" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-      {filled.map(([k, v], i) => {
-        const isLast = i === filled.length - 1;
-        const span = isLast && rest !== 0 ? cols - rest + 1 : 1;
-        return (
-          <div key={k} className="meta-cell" style={span > 1 ? { gridColumn: `span ${span}` } : undefined}>
-            <span className="meta-cell-k">{k}</span>
-            <span className="meta-cell-v">{v}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}

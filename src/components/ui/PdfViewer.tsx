@@ -4,9 +4,12 @@ import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 
 /**
  * PDF ko'rsatuvchi — Figma «Maqola detail» dagi «To'liq matn» bloki.
- * pdf.js bilan bitta sahifa ko'rsatiladi: sahifa navigatsiyasi, zoom,
- * matn ichidan qidirish, to'liq ekran. Yuklab olish / yangi tabda ochish
- * ATAYLAB yo'q — oddiy foydalanuvchi PDF'ni yuklab olmaydi.
+ *
+ * Sahifalar ketma-ket (uzluksiz) joylashadi: pastga surilsa keyingi sahifa
+ * keladi; faqat ko'rinish yaqinidagi sahifalar chiziladi (xotira tejaladi).
+ * Toolbar: sahifa raqami / o'tish, zoom, matn ichidan qidirish, to'liq ekran.
+ * Yuklab olish / yangi tabda ochish ATAYLAB yo'q — oddiy foydalanuvchi PDF'ni
+ * yuklab olmaydi.
  */
 
 // Worker'ni Vite o'zi .js chunk sifatida yig'adi — serverda .mjs uchun MIME
@@ -17,19 +20,8 @@ pdfjs.GlobalWorkerOptions.workerPort = new Worker(
 );
 
 const ZOOM_STEPS = [50, 75, 100, 125, 150, 200];
-const PAGE_MAX_W = 720;   // 100% da sahifa kengligi (px)
-
-export function isPdf(url: string | null | undefined): boolean {
-  if (!url) return false;
-  const clean = url.split('?')[0].split('#')[0].toLowerCase();
-  return clean.endsWith('.pdf');
-}
-
-export function isDocx(url: string | null | undefined): boolean {
-  if (!url) return false;
-  const clean = url.split('?')[0].split('#')[0].toLowerCase();
-  return clean.endsWith('.docx');
-}
+const PAGE_MAX_W = 880;   // 100% da sahifa kengligi (px) — butun kenglikdagi blokda o'rtada, katta
+const FRAME_PAD  = 28;    // .pdfv-frame padding
 
 /**
  * Faylni avval shu sahifa domenidan (/media/…) o'qishga urinamiz — CORS'siz;
@@ -45,6 +37,8 @@ function candidates(url: string): string[] {
   return out;
 }
 
+interface Size { w: number; h: number }
+
 interface Props {
   url:     string;
   title:   string;
@@ -53,12 +47,14 @@ interface Props {
 
 export default function PdfViewer({ url, title, onInfo }: Props) {
   const [doc, setDoc]         = useState<PDFDocumentProxy | null>(null);
+  const [sizes, setSizes]     = useState<Size[]>([]);          // har sahifaning 100% o'lchami
   const [status, setStatus]   = useState<'loading' | 'ok' | 'error'>('loading');
   const [page, setPage]       = useState(1);
   const [pageInput, setPageInput] = useState('1');
-  const [zoomIdx, setZoomIdx] = useState(2);          // 100%
+  const [zoomIdx, setZoomIdx] = useState(2);                    // 100%
   const [fullscreen, setFullscreen] = useState(false);
   const [width, setWidth]     = useState(0);
+  const [visible, setVisible] = useState<Set<number>>(() => new Set([1]));
 
   const [q, setQ]             = useState('');
   const [hits, setHits]       = useState<number[] | null>(null);
@@ -67,17 +63,26 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
   const [searching, setSearching] = useState(false);
 
   const frameRef  = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pageRefs  = useRef<(HTMLDivElement | null)[]>([]);
   const textCache = useRef<Map<number, string>>(new Map());
+  const raf       = useRef(0);
 
   const pages = doc?.numPages ?? 0;
+
+  // URL almashsa — holatni render vaqtida tozalaymiz
+  const [loadedUrl, setLoadedUrl] = useState(url);
+  if (loadedUrl !== url) {
+    setLoadedUrl(url); setDoc(null); setSizes([]); setStatus('loading'); setPage(1); setPageInput('1');
+    setVisible(new Set([1])); setHits(null); setHitsFor(''); textCache.current = new Map();
+  }
+  // Scroll bilan sahifa o'zgarsa — input'dagi raqam ham
+  const [seenPage, setSeenPage] = useState(page);
+  if (seenPage !== page) { setSeenPage(page); setPageInput(String(page)); }
 
   // ── Hujjatni yuklash ──
   useEffect(() => {
     let cancelled = false;
     let loaded: PDFDocumentProxy | null = null;
-    setStatus('loading'); setDoc(null); setPage(1); setPageInput('1');
-    setHits(null); setHitsFor(''); textCache.current = new Map();
 
     (async () => {
       for (const src of candidates(url)) {
@@ -85,8 +90,18 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
           const d = await pdfjs.getDocument({ url: src }).promise;
           if (cancelled) { d.destroy(); return; }
           loaded = d;
-          setDoc(d); setStatus('ok');
+          const first = d.numPages ? (await d.getPage(1)).getViewport({ scale: 1 }) : null;
+          if (cancelled) return;
+          const all: Size[] = first ? [{ w: first.width, h: first.height }] : [];
+          setSizes(all); setDoc(d); setStatus('ok');
           onInfo?.({ pages: d.numPages });
+          // Qolgan sahifalar o'lchami — joy egallovchilar balandligi aniq bo'lsin
+          for (let n = 2; n <= d.numPages; n++) {
+            const vp = (await d.getPage(n)).getViewport({ scale: 1 });
+            if (cancelled) return;
+            all.push({ w: vp.width, h: vp.height });
+          }
+          setSizes([...all]);
           return;
         } catch { /* keyingi manzil */ }
       }
@@ -94,6 +109,7 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
     })();
 
     return () => { cancelled = true; loaded?.destroy(); };
+    // onInfo — ota komponent callback'i, bog'liqlikka kirmaydi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
@@ -103,40 +119,28 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
     if (!el) return;
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
     ro.observe(el);
-    setWidth(el.clientWidth);
     return () => ro.disconnect();
   }, [fullscreen]);
 
-  // ── Sahifani chizish ──
+  // ── Qaysi sahifalar ko'rinish yaqinida — faqat shular chiziladi ──
   useEffect(() => {
-    if (!doc || !width) return;
-    let cancelled = false;
-    let task: RenderTask | null = null;
+    const frame = frameRef.current;
+    if (!frame || !pages) return;
+    const io = new IntersectionObserver(entries => {
+      setVisible(prev => {
+        const next = new Set(prev);
+        for (const e of entries) {
+          const n = Number((e.target as HTMLElement).dataset.page);
+          if (e.isIntersecting) next.add(n); else next.delete(n);
+        }
+        return next;
+      });
+    }, { root: frame, rootMargin: '900px 0px' });
+    pageRefs.current.slice(0, pages).forEach(el => el && io.observe(el));
+    return () => io.disconnect();
+  }, [pages]);
 
-    (async () => {
-      const p = await doc.getPage(page);
-      if (cancelled) return;
-      const base  = p.getViewport({ scale: 1 });
-      const avail = Math.max(260, width - 56);
-      const fit   = Math.min(avail, PAGE_MAX_W) / base.width;
-      const vp    = p.getViewport({ scale: fit * ZOOM_STEPS[zoomIdx] / 100 });
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width  = Math.floor(vp.width * dpr);
-      canvas.height = Math.floor(vp.height * dpr);
-      canvas.style.width  = `${Math.floor(vp.width)}px`;
-      canvas.style.height = `${Math.floor(vp.height)}px`;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      task = p.render({ canvasContext: ctx, viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined });
-      try { await task.promise; } catch { /* bekor qilingan render */ }
-    })();
-
-    return () => { cancelled = true; task?.cancel(); };
-  }, [doc, page, zoomIdx, width]);
-
-  // ── Klaviatura: ← → sahifa, Esc — to'liq ekrandan chiqish ──
+  // ── Klaviatura: ← → sahifa (to'liq ekranda), Esc — chiqish ──
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -155,11 +159,27 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
     return () => { document.body.style.overflow = ''; };
   }, [fullscreen]);
 
+  /** Scroll paytida joriy sahifa: ko'rinish balandligining 35% chizig'idagi sahifa */
+  function onScroll() {
+    if (raf.current) return;
+    raf.current = requestAnimationFrame(() => {
+      raf.current = 0;
+      const frame = frameRef.current;
+      if (!frame) return;
+      const y = frame.scrollTop + frame.clientHeight * 0.35;
+      let cur = 1;
+      pageRefs.current.slice(0, pages).forEach((el, i) => { if (el && el.offsetTop <= y) cur = i + 1; });
+      setPage(cur);
+    });
+  }
+
   function go(n: number) {
     if (!pages) return;
     const clamped = Math.min(pages, Math.max(1, n));
-    setPage(clamped); setPageInput(String(clamped));
-    frameRef.current?.scrollTo({ top: 0 });
+    const el = pageRefs.current[clamped - 1];
+    const frame = frameRef.current;
+    if (el && frame) frame.scrollTo({ top: el.offsetTop - FRAME_PAD, behavior: 'smooth' });
+    setPage(clamped);
   }
 
   // ── Qidiruv: so'z uchragan sahifalar bo'ylab yurish ──
@@ -191,7 +211,10 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
     if (found.length) go(found[0]);
   }
 
-  const zoom = ZOOM_STEPS[zoomIdx];
+  const zoom  = ZOOM_STEPS[zoomIdx];
+  const base  = sizes[0];
+  const fit   = base && width ? Math.min(Math.max(260, width - FRAME_PAD * 2), PAGE_MAX_W) / base.w : 0;
+  const scale = fit * zoom / 100;
 
   return (
     <div className={`pdfv${fullscreen ? ' full' : ''}`}>
@@ -229,21 +252,55 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
         </div>
       </div>
 
-      {/* ── Sahifa ── */}
-      <div className="pdfv-frame" ref={frameRef}>
+      {/* ── Sahifalar (uzluksiz) ── */}
+      <div className="pdfv-frame" ref={frameRef} onScroll={onScroll}>
         {status === 'error' && (
           <div className="pdfv-msg">PDF ko‘rsatib bo‘lmadi. Keyinroq qayta urinib ko‘ring.</div>
         )}
         {status === 'loading' && (
           <div className="pdfv-page pdfv-ph"><span className="pdfv-msg">Yuklanmoqda…</span></div>
         )}
-        {status === 'ok' && (
-          <div className="pdfv-page">
-            <canvas ref={canvasRef} aria-label={`${title} — ${page}-sahifa`} />
-            <div className="pdfv-foot">{page}</div>
-          </div>
-        )}
+        {status === 'ok' && doc && base && scale > 0 && Array.from({ length: pages }, (_, i) => {
+          const s = sizes[i] ?? base;
+          return (
+            <div key={i} className="pdfv-page" data-page={i + 1} ref={el => { pageRefs.current[i] = el; }}
+              style={{ width: Math.floor(s.w * scale), height: Math.floor(s.h * scale) }}
+              aria-label={`${title} — ${i + 1}-sahifa`}>
+              {visible.has(i + 1) && <PageCanvas doc={doc} n={i + 1} scale={scale} />}
+              <div className="pdfv-foot">{i + 1}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
+}
+
+/** Bitta sahifa — ko'rinish yaqiniga kelganda chiziladi, uzoqlashsa olib tashlanadi. */
+function PageCanvas({ doc, n, scale }: { doc: PDFDocumentProxy; n: number; scale: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let task: RenderTask | null = null;
+    (async () => {
+      const p = await doc.getPage(n);
+      if (cancelled) return;
+      const vp = p.getViewport({ scale });
+      const canvas = ref.current;
+      if (!canvas) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width  = Math.floor(vp.width * dpr);
+      canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width  = `${Math.floor(vp.width)}px`;
+      canvas.style.height = `${Math.floor(vp.height)}px`;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      task = p.render({ canvasContext: ctx, viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined });
+      try { await task.promise; } catch { /* bekor qilingan render */ }
+    })();
+    return () => { cancelled = true; task?.cancel(); };
+  }, [doc, n, scale]);
+
+  return <canvas ref={ref} />;
 }

@@ -5,10 +5,12 @@
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 44px;
   padding-top: 6px;
-  padding-bottom: 72px;
+  padding-bottom: 8px;
   align-items: start;
 }
 .detail-main { max-width: 960px; }
+/* Figma: «To'liq matn» butun kenglikda; adabiyotlar/sharhlar yana chap ustun kengligida */
+.detail-rest { padding-bottom: 72px; }
 
 /* ── Yorliqlar qatori ── */
 .detail-tags {
@@ -165,7 +167,8 @@
 }
 
 /* ═══ O'ng ustun ═══ */
-.detail-side { position: sticky; top: 140px; }
+/* Figma: yon karta faqat sarlavha qismi yonida turadi, sahifa bo'ylab yopishmaydi */
+.detail-side { align-self: start; }
 .dl-btn { width: 100%; margin-bottom: 10px; }
 .dl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .dl-row .btn { width: 100%; }

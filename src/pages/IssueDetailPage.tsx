@@ -4,6 +4,7 @@ import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
+import MetaGrid from '../components/ui/MetaGrid';
 import { issuesApi, type ApiIssueDetail } from '../lib/api';
 import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
@@ -23,11 +24,14 @@ function pageRange(a: number | null, b: number | null): string {
 export default function IssueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [issue,   setIssue]   = useState<ApiIssueDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!id);
+
+  // id o'zgarsa — holat render vaqtida yangilanadi
+  const [seenId, setSeenId] = useState(id);
+  if (seenId !== id) { setSeenId(id); setIssue(null); setLoading(!!id); }
 
   useEffect(() => {
-    if (!id) { setLoading(false); return; }
-    setLoading(true);
+    if (!id) return;
     window.scrollTo({ top: 0 });
     issuesApi.detail(id)
       .then(d => { setIssue(d); setLoading(false); })
@@ -108,16 +112,15 @@ export default function IssueDetailPage() {
             {issue.year}-yil{issue.season ? ` · ${issue.season.toLowerCase()}` : ''}
           </div>
 
-          <div className="detail-meta issue-meta">
-            <Cell k="Chiqarilgan sana" v={issue.date_label} />
-            <Cell k="Maqolalar" v={totalArts ? `${totalArts} ta` : ''} />
-            <Cell k="Hajm" v={issue.total_pages ? `${issue.total_pages} bet` : ''} />
-            <Cell k="Davriylik" v="Choraklik" />
-            <Cell k="ISSN" v={issue.issn} />
-            <Cell k="e-ISSN" v="2181-1740" />
-            <Cell k="DOI prefiks" v="10.62499" />
-            <Cell k="Tillar" v={issue.languages.join(' · ')} />
-          </div>
+          {/* e-ISSN va DOI prefiks hali rasmiylashtirilmagan — ko'rsatilmaydi; bo'sh kataklar tushib qoladi */}
+          <MetaGrid className="issue-meta" cells={[
+            ['Chiqarilgan sana', issue.date_label],
+            ['Maqolalar',        totalArts ? `${totalArts} ta` : ''],
+            ['Hajm',             issue.total_pages ? `${issue.total_pages} bet` : ''],
+            ['Davriylik',        'Choraklik'],
+            ['ISSN',             issue.issn],
+            ['Tillar',           issue.languages.join(' · ')],
+          ]} />
 
           {issue.editorial_note && (
             <div className="editorial">
@@ -199,16 +202,6 @@ export default function IssueDetailPage() {
       </div>
 
       <Footer />
-    </div>
-  );
-}
-
-function Cell({ k, v }: { k: string; v: string }) {
-  if (!v) return null;
-  return (
-    <div className="meta-cell">
-      <span className="meta-cell-k">{k}</span>
-      <span className="meta-cell-v">{v}</span>
     </div>
   );
 }
