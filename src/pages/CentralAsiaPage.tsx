@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
@@ -24,7 +24,6 @@ function langCode(t: string): string {
 }
 
 export default function CentralAsiaPage() {
-  const navigate = useNavigate();
   const [topic, setTopic] = useState<string | null>(null);
   const [limit, setLimit] = useState(PAGE);
   const [stats, setStats] = useState<ApiCentralAsiaStats | null>(null);
@@ -43,9 +42,10 @@ export default function CentralAsiaPage() {
 
   return (
     <div className="bg-articles" style={{ minHeight: '100vh' }}>
-      <Seo title="Central Asia" description="Markaziy Osiyo mamlakatlari kutubxonalari va axborot muassasalari bo'yicha maqolalar to'plami." />
+      <Seo title="Central Asia" description="Markaziy Osiyo mamlakatlari kutubxonalari va axborot muassasalari bo‘yicha maqolalar to‘plami." />
       <PageLoadBar />
       <Topbar active="central-asia" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 30 }}>
         <nav className="crumbs">
@@ -94,10 +94,10 @@ export default function CentralAsiaPage() {
           {shown.length > 0 && (
             <div className="art-table">
               {shown.map((p, i) => (
-                <article key={p.id} className="art-row au-row" onClick={() => navigate(`/central-asia/${p.slug}`)}>
+                <Link key={p.id} to={`/central-asia/${p.slug}`} className="art-row au-row">
                   <div className="art-row-num">{String(i + 1).padStart(2, '0')}</div>
                   <div className="au-row-thumb">
-                    {p.image_url ? <img src={mediaUrl(p.image_url) ?? undefined} alt="" /> : <div className="home-featured-ph" />}
+                    {p.image_url ? <img src={mediaUrl(p.image_url) ?? undefined} alt={p.title} loading="lazy" /> : <div className="home-featured-ph" />}
                   </div>
                   <div className="art-row-body">
                     <div className="art-row-tags">
@@ -113,7 +113,7 @@ export default function CentralAsiaPage() {
                     <span>{p.total_views.toLocaleString()} ko‘rish</span>
                     {p.doi && <span className="art-row-pdf">DOI</span>}
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           )}
@@ -128,7 +128,7 @@ export default function CentralAsiaPage() {
         </div>
 
         {/* ── Yon panel ── */}
-        <aside className="ca-side rsp-hide">
+        <aside className="ca-side">
           {stats && stats.topics.length > 0 && (
             <div className="side-card">
               <div className="side-card-title">Mavzular</div>
@@ -152,6 +152,7 @@ export default function CentralAsiaPage() {
         </aside>
       </div>
 
+      </main>
       <Footer />
     </div>
   );

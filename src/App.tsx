@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { type ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LangProvider } from './context/LangContext';
 
@@ -38,6 +38,29 @@ function Protected({ children }: { children: ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
+// ── Sahifa almashganda skroll ──────────────────────────────────────────────────
+// Havolada #bo'lim bo'lsa o'sha joyga (kontent kechroq yuklanishi mumkin), aks holda tepaga.
+
+function ScrollManager() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (!hash) { window.scrollTo(0, 0); return; }
+    let tries = 0;
+    const timer = setInterval(() => {
+      const el = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (el) {
+        el.scrollIntoView();
+        if (el instanceof HTMLInputElement) el.focus();
+      }
+      if (el || ++tries > 20) clearInterval(timer);
+    }, 100);
+    return () => clearInterval(timer);
+  }, [pathname, hash]);
+
+  return null;
+}
+
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -45,6 +68,7 @@ export default function App() {
     <LangProvider>
     <AuthProvider>
       <BrowserRouter>
+        <ScrollManager />
         <ErrorBoundary>
         <Routes>
           {/* ── Ommaviy sahifalar ── */}

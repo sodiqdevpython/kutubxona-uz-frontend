@@ -5,18 +5,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useLang, type Lang } from '../../context/LangContext';
 import { useT } from '../../lib/i18n';
 import { articlesApi, type ApiArticle } from '../../lib/api';
-import { API_BASE } from '../../lib/config';
+import { API_BASE, ISSN, TELEGRAM_BOT_URL } from '../../lib/config';
 
 export type Page =
   | 'home' | 'articles' | 'archive' | 'authors' | 'central-asia' | 'about'
   | 'admin-dashboard' | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
 
 /** Sayt identifikatorlari — Figma'da sarlavhaning o'ng chetida turadi. */
-const ISSN = '2181-1732';
 const DOI_PREFIX = '10.62499';
 
 const PUBLIC_NAV: { key: Page; tKey: string; to: string; countKey?: CountKey }[] = [
-  { key: 'home',         tKey: 'nav.home',         to: '/' },
   { key: 'articles',     tKey: 'nav.articles',     to: '/articles',     countKey: 'articles' },
   { key: 'archive',      tKey: 'nav.archive',      to: '/archive',      countKey: 'issues'   },
   { key: 'authors',      tKey: 'nav.authors',      to: '/authors',      countKey: 'authors'  },
@@ -43,7 +41,7 @@ const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
 ];
 
 const LANGS: { code: string; value: Lang }[] = [
-  { code: "O'z", value: 'uz-latn' },
+  { code: "O‘z", value: 'uz-latn' },
   { code: 'Ўз',  value: 'uz-cyrl' },
   { code: 'Ру',  value: 'ru'      },
   { code: 'En',  value: 'en'      },
@@ -57,6 +55,11 @@ export default function Topbar({ active }: { active: Page }) {
   const activeLangIdx = Math.max(0, LANGS.findIndex(l => l.value === lang));
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Menyu ochiqda orqadagi sahifa surilmasin
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [drawerOpen]);
   const [adminDrop,  setAdminDrop]  = useState(false);
   const [aboutDrop,  setAboutDrop]  = useState(false);
   const [langDrop,   setLangDrop]   = useState(false);
@@ -131,10 +134,9 @@ export default function Topbar({ active }: { active: Page }) {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  function goToArticle(slug: string) {
+  function closeSearch() {
     setSearchOpen(false);
     setSearchQ('');
-    navigate(`/articles/${slug}`);
   }
 
   function submitSearch(e: React.FormEvent) {
@@ -187,16 +189,15 @@ export default function Topbar({ active }: { active: Page }) {
                 </div>
               ) : results.length === 0 ? (
                 <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--ink-3)' }}>
-                  {t('common.nothing_found')}
+                  {t('common.no_results')}
                 </div>
               ) : (
                 <>
                   {results.map(r => (
-                    <button key={r.id} onClick={() => goToArticle(r.slug)} className="pill-hover"
+                    <Link key={r.id} to={`/articles/${r.slug}`} onClick={closeSearch} className="pill-hover"
                       style={{
                         display: 'flex', gap: 10, alignItems: 'flex-start', width: '100%',
-                        padding: '9px 10px', borderRadius: 6, border: 0,
-                        background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                        padding: '9px 10px', borderRadius: 6, textDecoration: 'none',
                       }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {r.category && (
@@ -210,7 +211,7 @@ export default function Topbar({ active }: { active: Page }) {
                           {r.title}
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   ))}
                   <button onClick={submitSearch} className="pill-hover"
                     style={{
@@ -234,7 +235,7 @@ export default function Topbar({ active }: { active: Page }) {
             <button className="lang-switch" onClick={() => setLangDrop(p => !p)}
               style={{ cursor: 'pointer', gap: 6 }}>
               <span className="lang-opt active">{LANGS[activeLangIdx].code}</span>
-              <ChevIcon size={9} style={{ opacity: 0.5, transform: langDrop ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+              <ChevIcon size={9} style={{ opacity: 0.5, transform: langDrop ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .15s' }} />
             </button>
             {langDrop && (
               <div style={{
@@ -263,12 +264,11 @@ export default function Topbar({ active }: { active: Page }) {
 
           <ThemeToggle />
 
-          <button className="btn primary topbar-cta"
-            onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}>
+          <a className="btn primary topbar-cta" href={TELEGRAM_BOT_URL} target="_blank" rel="noreferrer">
             {t('common.upload_article')}
-          </button>
+          </a>
 
-          <button className="topbar-hamburger" onClick={() => setDrawerOpen(true)} aria-label={t('common.menu')}>
+          <button className="topbar-hamburger" onClick={() => setDrawerOpen(true)} aria-label={t('common.menu')} aria-expanded={drawerOpen}>
             <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
               <line x1="0" y1="1"  x2="22" y2="1"  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
               <line x1="0" y1="8"  x2="22" y2="8"  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -296,7 +296,7 @@ export default function Topbar({ active }: { active: Page }) {
             <button onClick={() => setAboutDrop(p => !p)}
               className={active === 'about' ? 'topnav-trigger active' : 'topnav-trigger'}>
               Jurnal haqida
-              <ChevIcon size={9} style={{ opacity: 0.55, transform: aboutDrop ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+              <ChevIcon size={9} style={{ opacity: 0.55, transform: aboutDrop ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .15s' }} />
             </button>
             {aboutDrop && (
               <div style={{
@@ -325,7 +325,7 @@ export default function Topbar({ active }: { active: Page }) {
               <button onClick={() => setAdminDrop(p => !p)}
                 className={isAdminPage ? 'topnav-trigger active' : 'topnav-trigger'}>
                 {isAdminPage ? activeAdminLabel : t('nav.admin')}
-                <ChevIcon size={9} style={{ opacity: 0.55, transform: adminDrop ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+                <ChevIcon size={9} style={{ opacity: 0.55, transform: adminDrop ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .15s' }} />
               </button>
 
               {adminDrop && (
@@ -390,6 +390,14 @@ export default function Topbar({ active }: { active: Page }) {
             <button className="mobile-nav-close" onClick={() => setDrawerOpen(false)}>✕</button>
           </div>
 
+          {/* Telefonda sarlavhadagi qidiruv yashirin — shu yerda */}
+          <form className="searchbar mobile-nav-search" role="search"
+            onSubmit={e => { submitSearch(e); setDrawerOpen(false); }}>
+            <SearchIcon size={14} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
+            <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
+              aria-label={t('common.search')} placeholder={t('common.search_placeholder')} />
+          </form>
+
           <nav className="mobile-nav-links">
             {PUBLIC_NAV.map(n => (
               <Link key={n.key} to={n.to}
@@ -429,13 +437,10 @@ export default function Topbar({ active }: { active: Page }) {
           </nav>
 
           <div className="mobile-nav-foot">
-            <button
-              className="btn primary"
-              style={{ width: '100%', height: 42 }}
-              onClick={() => window.open('https://t.me/journal_kutubxona_bot', '_blank')}
-            >
+            <a className="btn primary" style={{ width: '100%', height: 42, boxSizing: 'border-box' }}
+              href={TELEGRAM_BOT_URL} target="_blank" rel="noreferrer">
               {t('common.upload_article')}
-            </button>
+            </a>
             <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', gap: 4 }}>
               {LANGS.map((l, i) => (
                 <button key={i} className={`lang-opt${activeLangIdx === i ? ' active' : ''}`}

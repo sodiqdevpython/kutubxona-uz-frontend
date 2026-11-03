@@ -8,9 +8,9 @@
 /* «Jurnal haqida ▾» / «Admin ▾» tugmasi — .topnav a bilan bir xil ko'rinish */
 .topnav-trigger {
   border: 0; background: none; cursor: pointer;
-  font-family: var(--sans); font-size: 14px; font-weight: 400;
+  font-family: var(--sans); font-size: 14.5px; font-weight: 500;
   color: var(--ink-2);
-  padding: 16px 0;
+  padding: 13px 0;
   display: inline-flex; align-items: center; gap: 5px;
   position: relative; white-space: nowrap; line-height: 1.4;
   transition: color .15s;
@@ -19,7 +19,7 @@
 .topnav-trigger:hover  { color: var(--ink); }
 .topnav-trigger.active { color: var(--ink); font-weight: 600; }
 .topnav-trigger.active::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
   height: 2px; background: var(--accent);
 }
 

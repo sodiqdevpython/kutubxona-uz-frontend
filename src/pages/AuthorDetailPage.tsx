@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
 import { useFetch } from '../lib/hooks';
-import type { ApiArticle, ApiAuthorDetail, PaginatedResponse } from '../lib/api';
+import { issueLabel, type ApiArticle, type ApiAuthorDetail, type PaginatedResponse } from '../lib/api';
 import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
 
@@ -30,7 +30,6 @@ function short(name: string): string {
 }
 
 export default function AuthorDetailPage() {
-  const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
   const [sort, setSort] = useState<SortKey>('new');
 
@@ -43,7 +42,7 @@ export default function AuthorDetailPage() {
   const articles = articlesState.status === 'ok' ? articlesState.data.results : [];
 
   const years = useMemo(() => {
-    const ys = articles.map(x => x.year).filter(Boolean);
+    const ys = articles.map(x => x.issue_year ?? x.year).filter(Boolean);
     return ys.length ? `${Math.min(...ys)}–${Math.max(...ys)}` : '';
   }, [articles]);
   const maxYear = Math.max(1, ...(a?.years.map(y => y.count) ?? [1]));
@@ -52,11 +51,13 @@ export default function AuthorDetailPage() {
     return (
       <div className="bg-author" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="authors" />
+        <main id="main" className="page-main">
         <div className="wrap">
           <div className="state-box" style={{ marginTop: 40 }}>
             Muallif topilmadi. <Link to="/authors" className="side-link">Mualliflar ro‘yxati →</Link>
           </div>
         </div>
+        </main>
         <Footer />
       </div>
     );
@@ -66,7 +67,9 @@ export default function AuthorDetailPage() {
     return (
       <div className="bg-author" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="authors" />
+        <main id="main" className="page-main">
         <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        </main>
         <Footer />
       </div>
     );
@@ -79,6 +82,7 @@ export default function AuthorDetailPage() {
       <Seo title={a.name} description={a.bio || `${a.name} — ${a.org}`} image={avatar} />
       <PageLoadBar />
       <Topbar active="authors" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 26 }}>
         <nav className="crumbs">
@@ -144,7 +148,7 @@ export default function AuthorDetailPage() {
         </div>
 
         {/* ═══ O'ng ustun ═══ */}
-        <aside className="au-side rsp-hide">
+        <aside className="au-side">
           <div className="side-card">
             <div className="side-card-title">Aloqa va identifikatorlar</div>
             <Row k="ORCID" v={a.orcid} href={a.orcid ? `https://orcid.org/${a.orcid}` : undefined} accent />
@@ -199,10 +203,12 @@ export default function AuthorDetailPage() {
             {articles.map((x, i) => {
               const others = x.authors.filter(o => o.slug !== a.slug).map(o => short(o.name));
               return (
-                <article key={x.id} className="art-row au-row" onClick={() => navigate(`/articles/${x.slug}`)}>
+                <Link key={x.id} to={`/articles/${x.slug}`} className="art-row au-row">
                   <div className="art-row-num">{String(i + 1).padStart(2, '0')}</div>
                   <div className="au-row-thumb">
-                    {x.image_url ? <img src={mediaUrl(x.image_url) ?? undefined} alt="" /> : <div className="home-featured-ph" />}
+                    {x.image_url || x.issue_cover_url
+                      ? <img src={mediaUrl(x.image_url ?? x.issue_cover_url) ?? undefined} alt={x.image_url ? x.title : `${issueLabel(x)} soni muqovasi`} loading="lazy" />
+                      : <div className="home-featured-ph" />}
                   </div>
                   <div className="art-row-body">
                     <div className="art-row-tags">
@@ -213,18 +219,19 @@ export default function AuthorDetailPage() {
                     <div className="art-row-authors">{others.length ? `${others.join(', ')} bilan` : 'yakka muallif'}</div>
                   </div>
                   <div className="art-row-meta">
-                    <span>{x.year} · №&nbsp;{x.quarter}</span>
+                    <span>{issueLabel(x)}</span>
                     {x.page_start && x.page_end && <span>{x.page_start}–{x.page_end}&nbsp;b.</span>}
                     <span>{x.views.toLocaleString()} ko‘rish</span>
-                    <Link to={`/articles/${x.slug}`} className="art-row-pdf" onClick={e => e.stopPropagation()}>O‘qish</Link>
+                    {x.file_kind && <span className="art-row-pdf">{x.file_kind.toUpperCase()}</span>}
                   </div>
-                </article>
+                </Link>
               );
             })}
           </div>
         )}
       </div>
 
+      </main>
       <Footer />
     </div>
   );

@@ -21,7 +21,6 @@ pdfjs.GlobalWorkerOptions.workerPort = new Worker(
 
 const ZOOM_STEPS = [50, 75, 100, 125, 150, 200];
 const PAGE_MAX_W = 880;   // 100% da sahifa kengligi (px) — butun kenglikdagi blokda o'rtada, katta
-const FRAME_PAD  = 28;    // .pdfv-frame padding
 
 /**
  * Faylni avval shu sahifa domenidan (/media/…) o'qishga urinamiz — CORS'siz;
@@ -32,7 +31,7 @@ function candidates(url: string): string[] {
   try {
     const u = new URL(url, window.location.href);
     if (u.origin !== window.location.origin) out.push(window.location.origin + u.pathname + u.search);
-  } catch { /* noto'g'ri URL — faqat asl manzil */ }
+  } catch { /* noto‘g‘ri URL — faqat asl manzil */ }
   out.push(url);
   return out;
 }
@@ -117,7 +116,11 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
   useEffect(() => {
     const el = frameRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    // Ichki kenglik: padding telefonda kichikroq (pdf.css, responsive.css)
+    const ro = new ResizeObserver(() => {
+      const cs = getComputedStyle(el);
+      setWidth(el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, [fullscreen]);
@@ -178,7 +181,7 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
     const clamped = Math.min(pages, Math.max(1, n));
     const el = pageRefs.current[clamped - 1];
     const frame = frameRef.current;
-    if (el && frame) frame.scrollTo({ top: el.offsetTop - FRAME_PAD, behavior: 'smooth' });
+    if (el && frame) frame.scrollTo({ top: el.offsetTop - parseFloat(getComputedStyle(frame).paddingTop), behavior: 'smooth' });
     setPage(clamped);
   }
 
@@ -213,7 +216,7 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
 
   const zoom  = ZOOM_STEPS[zoomIdx];
   const base  = sizes[0];
-  const fit   = base && width ? Math.min(Math.max(260, width - FRAME_PAD * 2), PAGE_MAX_W) / base.w : 0;
+  const fit   = base && width ? Math.min(Math.max(220, width), PAGE_MAX_W) / base.w : 0;
   const scale = fit * zoom / 100;
 
   return (

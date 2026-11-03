@@ -55,7 +55,7 @@ export function NewIssueModal({ issues, onDone, onClose }: {
         <div><label className="f-label"><span>Mavsum</span></label>
           <select className="f-select" value={season} onChange={e => setSeason(e.target.value)}>{SEASONS.map(s => <option key={s}>{s}</option>)}</select></div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="f-grid2">
         <div>
           <label className="f-label"><span>Muqova rasmi</span></label>
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>

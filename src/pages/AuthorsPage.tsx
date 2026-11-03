@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
@@ -8,6 +8,7 @@ import Pagination from '../components/ui/Pagination';
 import { SearchIcon } from '../components/ui/Icons';
 import type { ApiAuthor, PaginatedResponse } from '../lib/api';
 import { mediaUrl } from '../lib/config';
+import { foldText } from '../lib/search';
 import Seo from '../components/Seo';
 
 /**
@@ -54,30 +55,44 @@ async function fetchAll(): Promise<ApiAuthor[]> {
   return out;
 }
 
+/** Tashkilot chiplari — tashkilot nomidan aniqlanadi (Figma: «Mualliflar» sarlavhasi ostida). */
+const ORG_GROUPS: { key: string; label: string; test: RegExp }[] = [
+  { key: 'national', label: 'Milliy kutubxona', test: /milliy kutubxona/i },
+  { key: 'regional', label: 'Viloyat markazlari', test: /viloyat|axborot-kutubxona markaz|axborot-resurs markaz/i },
+  { key: 'higher',   label: 'Oliy ta’lim', test: /universitet|institut|akademiya|magistr|университет|институт|академи/i },
+  { key: 'foreign',  label: 'Xorijiy', test: /россий|moskva|москв|kazakh|qozog‘iston|казахстан|kyrgyz|tojikiston/i },
+];
+
 export default function AuthorsPage() {
-  const navigate = useNavigate();
   const [all, setAll]       = useState<ApiAuthor[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [q, setQ]           = useState('');
   const [sort, setSort]     = useState<SortKey>('abc');
   const [page, setPage]     = useState(1);
+  const [org, setOrg]       = useState('');
 
   useEffect(() => { fetchAll().then(setAll).catch(() => setFailed(true)); }, []);
-  useEffect(() => { setPage(1); }, [q, sort]);
+  useEffect(() => { setPage(1); }, [q, sort, org]);
 
   const orgTotal = useMemo(() => new Set((all ?? []).map(a => a.org).filter(Boolean)).size, [all]);
 
+  const orgCounts = useMemo(() => ORG_GROUPS
+    .map(g => ({ ...g, count: (all ?? []).filter(a => g.test.test(a.org)).length }))
+    .filter(g => g.count > 0), [all]);
+
   const filtered = useMemo(() => {
     let list = all ?? [];
-    const s = q.trim().toLowerCase();
-    if (s) list = list.filter(a => `${a.name} ${a.org} ${a.role}`.toLowerCase().includes(s));
+    const group = ORG_GROUPS.find(g => g.key === org);
+    if (group) list = list.filter(a => group.test.test(a.org));
+    const s = foldText(q.trim());
+    if (s) list = list.filter(a => foldText(`${a.name} ${a.org} ${a.role}`).includes(s));
     const by: Record<SortKey, (x: ApiAuthor, y: ApiAuthor) => number> = {
       abc:   (x, y) => x.name.localeCompare(y.name, 'uz'),
       count: (x, y) => y.article_count - x.article_count || x.name.localeCompare(y.name, 'uz'),
       views: (x, y) => y.total_views - x.total_views || x.name.localeCompare(y.name, 'uz'),
     };
     return [...list].sort(by[sort]);
-  }, [all, q, sort]);
+  }, [all, q, sort, org]);
 
   const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const groups = sort === 'abc' ? groupByLetter(pageItems) : [{ label: '', items: pageItems }];
@@ -89,6 +104,7 @@ export default function AuthorsPage() {
       <Seo title="Mualliflar" description="Kutubxona.uz jurnali mualliflari — kutubxonachilar, arxivchilar, tadqiqotchilar." />
       <PageLoadBar />
       <Topbar active="authors" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 30, paddingBottom: 72 }}>
         <nav className="crumbs">
@@ -117,6 +133,19 @@ export default function AuthorsPage() {
           </div>
         </div>
 
+        {orgCounts.length > 0 && (
+          <div className="chip-wrap au-org-chips">
+            <button className={`chip${org === '' ? ' active' : ''}`} onClick={() => setOrg('')}>
+              Barchasi <span className="count">{all?.length}</span>
+            </button>
+            {orgCounts.map(g => (
+              <button key={g.key} className={`chip${org === g.key ? ' active' : ''}`} onClick={() => setOrg(g.key)}>
+                {g.label} <span className="count">{g.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {failed && <div className="state-box">Mualliflarni yuklashda xatolik.</div>}
         {!all && !failed && <div className="state-box">Yuklanmoqda…</div>}
         {all && filtered.length === 0 && <div className="state-box">Mualliflar topilmadi.</div>}
@@ -132,20 +161,20 @@ export default function AuthorsPage() {
             )}
             <div className="au-cards">
               {g.items.map(a => (
-                <article key={a.id} className="au-card" onClick={() => navigate(`/authors/${a.slug}`)}>
+                <Link key={a.id} to={`/authors/${a.slug}`} className="au-card">
                   <AuthorAvatar name={a.initials} idx={a.avatar_idx} src={mediaUrl(a.avatar_url)} alt={a.name} size={54} />
                   <div style={{ minWidth: 0 }}>
                     <div className="au-card-name">{a.name}</div>
-                    <div className="au-card-org">
-                      {[a.org, a.role].filter(Boolean).join(' · ') || 'Tashkilot ko‘rsatilmagan'}
-                    </div>
+                    {(a.org || a.role) && (
+                      <div className="au-card-org">{[a.org, a.role].filter(Boolean).join(' · ')}</div>
+                    )}
                     <div className="au-card-meta">
                       <span>{a.article_count} maqola</span>
                       <span className="dim">{a.total_views.toLocaleString()} ko‘rish</span>
                       {a.orcid && <span className="orc">ORCID</span>}
                     </div>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           </section>
@@ -162,6 +191,7 @@ export default function AuthorsPage() {
         )}
       </div>
 
+      </main>
       <Footer />
     </div>
   );

@@ -1,0 +1,428 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOSLASHUVCHANLIK — barcha sahifalar uchun, eng oxirida ulanadi (main.tsx).
+
+   Asosiy kengliklar:
+     1400  admin: dashboard bir ustunga
+     1280  admin: son va muallif detali, mualliflar jadvali kartaga
+     1180  planshet (albom)
+     1080  sayt: yon ustunlar pastga
+     1024  admin: sidebar → chiqib turuvchi menyu
+      860  sayt: gamburger menyu, planshet (kitob)
+      680  telefon
+      480  kichik telefon
+      360  eng kichik telefon
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Umumiy himoya ───────────────────────────────────────────────────────── */
+body { overflow-wrap: break-word; }
+img, video { max-width: 100%; }
+
+/* Grid ustuni ichidagi uzun matn yoki jadval ustunni kengaytirib yubormasin */
+.detail-grid > *, .detail-rest > *, .articles-grid > *, .home-issue > *, .home-two > *, .home-featured > *,
+.archive-grid > *, .issue-hero > *, .au-grid > *, .ca-head > *, .ca-grid > *, .cad-grid > *, .about-grid > *,
+.dash-grid > *, .det-grid > *, .iss-grid > *, .aud-grid > *, .sub-card > *, .ch-wrap > *, .au-tr > * { min-width: 0; }
+
+.crumbs { flex-wrap: wrap; row-gap: 4px; }
+.crumbs .cur { min-width: 0; }
+.chip-wrap { max-width: 100%; }
+.pager-btns { flex-wrap: wrap; justify-content: center; }
+.sub-head .file { min-width: 0; word-break: break-all; }
+.adm-actions { flex-wrap: wrap; flex-shrink: 1; }
+.det-top { flex-wrap: wrap; }
+.acard-head, .det-file-head, .iss-head, .au-tfoot { flex-wrap: wrap; gap: 8px 12px; }
+.adm-modal-foot { flex-wrap: wrap; }
+/* Grid ustuni modal kengligiga cho'zilmasin: max-width: 100% ekran bo'yicha ishlasin */
+.adm-modal-bg { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+.adm-modal { min-width: 0; }
+.adm-toast { max-width: min(420px, calc(100vw - 24px)); }
+.adm-notif { max-width: calc(100vw - 24px); }
+.bub img { max-width: min(320px, 100%); }
+
+/* Oddiy holatda yashirin, kerakli kenglikda ochiladigan elementlar */
+.adm-burger, .ch-back, .filters-toggle { display: none; }
+.adm-side-bg { display: none; }
+.mobile-nav-search { margin: 12px 12px 0; min-width: 0; flex-shrink: 0; }
+.mobile-nav-panel { width: min(280px, 86vw); }
+
+/* PDF: kattalashtirilganda sahifaning chap qismi ham ko'rinsin (markazlash faqat joy bo'lsa) */
+.pdfv-frame { align-items: flex-start; }
+.pdfv-page, .pdfv-ph, .pdfv-msg { margin-left: auto; margin-right: auto; }
+
+/* ── Admin: keng ekranlar ─────────────────────────────────────────────────── */
+@media (max-width: 1400px) {
+  .dash-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 1280px) {
+  .det-grid { grid-template-columns: minmax(0, 1fr); }
+  .iss-grid, .aud-grid { grid-template-columns: minmax(0, 1fr); }
+
+  /* Son detali: muqova va fayl kartalari yonma-yon */
+  .iss-grid > :first-child {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start;
+  }
+  .iss-grid > :first-child > .iss-card { margin-top: 0; }
+  .iss-grid > :first-child > .ab { grid-column: 1 / -1; margin-top: 0 !important; }
+  .iss-cover { max-width: 240px; margin-left: auto; margin-right: auto; }
+
+  /* Mualliflar jadvali → kartalar */
+  .au-th { display: none; }
+  .au-tr { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; align-items: center; }
+  .au-tr .who  { grid-column: 1; grid-row: 1; }
+  .au-tr .acts { grid-column: 2; grid-row: 1; }
+  .au-tr .org  { grid-column: 1 / -1; grid-row: 2; }
+  .au-tr .cnt  { grid-column: 1; grid-row: 3; font-size: 16px; }
+  .au-tr .cnt::after { content: ' maqola'; font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+  .au-tr > :nth-child(4) { grid-column: 2; grid-row: 3; justify-self: end; }
+}
+
+/* ── Sayt: planshet (albom) ──────────────────────────────────────────────── */
+@media (max-width: 1180px) {
+  .toc-row { grid-template-columns: 92px minmax(0, 1fr) 160px 64px; gap: 16px; }
+  .toc-thumb { width: 92px; height: 62px; }
+
+  /* Jurnal pasporti va aloqa yo'qolmasin: matn tagida */
+  .about-side {
+    display: grid; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
+    position: static; align-items: start;
+  }
+  .about-side .side-card + .side-card { margin-top: 0; }
+}
+
+/* ── Sayt: yon ustunlar pastga ───────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  /* Maqola: «O'qish, Iqtibos, Ulashish» va chiqqan son saqlanadi, «Sahifa bo'ylab» kerak emas */
+  .detail-side {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch;
+  }
+  .detail-side .side-card + .side-card { margin-top: 0; }
+  .detail-side .toc-card { display: none; }
+
+  .au-side, .ca-side { display: block; position: static; }
+  .cad-side { display: flex; position: static; }
+
+  .rel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Uch qadam kenglik yetsa yonma-yon */
+  .home-cta .home-cta-title.h-display { max-width: none; }
+  .home-cta-lede { max-width: 640px; }
+  .home-cta-steps { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Admin: sidebar → chiqib turuvchi menyu ──────────────────────────────── */
+@media (max-width: 1024px) {
+  .adm-side {
+    display: flex; position: fixed; left: 0; top: 0; bottom: 0; z-index: 210;
+    width: min(280px, 86vw); height: 100dvh; overflow-y: auto;
+    transform: translateX(-100%); transition: transform .2s ease;
+  }
+  .adm-side.open { transform: none; box-shadow: 20px 0 56px rgba(0, 0, 0, .3); }
+  .adm-side.open + .adm-side-bg {
+    display: block; position: fixed; inset: 0; z-index: 205; background: rgba(0, 0, 0, .45);
+  }
+  .adm-burger {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--paper); color: var(--ink-2); cursor: pointer;
+  }
+  .adm-top { padding: 0 20px; }
+  .adm-main { padding: 24px 20px 48px; }
+  .adm-crumbs { min-width: 0; flex: 1; }
+  .adm-crumbs .cur { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .adm-crumbs a, .adm-crumbs .sep { flex-shrink: 0; }
+}
+
+/* ── Planshet (kitob) ────────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  /* Sayt sarlavhasi: navigatsiya gamburger ichida, bo'sh qator qolmasin */
+  .topbar-nav { display: none; }
+  .topbar { height: 60px; }
+  .page-loadbar { top: 60px; }
+
+  /* Arxiv: yillar — gorizontal qator */
+  .years-col { display: block; position: static; }
+  .years-col > .eyebrow, .years-col > .side-card { display: none; }
+  .years-list { flex-direction: row; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .years-list::-webkit-scrollbar { display: none; }
+  .years-list button { flex: 0 0 auto; width: auto; gap: 10px; }
+  .archive-grid { gap: 20px; }
+  .chip-wrap { justify-content: flex-start; }
+  .issue-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Son sahifasi: muqova matn yonida, mundarija qatori ixcham */
+  .issue-hero { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+  .issue-cover-col { max-width: none; }
+  .toc-row { grid-template-columns: 72px minmax(0, 1fr); gap: 4px 14px; padding: 14px; align-items: start; }
+  .toc-thumb { width: 72px; height: 96px; grid-row: 1 / span 3; }
+  .toc-title { font-size: 16.5px; }
+  .toc-author, .toc-pages { grid-column: 2; text-align: left; }
+
+  /* Jurnal haqida */
+  .about-side { grid-column: auto; }
+  .about-nav { gap: 6px; }
+  .about-nav .eyebrow { width: 100%; margin-bottom: 4px !important; }
+  .about-nav a { border: 1px solid var(--line); background: var(--paper); }
+
+  /* Admin */
+  .adm-top { height: 60px; padding: 0 14px; gap: 10px; }
+  .adm-search { display: none; }
+  .adm-main { padding: 18px 14px 40px; }
+  .adm-head { flex-direction: column; align-items: stretch; gap: 16px; margin-bottom: 20px; }
+  .adm-h1 { font-size: 28px; }
+  .adm-actions { width: 100%; }
+  .adm-actions .sub-search { width: auto !important; flex: 1 1 200px; }
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .stat-card { padding: 16px; }
+  .stat-val { font-size: 30px; }
+  .f-grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aud-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .jr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .jr-body { padding: 16px; gap: 14px; }
+
+  /* Son mundarijasi (admin): muallif sarlavha tagida */
+  .toc-list { padding: 0 14px; }
+  .toc-list .toc-row { grid-template-columns: 28px minmax(0, 1fr) 64px 34px; gap: 4px 10px; }
+  .toc-list .toc-row .a { grid-column: 2; grid-row: 2; }
+  .toc-list .toc-row .p { grid-column: 3; grid-row: 1; }
+  .toc-list .toc-row .x { grid-column: 4; grid-row: 1; }
+
+  /* Xabarlar: ro'yxat yoki suhbat — bittasi ko'rinadi, «‹» bilan qaytiladi */
+  .ch-wrap { grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 60px - 36px); min-height: 460px; }
+  .ch-list { max-height: none; border-right: 0; border-bottom: 0; }
+  .ch-main { display: none; }
+  .ch-wrap.has-chat .ch-list { display: none; }
+  .ch-wrap.has-chat .ch-main { display: flex; }
+  .ch-back {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--paper); color: var(--ink-2); font-size: 20px; line-height: 1; cursor: pointer;
+  }
+  .bub { max-width: 88%; }
+  .ch-head { padding: 10px 12px; gap: 10px; }
+  .ch-head .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ch-msgs { padding: 12px; }
+  .ch-quick { flex-wrap: nowrap; overflow-x: auto; padding: 8px 12px 0; scrollbar-width: none; }
+  .ch-quick::-webkit-scrollbar { display: none; }
+  .ch-quick .lbl { display: none; }
+  .ch-quick button { flex-shrink: 0; }
+  .ch-composer { padding: 10px 12px 12px; }
+  .ch-composer textarea { min-height: 44px; }
+}
+
+/* ── Telefon ─────────────────────────────────────────────────────────────── */
+@media (max-width: 680px) {
+  /* iOS Safari fokusda sahifani kattalashtirmasin: maydon shrifti kamida 16 px */
+  .searchbar input, .f-input, .f-select, .f-textarea, .sub-search input, .ch-search input,
+  .ch-composer textarea, .field input, .field textarea, .pdfv-search input { font-size: 16px !important; }
+
+  .searchbar { min-width: 0; }
+  .page-title { font-size: 28px; }
+  .page-head { padding-bottom: 18px; gap: 14px; }
+  .page-head-ctrl { flex-wrap: wrap; width: 100%; gap: 8px 14px; }
+
+  /* Segment: to'liq enli, sig'masa barmoq bilan suriladi, chiziqsiz */
+  .segment { display: flex; width: 100%; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .segment::-webkit-scrollbar { display: none; }
+  .segment button { flex: 1 0 auto; padding: 0 12px; font-size: 13px; height: 36px; }
+
+  /* Bo'lim sarlavhalari */
+  .section-head { flex-wrap: wrap; gap: 4px 12px; }
+  .section-head .rule { display: none; }
+  .section-head .eyebrow { white-space: nowrap; }
+  .section-head .side-link { margin-left: auto; }
+  .detail-head { flex-wrap: wrap; gap: 10px; }
+  .detail-head h2 { flex-wrap: wrap; row-gap: 2px; }
+  .detail-head h2[style] { font-size: 24px !important; }
+  .year-head { flex-wrap: wrap; gap: 4px 12px; }
+  .year-head h2 { font-size: 28px; }
+  .year-head .rule { display: none; }
+  .toc-section-head .eyebrow { min-width: 0; }
+
+  /* Bosh sahifa */
+  .hero-eyebrow { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 28px; }
+  .hero-rule { display: none; }
+  .hero-body { padding-top: 0; gap: 22px; }
+  .hero-stats {
+    display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%;
+  }
+  .hero-stat { min-width: 0; padding: 10px 4px; }
+  .hero-stat-n { font-size: 22px; }
+  .hero-stat-l { font-size: 8px; letter-spacing: .04em; text-align: center; }
+  .home-issue { padding-top: 32px; }
+  .home-issue-title { font-size: 26px; }
+  .home-issue-lede { font-size: 15px; }
+  .home-also, .home-two { padding-top: 40px; }
+  .home-archive { margin-top: 40px; padding: 32px 0; }
+  .top-row { grid-template-columns: 38px minmax(0, 1fr) auto; gap: 10px; }
+  .top-num { font-size: 26px; }
+  .top-title { font-size: 16px; }
+  .home-cta-inner { gap: 32px; padding-top: 44px; padding-bottom: 44px; }
+  .home-cta .home-cta-title.h-display { font-size: 32px; }
+  .home-cta-lede { font-size: 17px; }
+  .home-cta-steps { grid-template-columns: minmax(0, 1fr); }
+
+  /* Maqolalar ro'yxati: filtrlar yopiq turadi, avval natijalar ko'rinadi */
+  .art-row-title { font-size: 17px; }
+  .art-row-thumb .art-row-title { font-size: 18px; }
+  .art-row-thumb .art-row-num { font-size: 20px; }
+  .art-row-meta { min-width: 0; gap: 4px 12px; margin-top: 4px; white-space: normal; }
+  .art-pager { gap: 14px; }
+
+  /* Maqola sahifasi */
+  .detail-side { grid-template-columns: minmax(0, 1fr); }
+  .detail-tags { gap: 6px; }
+  .detail-meta { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .meta-cell { padding: 12px; min-width: 0; }
+  .meta-cell-v { font-size: 13.5px; }
+  .rel-grid { grid-template-columns: minmax(0, 1fr); }
+  .cite-text { padding: 16px; }
+  .cite-foot { padding: 12px 16px; }
+  .cite-actions { width: 100%; }
+  .cite-actions .btn { flex: 1 1 auto; }
+
+  /* PDF ko'ruvchi: tugmalar barmoqqa qulay */
+  .pdfv-bar { padding: 10px; gap: 8px; }
+  .pdfv-btn { height: 36px; min-width: 36px; }
+  .pdfv-num { height: 36px; }
+  .pdfv-search { height: 38px; min-width: 0; }
+  .pdfv-frame { padding: 10px; max-height: 76vh; }
+  .det-file-body { min-height: 360px; }
+
+  /* Son va arxiv */
+  .issue-row { grid-template-columns: minmax(0, 1fr); }
+  .issue-hero { grid-template-columns: minmax(0, 1fr); }
+  .issue-cover-col { max-width: 240px; width: 100%; margin: 0 auto; }
+  .issue-title { font-size: 30px; }
+  .issue-sub { font-size: 17px; }
+
+  /* Mualliflar */
+  .au-name { font-size: 26px; text-align: left; }
+  .au-head { gap: 14px; }
+  .au-bars { gap: 6px; }
+  .au-chart { padding: 14px; }
+  .au-bio { font-size: 15.5px; }
+  .ca-title, .cad-title { font-size: 26px; }
+  .cad-hero { min-height: 240px; }
+
+  /* Jurnal haqida */
+  .about-side { grid-template-columns: minmax(0, 1fr); }
+
+  /* 404 */
+  .nf { padding-top: 40px; padding-bottom: 56px; }
+  .nf-code { font-size: 84px; }
+  .nf-title { font-size: 30px; }
+
+  /* Admin */
+  .adm-crumbs a, .adm-crumbs .sep { display: none; }
+  .adm-lang { display: none; }
+  .adm-notif { position: fixed; top: 64px; left: 12px; right: 12px; width: auto; max-height: 72dvh; overflow-y: auto; }
+  .adm-toast { left: 12px; right: 12px; bottom: 12px; }
+  .ab.lg { height: 42px; padding: 0 16px; }
+
+  .q-row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 14px; }
+  .q-row > :first-child { grid-column: 1; grid-row: 1; }
+  .q-n { grid-column: 2; grid-row: 1; font-size: 22px; }
+  .q-meta { grid-column: 1 / -1; grid-row: 2; font-size: 12px; }
+  .acard-head { padding: 16px; }
+  .up-card { padding: 16px; }
+  .act-list { padding: 0 16px 8px; }
+
+  .sub-filters { gap: 8px; }
+  .fchip { height: 36px; padding: 0 12px; font-size: 13px; }
+  .sub-search { width: 100%; order: 5; }
+  .sub-count { margin-left: 0; width: 100%; order: 6; }
+  .sub-card { padding: 16px 14px 16px 18px; gap: 12px; }
+  .sub-title { font-size: 19px; }
+  .sub-acts .ab { flex: 1 1 auto; }
+  .mchip { padding: 6px 10px; }
+
+  .det-top { gap: 8px 10px; margin-bottom: 16px; }
+  .det-top .meta { margin-left: 0; width: 100%; word-break: break-word; }
+  .det-top > div { margin-left: 0 !important; flex-wrap: wrap; width: 100%; }
+  .det-file-head, .det-meta-head { padding: 12px 14px; }
+  .det-file-body .docx-wrap { padding: 12px; }
+  .det-meta-body { padding: 14px 14px 6px; }
+  .det-meta-foot { padding: 14px; }
+
+  .iss-card { padding: 14px; }
+  .iss-head { padding: 12px 14px; }
+  .aud-art { grid-template-columns: 26px minmax(0, 1fr); gap: 2px 10px; padding: 12px 14px; }
+  .aud-art .m { grid-column: 2; text-align: left !important; }
+  .aud-act { flex-wrap: wrap; padding: 12px 14px; gap: 4px 10px; }
+  .aud-act .d { margin-left: 18px; width: 100%; }
+  .aud-rows { padding: 0 14px; }
+  .aud-profile { padding: 22px 14px; }
+  .aud-name { font-size: 22px; }
+  .jr-grid { grid-template-columns: minmax(0, 1fr); }
+  .au-tr { padding: 12px 14px; }
+  .au-tfoot { padding: 12px 14px; justify-content: center; }
+
+  /* Modallar */
+  .adm-modal-bg { padding: 8px; }
+  .adm-modal { max-height: 96dvh; border-radius: 12px; }
+  .adm-modal-head { padding: 16px; gap: 10px; }
+  .adm-modal-head h2 { font-size: 20px; }
+  .adm-modal-body { padding: 16px; }
+  .adm-modal-foot { padding: 12px 16px; gap: 8px; }
+  .adm-modal-foot .hint { width: 100%; margin-right: 0; }
+  .adm-modal-foot .ab { flex: 1 1 auto; }
+  .pm-row { grid-template-columns: 26px minmax(0, 1fr); gap: 6px 10px; padding: 12px; }
+  .pm-row > :nth-child(n+3) { grid-column: 2; }
+  .pm-progress { flex-wrap: wrap; gap: 10px; }
+  .f-grid-1-2, .pm-editor-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .dropzone { padding: 18px; }
+  .photo-row { flex-wrap: wrap; }
+}
+
+/* Filtrlar: bir ustunda panel yopiq turadi (natijalar birinchi ko'rinsin) */
+@media (max-width: 1000px) {
+  .filters-toggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 42px;
+    padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper);
+    font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer;
+  }
+  .filters .searchbar { margin-bottom: 10px !important; }
+  .filters-body { display: none; padding-top: 6px; }
+  .filters[data-open] .filters-body { display: block; }
+  .filters[data-open] .filters-toggle svg { transform: rotate(-90deg); }
+}
+
+/* ── Kichik telefon ──────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  :root { --px: 14px; }
+
+  .top-actions { gap: 6px; }
+  .topbar { gap: 8px; }
+  .lang-switch { height: 36px; padding: 0 6px; }
+  .icon-btn { width: 36px; height: 36px; }
+  .topbar-hamburger { width: 36px; height: 36px; }
+
+  .hero .hero-title.h-display { font-size: 30px; }
+  .hero-lede { font-size: 15.5px; }
+  .art-row, .art-row-thumb { padding: 14px 12px; gap: 6px 10px; grid-template-columns: 26px minmax(0, 1fr); }
+  .art-row-meta { font-size: 11.5px; }
+  .site-footer-badges { flex-wrap: wrap; }
+
+  .f-grid2, .f-grid4 { grid-template-columns: minmax(0, 1fr); }
+  .stat-grid { grid-template-columns: minmax(0, 1fr); }
+  .aud-stats { gap: 10px; }
+
+  .au-tr .acts { grid-column: 1 / -1; grid-row: 4; justify-content: flex-start; }
+  .au-tr .acts .ab { flex: 1 1 auto; }
+
+  .toc-list .toc-row { grid-template-columns: 22px minmax(0, 1fr) 34px; }
+  .toc-list .toc-row .a { grid-column: 2; grid-row: 2; }
+  .toc-list .toc-row .p { grid-column: 2; grid-row: 3; text-align: left; }
+  .toc-list .toc-row .x { grid-column: 3; grid-row: 1; }
+
+  .cover-row { gap: 12px; }
+}
+
+/* ── Eng kichik telefon (320–360 px) ─────────────────────────────────────── */
+@media (max-width: 360px) {
+  .wordmark-main { font-size: 16px; }
+  .wordmark-sub { display: none; }
+  .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .segment button { padding: 0 10px; }
+  .fchip { padding: 0 10px; }
+}

@@ -24,7 +24,7 @@ interface AuthContextValue {
   user:            AdminUser | null;
   token:           string | null;
   isAuthenticated: boolean;
-  login:   (username: string, password: string, captchaToken?: string) => Promise<void>;
+  login:   (username: string, password: string /* CAPTCHA-OFF: , captchaToken?: string */) => Promise<void>;
   logout:  () => void;
 }
 
@@ -46,14 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function login(username: string, password: string, captchaToken?: string) {
+  async function login(username: string, password: string /* CAPTCHA-OFF: , captchaToken?: string */) {
     const res = await fetch(`${BASE}/api/admin/auth/login/`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         username, password,
-        // CAPTCHA o'chiq bo'lsa bo'sh ketadi — backend e'tibor bermaydi
-        captcha_token: captchaToken ?? '',
+        // CAPTCHA-OFF: CAPTCHA o'chiq bo'lsa bo'sh ketadi — backend e'tibor bermaydi
+        // captcha_token: captchaToken ?? '',
       }),
     });
     if (!res.ok) {
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({ refresh }),
         keepalive: true,
-      }).catch(() => { /* tarmoq yo'q — baribir lokal tozalaymiz */ });
+      }).catch(() => { /* tarmoq yo‘q — baribir lokal tozalaymiz */ });
     }
 
     localStorage.removeItem(KEY_ACCESS);

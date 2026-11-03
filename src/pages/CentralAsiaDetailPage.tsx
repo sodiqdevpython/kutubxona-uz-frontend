@@ -47,9 +47,11 @@ export default function CentralAsiaDetailPage() {
     return (
       <div className="bg-detail" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="central-asia" />
+        <main id="main" className="page-main">
         <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>
           Maqola topilmadi. <Link to="/central-asia" className="side-link">To‘plamga qaytish →</Link>
         </div></div>
+        </main>
         <Footer />
       </div>
     );
@@ -58,7 +60,9 @@ export default function CentralAsiaDetailPage() {
     return (
       <div className="bg-detail" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="central-asia" />
+        <main id="main" className="page-main">
         <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        </main>
         <Footer />
       </div>
     );
@@ -71,6 +75,7 @@ export default function CentralAsiaDetailPage() {
       <Seo title={post.title} description={post.excerpt} image={img} />
       <PageLoadBar />
       <Topbar active="central-asia" />
+      <main id="main" className="page-main">
 
       {/* ═══ To'liq enli sarlavha bloki ═══ */}
       <section className="cad-hero">
@@ -113,7 +118,7 @@ export default function CentralAsiaDetailPage() {
             : <div className="state-box">Matn mavjud emas.</div>}
         </article>
 
-        <aside className="cad-side rsp-hide">
+        <aside className="cad-side">
           {post.source_url && (
             <div className="side-card">
               <div className="side-card-title">Manba</div>
@@ -139,6 +144,7 @@ export default function CentralAsiaDetailPage() {
         </aside>
       </div>
 
+      </main>
       <Footer />
     </div>
   );

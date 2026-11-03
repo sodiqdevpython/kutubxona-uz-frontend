@@ -16,7 +16,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: 'Jurnal sonlari',   to: '/archive' },
       { label: 'Mualliflar',       to: '/authors' },
       { label: 'Central Asia',     to: '/central-asia' },
-      { label: 'Qidiruv',          to: '/articles' },
+      { label: 'Qidiruv',          to: '/articles#search' },
     ],
   },
   {
@@ -25,24 +25,23 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: 'Jurnal haqida',       to: '/about' },
       { label: 'Tahririyat kengashi', to: '/about/board' },
       { label: 'Taqriz siyosati',     to: '/about/policy' },
-      { label: 'Nashr etikasi',       to: '/about/policy' },
-      { label: 'Indeksatsiya',        to: '/about' },
+      { label: 'Nashr etikasi',       to: '/about/policy#etika' },
+      { label: 'Indeksatsiya',        to: '/about#indeksatsiya' },
     ],
   },
   {
     title: 'Mualliflarga',
     links: [
-      { label: 'Qabul shartlari',      to: '/about/guide' },
-      { label: 'Formatlash talablari', to: '/about/guide' },
-      { label: '.docx shablon',        to: '/about/guide' },
-      { label: 'Taqriz jarayoni',      to: '/about/policy' },
-      { label: 'Maqola yuborish',      to: '/about/guide' },
+      { label: 'Qabul shartlari',      to: '/about/guide#qabul' },
+      { label: 'Formatlash talablari', to: '/about/guide#formatlash' },
+      { label: 'Taqriz jarayoni',      to: '/about/policy#taqriz' },
+      { label: 'Maqola yuborish',      to: '/about/guide#yuborish' },
     ],
   },
 ];
 
 const LANGS: { code: string; value: Lang }[] = [
-  { code: "O'zbekcha", value: 'uz-latn' },
+  { code: "O‘zbekcha", value: 'uz-latn' },
   { code: 'Ўзбекча',   value: 'uz-cyrl' },
   { code: 'Русский',   value: 'ru'      },
   { code: 'English',   value: 'en'      },

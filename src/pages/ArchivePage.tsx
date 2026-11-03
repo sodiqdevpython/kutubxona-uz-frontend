@@ -5,8 +5,8 @@ import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
 import { useFetch } from '../lib/hooks';
-import type { ApiYearGroup, ApiIssue, ApiCategory } from '../lib/api';
-import { mediaUrl } from '../lib/config';
+import { issueDate, type ApiYearGroup, type ApiIssue, type ApiCategory } from '../lib/api';
+import { JOURNAL_NAME, mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
 
 /**
@@ -22,16 +22,19 @@ function IssueCard({ i }: { i: ApiIssue }) {
   return (
     <div className="ic">
       <Link to={`/archive/${i.id}`} className="ic-cover">
-        {cover ? <img src={cover} alt="" /> : <JournalCover palette={i.palette} />}
+        {cover
+          ? <img src={cover} alt={`${i.journal_title ?? JOURNAL_NAME} № ${i.number}, ${i.year} muqovasi`} loading="lazy" />
+          : <JournalCover palette={i.palette} />}
       </Link>
       <div className="ic-body">
         <Link to={`/archive/${i.id}`} className="ic-title">
           № {i.number}{i.season ? ` · ${i.season}` : ''}
         </Link>
-        <div className="meta">{i.date_label || i.year}</div>
+        <div className="meta">{issueDate(i)}</div>
         <div className="ic-count">{i.article_count} maqola</div>
         <div className="ic-actions">
           <Link to={`/archive/${i.id}`} className="ic-btn">Mundarija</Link>
+          {i.pdf_file_url && <Link to={`/archive/${i.id}#pdf`} className="ic-btn ic-btn-pdf">PDF</Link>}
         </div>
       </div>
     </div>
@@ -53,7 +56,9 @@ export default function ArchivePage() {
   const catState  = useFetch<ApiCategory[]>(`${BASE}/api/categories/`);
 
   const groups     = archState.status === 'ok' ? archState.data : [];
-  const categories = catState.status  === 'ok' ? catState.data  : [];
+  const categories = useMemo(() => (
+    catState.status === 'ok' ? [...catState.data].sort((x, y) => y.article_count - x.article_count) : []
+  ), [catState]);
 
   const [showAll, setShowAll] = useState(false);
   const [activeYear, setActiveYear] = useState<number | null>(null);
@@ -84,6 +89,7 @@ export default function ArchivePage() {
       <Seo title="Jurnal arxivi" description="Jurnalning barcha sonlari — muqova va mundarija." />
       <PageLoadBar />
       <Topbar active="archive" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 30 }}>
         <nav className="crumbs">
@@ -110,7 +116,7 @@ export default function ArchivePage() {
                   Barchasi <span className="count">{published.length}</span>
                 </Link>
                 {categories.slice(0, 3).map(c => (
-                  <Link key={c.id} to="/articles" className="chip">
+                  <Link key={c.id} to={`/articles?categories=${c.slug}`} className="chip">
                     {c.name} <span className="count">{c.article_count}</span>
                   </Link>
                 ))}
@@ -122,7 +128,7 @@ export default function ArchivePage() {
 
       <div className="wrap archive-grid">
         {/* ── Chap: yillar ── */}
-        <aside className="years-col rsp-hide">
+        <aside className="years-col">
           <div className="eyebrow" style={{ marginBottom: 10 }}>Yillar</div>
           <div className="years-list">
             {groups.map(g => (
@@ -171,8 +177,8 @@ export default function ArchivePage() {
                   )}
                   {/* Yilda faqat 1 son bo'lsa — Figma'dagidek izoh kartasi */}
                   {g.issues.length === 1 && !isCurrent && (
-                    <NoteCard title="Nashr tanaffusi"
-                      text="Bu yilda faqat bitta son chiqqan — tahririyat almashuvi davri." />
+                    <NoteCard title="Arxivda bitta son"
+                      text="Bu yildan arxivga hozircha bitta son kiritilgan." />
                   )}
                 </div>
               </section>
@@ -189,6 +195,7 @@ export default function ArchivePage() {
         </div>
       </div>
 
+      </main>
       <Footer />
     </div>
   );

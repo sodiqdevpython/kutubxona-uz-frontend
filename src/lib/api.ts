@@ -44,6 +44,7 @@ export interface ApiAuthorBrief {
   /** Tashkilot va lavozim — maqola sahifasida muallif tagida chiqadi. */
   org: string;
   role: string;
+  orcid?: string;
 }
 
 export interface ApiAuthor {
@@ -84,12 +85,23 @@ export interface ApiArticle {
   title: string;
   slug: string;
   excerpt: string;
+  /** Sarlavhadan aniqlangan til: uz | uz-cyrl | ru | en */
+  language: string;
+  doi: string;
   category: ApiCategory | null;
   authors: ApiAuthorBrief[];
   author_label: string;
   author_names: string[];
   year: number;
   quarter: number;
+  /** Maqola chiqqan jurnal soni */
+  issue_id: string | null;
+  issue_number: number | null;
+  issue_year: number | null;
+  issue_cover_url: string | null;
+  /** Manba fayl turi va hajmi (bayt) */
+  file_kind: string | null;
+  file_size: number | null;
   pages: number;
   min_read: number;
   cites: number;
@@ -103,8 +115,67 @@ export interface ApiArticle {
   published_at: string | null;
 }
 
+/** Filtrlar paneli uchun hisoblar — GET /api/articles/facets/ */
+export interface ApiFacets {
+  total: number;
+  years: { value: number; count: number }[];
+  issues: { id: string; number: number; year: number; count: number }[];
+  categories: { slug: string; name: string; count: number }[];
+  keywords: { slug: string; name: string; count: number }[];
+  languages: { code: string; count: number }[];
+}
+
+/** «1–2» yoki «5» — jurnaldagi bet oralig'i; bet noma'lum bo'lsa bo'sh satr. */
+export function pageRange(a: { page_start: number | null; page_end: number | null }): string {
+  if (a.page_start && a.page_end) return a.page_start === a.page_end ? `${a.page_start}` : `${a.page_start}–${a.page_end}`;
+  return a.page_start ? `${a.page_start}` : '';
+}
+
+/** 2 400 000 → «2,3 MB» */
+export function formatBytes(bytes: number | null | undefined): string {
+  if (!bytes) return '';
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(1).replace('.', ',')} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/**
+ * Ro'yxatlardagi qisqa muallif: «A. Umarov». Ota ismi bilan yozilganda familiya
+ * birinchi turadi: «Kushbakov Kamoliddin Baxromovich» → «K. Kushbakov».
+ */
+export function shortAuthor(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length > 2) return `${parts[1][0]}. ${parts[0]}`;
+  return parts.length === 2 ? `${parts[0][0]}. ${parts[1]}` : name;
+}
+
+export function authorsLine(a: Pick<ApiArticle, 'authors' | 'author_names' | 'author_label'>): string {
+  if (a.authors.length) return a.authors.map(x => shortAuthor(x.name)).join(', ');
+  return (a.author_names ?? []).map(shortAuthor).join(', ') || a.author_label;
+}
+
+/**
+ * Sonning sanasi. `date_label` erkin matn («Mart 2025», «2025 1-son») — faqat haqiqiy
+ * sana bo'lsa o'zi ko'rsatiladi, aks holda yil va yil ichidagi tartib raqami bir xil yoziladi.
+ */
+export function issueDate(i: { date_label: string; year: number; volume?: number }): string {
+  if (isRealDate(i.date_label)) return i.date_label;
+  return i.volume && i.volume <= 12 ? `${i.year}-yil ${i.volume}-son` : `${i.year}-yil`;
+}
+
+export function isRealDate(label: string | null | undefined): boolean {
+  return /^\d{1,2}\.\d{1,2}\.\d{4}$/.test((label ?? '').trim());
+}
+
+/** Kartalardagi «2025 · № 67» yozuvi — maqola chiqqan jurnal soni. */
+export function issueLabel(a: Pick<ApiArticle, 'year' | 'issue_number' | 'issue_year'>): string {
+  const year = a.issue_year ?? a.year;
+  return a.issue_number === null ? String(year) : `${year} · № ${a.issue_number}`;
+}
+
 export interface ApiArticleDetail extends Omit<ApiArticle, 'keywords'> {
   content: string;
+  udk: string;
   source_file_url: string | null;
   /** Detail'da object — sayt detail sahifasi keyword + slug ishlatadi (related navigatsiya). */
   keywords: { name: string; slug: string }[];
@@ -141,6 +212,8 @@ export interface ApiIssue {
   article_count: number;
   total_pages: number;
   views: number;
+  /** To'liq son PDF'ining hajmi (bayt) */
+  pdf_size?: number | null;
   journal_id?: string | null;
   journal_title?: string | null;
 }
@@ -155,6 +228,7 @@ export interface ApiTocArticle {
   page_end: number | null;
   views: number;
   image_url: string | null;
+  doi: string;
 }
 
 export interface ApiIssueSection {

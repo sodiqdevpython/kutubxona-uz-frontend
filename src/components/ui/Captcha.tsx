@@ -1,4 +1,7 @@
 /**
+ * CAPTCHA-OFF: vaqtincha ishlatilmaydi — LoginPage dagi chaqiruv kommentda.
+ * Qaytarish uchun loyihada «CAPTCHA-OFF» ni qidiring.
+ *
  * CAPTCHA vidjeti (Cloudflare Turnstile / hCaptcha / reCAPTCHA).
  *
  * Sozlama backenddan olinadi (`GET /api/auth/captcha/`), shuning uchun
@@ -75,7 +78,7 @@ export default function Captcha({ onToken, onReady }: Props) {
       try {
         await loadScript(cfg.script_url);
       } catch {
-        if (alive) setError("Tekshiruv vidjetini yuklab bo'lmadi.");
+        if (alive) setError("Tekshiruv vidjetini yuklab bo‘lmadi.");
         return;
       }
 

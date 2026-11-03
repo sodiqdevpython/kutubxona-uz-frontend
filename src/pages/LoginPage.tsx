@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import Captcha from '../components/ui/Captcha';
+// CAPTCHA-OFF: import Captcha from '../components/ui/Captcha';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import PageLoadBar from '../components/ui/PageLoadBar';
@@ -14,9 +14,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
-  // CAPTCHA — backendda kalitlar bo'lsa avtomatik yoqiladi
-  const [captchaOn,    setCaptchaOn]    = useState(false);
-  const [captchaToken, setCaptchaToken] = useState('');
+  // CAPTCHA-OFF: CAPTCHA — backendda kalitlar bo'lsa avtomatik yoqiladi
+  // const [captchaOn,    setCaptchaOn]    = useState(false);
+  // const [captchaToken, setCaptchaToken] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) navigate('/admin', { replace: true });
@@ -25,15 +25,15 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    // CAPTCHA yoqilgan, lekin hali yechilmagan bo'lsa — yubormaymiz
-    if (captchaOn && !captchaToken) {
-      setError("Avval «Men robot emasman» tekshiruvidan o'ting.");
-      return;
-    }
+    // CAPTCHA-OFF: CAPTCHA yoqilgan, lekin hali yechilmagan bo'lsa — yubormaymiz
+    // if (captchaOn && !captchaToken) {
+    //   setError("Avval «Men robot emasman» tekshiruvidan o‘ting.");
+    //   return;
+    // }
 
     setError(''); setLoading(true);
     try {
-      await login(username.trim(), password, captchaToken);
+      await login(username.trim(), password /* CAPTCHA-OFF: , captchaToken */);
       navigate('/admin', { replace: true });
     } catch (err) {
       setError((err as Error).message);
@@ -66,7 +66,7 @@ export default function LoginPage() {
             <span className="eyebrow" style={{ display: 'block', marginBottom: 14 }}>Kirish</span>
             <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
               Faqat tahrir xodimlari uchun.<br/>
-              Parolingizni unutgan bo'lsangiz Django admin orqali tiklang.
+              Parolingizni unutgan bo‘lsangiz Django admin orqali tiklang.
             </p>
           </div>
 
@@ -113,7 +113,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <Captcha onToken={setCaptchaToken} onReady={setCaptchaOn} />
+            {/* CAPTCHA-OFF: <Captcha onToken={setCaptchaToken} onReady={setCaptchaOn} /> */}
 
             {error && (
               <div style={{
@@ -127,13 +127,13 @@ export default function LoginPage() {
             )}
 
             <button
-              type="submit" disabled={loading || (captchaOn && !captchaToken)}
+              type="submit" disabled={loading /* CAPTCHA-OFF: || (captchaOn && !captchaToken) */}
               className="btn primary"
               style={{
                 width: '100%', height: 46, justifyContent: 'center',
                 fontSize: 14, marginTop: 4,
-                opacity: (loading || (captchaOn && !captchaToken)) ? 0.6 : 1,
-                cursor: (loading || (captchaOn && !captchaToken)) ? 'default' : 'pointer',
+                opacity: loading /* CAPTCHA-OFF: || (captchaOn && !captchaToken) */ ? 0.6 : 1,
+                cursor: loading /* CAPTCHA-OFF: || (captchaOn && !captchaToken) */ ? 'default' : 'pointer',
               }}
             >
               {loading ? 'Tekshirilmoqda…' : 'Kirish'}

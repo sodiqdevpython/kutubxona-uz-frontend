@@ -72,7 +72,7 @@ export default function AiUnavailableModal({ open, onClose, reason, action }: Pr
 
         <p style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-3)', marginBottom: 18 }}>
           {aiReasonText(reason)} Xizmat ishga tushgach bu amal avtomatik ishlaydi —
-          hech narsani o'zgartirish shart emas.
+          hech narsani o‘zgartirish shart emas.
         </p>
 
         <div style={{
@@ -80,7 +80,7 @@ export default function AiUnavailableModal({ open, onClose, reason, action }: Pr
           padding: '10px 12px', marginBottom: 18,
           fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.55,
         }}>
-          Shu orada maydonlarni <strong>qo'lda</strong> to'ldirishingiz mumkin —
+          Shu orada maydonlarni <strong>qo‘lda</strong> to‘ldirishingiz mumkin —
           «Tahrirlash» tugmasi orqali.
         </div>
 

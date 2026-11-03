@@ -14,14 +14,22 @@ export default function NotFoundPage() {
   const { pathname } = useLocation();
   const [q, setQ] = useState('');
 
-  useEffect(() => { document.title = 'Sahifa topilmadi · Kutubxona.uz'; }, []);
+  useEffect(() => {
+    document.title = 'Sahifa topilmadi · Kutubxona.uz';
+    // Server 200 qaytargan holat uchun (mavjud bo'lmagan maqola): qidiruvga tushmasin
+    const robots = document.createElement('meta');
+    robots.setAttribute('name', 'robots');
+    robots.setAttribute('content', 'noindex');
+    document.head.appendChild(robots);
+    return () => robots.remove();
+  }, []);
 
   return (
-    <div className="bg-articles" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="bg-articles" style={{ minHeight: '100vh' }}>
       <PageLoadBar />
       <Topbar active="home" />
 
-      <main className="wrap nf" style={{ flex: 1 }}>
+      <main id="main" className="wrap nf page-main">
         <div className="nf-code">404</div>
         <h1 className="h-display nf-title">Sahifa topilmadi</h1>
         <p className="nf-text">

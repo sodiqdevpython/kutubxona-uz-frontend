@@ -11,16 +11,16 @@ export function readiness(s: AdminSubmission): Readiness {
 }
 
 export const READINESS_LABEL: Record<Readiness, string> = {
-  ready: 'Tayyor', ai: "AI to'ldirdi", incomplete: "To'liqsiz",
+  ready: 'Tayyor', ai: "AI to‘ldirdi", incomplete: "To‘liqsiz",
 };
 
 export function readinessNote(s: AdminSubmission): string {
   switch (readiness(s)) {
-    case 'ready':      return "Metama'lumot to'liq — songa biriktirib tasdiqlash mumkin.";
-    case 'ai':         return "AI to'ldirgan maydonlarni tekshirib chiqing.";
+    case 'ready':      return "Metama’lumot to‘liq — songa biriktirib tasdiqlash mumkin.";
+    case 'ai':         return "AI to‘ldirgan maydonlarni tekshirib chiqing.";
     case 'incomplete': return s.source_file_url
-      ? "Metama'lumot to'liq emas. AI bilan to'ldiring yoki qo'lda kiriting."
-      : "Fayl yo'q — muallif faylni yubormagan.";
+      ? "Metama’lumot to‘liq emas. AI bilan to‘ldiring yoki qo‘lda kiriting."
+      : "Fayl yo‘q — muallif faylni yubormagan.";
   }
 }
 

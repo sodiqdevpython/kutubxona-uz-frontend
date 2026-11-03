@@ -3,6 +3,7 @@ import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import Seo from '../components/Seo';
+import { TELEGRAM_BOT_URL } from '../lib/config';
 
 /**
  * «Jurnal haqida» bo'limi — Figma'dagi 14–17-freymlar.
@@ -38,6 +39,7 @@ function AboutLayout({ title, children }: { title: string; children: React.React
       <Seo title={title} />
       <PageLoadBar />
       <Topbar active="about" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 30 }}>
         <nav className="crumbs">
@@ -49,7 +51,7 @@ function AboutLayout({ title, children }: { title: string; children: React.React
 
       <div className="wrap about-grid">
         {/* Bo'lim navigatsiyasi */}
-        <aside className="about-nav rsp-hide">
+        <aside className="about-nav">
           <div className="eyebrow" style={{ marginBottom: 12 }}>Jurnal haqida</div>
           {NAV.map(n => (
             <Link key={n.to} to={n.to} className={pathname === n.to ? 'active' : ''}>
@@ -65,7 +67,7 @@ function AboutLayout({ title, children }: { title: string; children: React.React
         </article>
 
         {/* Pasport */}
-        <aside className="about-side rsp-hide">
+        <aside className="about-side">
           <div className="side-card">
             <div className="side-card-title">Jurnal pasporti</div>
             {PASSPORT.map(([k, v, accent]) => (
@@ -88,6 +90,7 @@ function AboutLayout({ title, children }: { title: string; children: React.React
         </aside>
       </div>
 
+      </main>
       <Footer />
     </div>
   );
@@ -95,8 +98,8 @@ function AboutLayout({ title, children }: { title: string; children: React.React
 
 // ── Yordamchi bloklar ────────────────────────────────────────────────────────
 
-function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="h-display about-h2">{children}</h2>;
+function H2({ id, children }: { id?: string; children: React.ReactNode }) {
+  return <h2 id={id} className="h-display about-h2">{children}</h2>;
 }
 
 function NumList({ items }: { items: string[] }) {
@@ -143,6 +146,8 @@ export function AboutJournal() {
         nashr uchun ham, o‘qish uchun ham to‘lov olinmaydi. Har maqolaga DOI beriladi,
         PDF Milliy kutubxona serverlarida doimiy saqlanadi.
       </p>
+
+      <H2 id="indeksatsiya">Indeksatsiya</H2>
       <p>
         Jurnal O‘zbekiston Respublikasi OAK ro‘yxatiga kiritilgan; maqolalar Google
         Scholar va CyberLeninka bazalarida indekslanadi.
@@ -224,7 +229,7 @@ export function AboutPolicy() {
         muallif taqrizchini bilmaydi. O‘rtacha taqriz muddati — 21 kun.
       </p>
 
-      <H2>Taqriz bosqichlari</H2>
+      <H2 id="taqriz">Taqriz bosqichlari</H2>
       <NumList items={[
         'Tahririyat texnik tekshiruvi — qamrov, hajm va formatlash (3 ish kuni)',
         'Ikki mustaqil taqrizchiga yuborish',
@@ -233,7 +238,7 @@ export function AboutPolicy() {
         'Bosh muharrirning yakuniy qarori va songa kiritish',
       ]} />
 
-      <H2>Nashr etikasi</H2>
+      <H2 id="etika">Nashr etikasi</H2>
       <p>
         Jurnal COPE (Committee on Publication Ethics) tamoyillariga amal qiladi.
         Plagiat tekshiruvi barcha qo‘lyozmalar uchun majburiy; o‘xshashlik darajasi
@@ -259,13 +264,13 @@ export function AboutPolicy() {
 
 export function AboutGuide() {
   return (
-    <AboutLayout title="Mualliflar uchun qo&#8216;llanma">
+    <AboutLayout title="Mualliflar uchun qo‘llanma">
       <p className="about-lede">
         Qo‘lyozmani Telegram bot orqali yuboring. Tahririyat 3 ish kuni ichida qabulni
         tasdiqlaydi va taqrizga yo‘naltiradi.
       </p>
 
-      <H2>Qabul shartlari</H2>
+      <H2 id="qabul">Qabul shartlari</H2>
       <NumList items={[
         'Hajm 8–15 bet (adabiyotlar ro‘yxati bilan)',
         'Uch tilli annotatsiya: o‘zbek, rus va ingliz tillarida, 150–250 so‘z',
@@ -274,21 +279,21 @@ export function AboutGuide() {
         'Muallif ORCID identifikatorini ko‘rsatishi tavsiya etiladi',
       ]} />
 
-      <H2>Formatlash talablari</H2>
+      <H2 id="formatlash">Formatlash talablari</H2>
       <p>
         Fayl .docx yoki .pdf formatida. Asosiy matn Times New Roman 14 kegl, 1,5
-        interval; jadval va rasmlar matn ichida, nomlanган holda. Formulalar uchun
+        interval; jadval va rasmlar matn ichida, nomlangan holda. Formulalar uchun
         Microsoft Equation yoki MathType ishlatiladi.
       </p>
 
-      <H2>Yuborish</H2>
+      <H2 id="yuborish">Yuborish</H2>
       <p>
         Telegram botga faylni yuborasiz — bot sarlavha, mualliflar, annotatsiya va
         kalit so‘zlarni so‘raydi. Qabul qilingandan keyin holatni «Mening maqolalarim»
         bo‘limida kuzatib borasiz.
       </p>
       <p style={{ marginTop: 20 }}>
-        <a className="btn primary" href="https://t.me/journal_kutubxona_bot"
+        <a className="btn primary" href={TELEGRAM_BOT_URL}
           target="_blank" rel="noreferrer">
           Telegram bot orqali yuborish
         </a>

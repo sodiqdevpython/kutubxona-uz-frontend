@@ -8,12 +8,15 @@ import JournalCover from '../components/ui/JournalCover';
 import PdfViewer from '../components/ui/PdfViewer';
 import { isPdf, isDocx } from '../lib/file-kind';
 import CommentsSection from '../components/CommentsSection';
+import CitationBlock from '../components/article/CitationBlock';
+import NotFoundPage from './NotFoundPage';
 import AskAISection from '../components/article/AskAISection';
 import DocxViewer from '../components/article/DocxViewer';
 import MetaGrid from '../components/ui/MetaGrid';
-import Seo from '../components/Seo';
-import { articlesApi, type ApiArticle, type ApiArticleDetail } from '../lib/api';
-import { mediaUrl } from '../lib/config';
+import Seo, { type CitationMeta } from '../components/Seo';
+import { articlesApi, authorsLine, formatBytes, isRealDate, issueLabel, pageRange, type ApiArticle, type ApiArticleDetail } from '../lib/api';
+import { ISSN, JOURNAL_NAME, mediaUrl } from '../lib/config';
+import type { CitationData } from '../lib/citation';
 
 /**
  * Maqola sahifasi — Figma «Maqola detail» freymi.
@@ -25,10 +28,12 @@ import { mediaUrl } from '../lib/config';
 
 const SECTIONS = [
   { id: 'annotatsiya', label: 'Annotatsiya' },
-  { id: 'kalit',       label: "Kalit so‘zlar" },
-  { id: 'matn',        label: "To‘liq matn" },
+  { id: 'kalit',       label: 'Kalit so‘zlar' },
+  { id: 'matn',        label: 'To‘liq matn' },
+  { id: 'iqtibos',     label: 'Iqtibos keltirish' },
   { id: 'adabiyot',    label: 'Adabiyotlar' },
   { id: 'sharh',       label: 'Sharhlar' },
+  { id: 'oxshash',     label: 'O‘xshash maqolalar' },
 ];
 
 const DOI_RE = /\b(10\.\d{4,9}\/[^\s,;]+)/i;
@@ -50,7 +55,7 @@ export default function ArticleDetailPage() {
   const [failed,  setFailed]  = useState(false);
 
   const [copied, setCopied] = useState<string | null>(null);
-  const [active, setActive] = useState('annotatsiya');
+  const [active, setActive] = useState('');
   const [pdfPages, setPdfPages] = useState(0);   // PdfViewer'dan sahifalar soni
 
   // slug o'zgarsa — holat render vaqtida tozalanadi
@@ -62,15 +67,9 @@ export default function ArticleDetailPage() {
     articlesApi.detail(slug)
       .then(d => { setArticle(d); setLoading(false); })
       .catch(() => { setFailed(true); setLoading(false); });
-    // O'xshash maqolalar: kalit so'z bo'yicha topilmasa, so'nggilaridan olamiz
     articlesApi.related(slug)
-      .then(rs => {
-        if (rs.length) { setRelated(rs); return; }
-        return articlesApi.list({ page_size: '4' })
-          .then(d => setRelated(d.results.filter(x => x.slug !== slug).slice(0, 3)));
-      })
+      .then(setRelated)
       .catch(() => setRelated([]));
-    window.scrollTo({ top: 0 });
   }, [slug]);
 
   // Sahifa bo'ylab: qaysi bo'lim ko'rinib turibdi
@@ -93,17 +92,9 @@ export default function ArticleDetailPage() {
 
   const refs = useMemo(() => splitRefs(article?.references ?? ''), [article]);
 
-  // Annotatsiya: excerpt bo'sh bo'lsa maqola matnining boshidan olamiz
-  const abstract = useMemo(() => {
-    if (!article) return '';
-    if (article.excerpt?.trim()) return article.excerpt.trim();
-    const plain = (article.content || '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (plain.length < 80) return '';
-    return plain.slice(0, 520) + (plain.length > 520 ? '…' : '');
-  }, [article]);
+  // Annotatsiya faqat admin kiritgan bo'lsa ko'rinadi: `content` PDF'ning xom matni,
+  // undan olingan parcha annotatsiya emas (sarlavha, jurnal nomi, uzilgan so'zlar).
+  const abstract = article?.excerpt?.trim() ?? '';
   const refsWithDoi = refs.filter(r => DOI_RE.test(r)).length;
 
   function copy(text: string, tag: string) {
@@ -122,36 +113,60 @@ export default function ArticleDetailPage() {
     return (
       <div className="bg-detail" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="articles" />
+        <main id="main" className="page-main">
         <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        </main>
         <Footer />
       </div>
     );
   }
 
-  if (failed || !article) {
-    return (
-      <div className="bg-detail" style={{ minHeight: '100vh' }}>
-        <PageLoadBar /><Topbar active="articles" />
-        <div className="wrap">
-          <div className="state-box" style={{ marginTop: 40 }}>
-            Maqola topilmadi. <Link to="/articles" className="side-link">Barcha maqolalar →</Link>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  if (failed || !article) return <NotFoundPage />;
 
   const a = article;
   // Mixed Content'dan himoya: HTTPS sahifada http:// fayl bloklanadi
   const fileUrl = mediaUrl(a.source_file_url);
   const issue = a.issue;
+  const journal = issue?.journal_title ?? JOURNAL_NAME;
+  const authorNames = a.authors.length ? a.authors.map(x => x.name) : (a.author_names ?? []);
+  const year = issue?.year ?? a.year;
+  const pages = pageRange(a);
+  const pageCount = a.pages || (a.page_start && a.page_end ? a.page_end - a.page_start + 1 : 0);
+  const fileLabel = [a.file_kind?.toUpperCase(), pdfPages ? `${pdfPages} bet` : '', formatBytes(a.file_size)].filter(Boolean).join(' · ');
+  const hasText = Boolean(fileUrl || a.content);
+
+  const citationData: CitationData = {
+    title: a.title, authors: authorNames, journal, issn: ISSN, year,
+    number: issue?.number ?? null, pageStart: a.page_start, pageEnd: a.page_end,
+    doi: a.doi, url: window.location.origin + window.location.pathname, slug: a.slug,
+  };
+  const citationMeta: CitationMeta = [
+    ['citation_title', a.title],
+    ...authorNames.map((n): [string, string] => ['citation_author', n]),
+    ['citation_publication_date', String(year)],
+    ['citation_journal_title', journal],
+    ['citation_issn', ISSN],
+    ...(issue ? [['citation_issue', String(issue.number)] as [string, string]] : []),
+    ...(a.page_start ? [['citation_firstpage', String(a.page_start)] as [string, string]] : []),
+    ...(a.page_end ? [['citation_lastpage', String(a.page_end)] as [string, string]] : []),
+    ...(a.doi ? [['citation_doi', a.doi] as [string, string]] : []),
+    ...(isPdf(fileUrl) && fileUrl ? [['citation_pdf_url', fileUrl] as [string, string]] : []),
+  ];
+
+  // «Sahifa bo'ylab»da faqat sahifada bor bo'limlar
+  const present: Record<string, boolean> = {
+    annotatsiya: Boolean(abstract), kalit: a.keywords.length > 0, matn: hasText,
+    iqtibos: true, adabiyot: refs.length > 0, sharh: true, oxshash: related.length > 0,
+  };
 
   return (
     <div className="bg-detail" style={{ minHeight: '100vh' }}>
-      <Seo title={a.title} description={a.excerpt} image={a.image_url} />
+      <Seo title={a.title}
+        description={a.excerpt || `${authorNames.join(', ')}. ${journal}, ${issue ? `${issue.year}, № ${issue.number}` : a.year}.`}
+        image={mediaUrl(a.image_url ?? a.issue_cover_url)} citation={citationMeta} />
       <PageLoadBar />
       <Topbar active="articles" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 26 }}>
         <nav className="crumbs">
@@ -185,11 +200,18 @@ export default function ArticleDetailPage() {
                   <div>
                     <div className="detail-author-line">
                       <Link to={`/authors/${au.slug}`} className="detail-author-name">{au.name}</Link>
-                      {i === 0 && <span className="meta">mas’ul muallif</span>}
+                      {au.orcid && (
+                        <a className="orcid-link" href={`https://orcid.org/${au.orcid}`} target="_blank" rel="noreferrer">
+                          ORCID {au.orcid}
+                        </a>
+                      )}
+                      {i === 0 && a.authors.length > 1 && <span className="meta">mas’ul muallif</span>}
                     </div>
-                    <div className="detail-author-org">
-                      {au.org || 'Tashkilot ko‘rsatilmagan'}{au.role ? ` · ${au.role}` : ''}
-                    </div>
+                    {(au.org || au.role) && (
+                      <div className="detail-author-org">
+                        {[au.org, au.role].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -201,7 +223,6 @@ export default function ArticleDetailPage() {
                     <div className="detail-author-name" style={{ cursor: 'default' }}>
                       {a.author_names.join(', ')}
                     </div>
-                    <div className="detail-author-org">Profil biriktirilmagan</div>
                   </div>
                 </div>
               )}
@@ -209,11 +230,18 @@ export default function ArticleDetailPage() {
           )}
 
           <MetaGrid cells={[
-            ['Jurnal',       issue?.journal_title ?? 'Kutubxona'],
+            ['Jurnal',       journal],
             ['Yil / son',    issue ? `${issue.year} · № ${issue.number}` : String(a.year)],
-            ['Sahifalar',    a.pages > 0 ? `${a.pages} bet` : ''],
-            ['Nashr etildi', issue?.date_label || a.published_at || ''],
+            ['Sahifalar',    pages ? `${pages}${pageCount ? ` (${pageCount} bet)` : ''}` : (pageCount ? `${pageCount} bet` : '')],
+            ['UDK',          a.udk],
+            ['DOI',          a.doi ? (
+              <span className="meta-doi">
+                {a.doi}
+                <button className="meta-copy" onClick={() => copy(a.doi, 'doi')}>{copied === 'doi' ? 'nusxalandi ✓' : 'nusxalash'}</button>
+              </span>
+            ) : ''],
             ['Yo‘nalish',    a.category?.name ?? ''],
+            ['Nashr etildi', isRealDate(issue?.date_label) ? issue?.date_label ?? '' : ''],
             ['Statistika',   `${a.views.toLocaleString()} ko‘rish`],
           ]} />
 
@@ -242,16 +270,23 @@ export default function ArticleDetailPage() {
         </article>
 
         {/* ═══ O'ng ustun — faqat sarlavha qismi yonida (Figma), sahifa bo'ylab yopishmaydi ═══ */}
-        <aside className="detail-side rsp-hide">
+        <aside className="detail-side">
           <div className="side-card">
-            {!fileUrl && (
+            {hasText ? (
+              <button className="btn primary side-read" onClick={() => jump('matn')}>
+                <span>To‘liq matnni o‘qish</span>
+                {a.file_size ? <span className="side-read-size">{formatBytes(a.file_size)}</span> : null}
+              </button>
+            ) : (
               <div className="meta" style={{ padding: '6px 0 10px' }}>Fayl biriktirilmagan</div>
             )}
 
-            <button className="btn ghost sm" style={{ width: '100%' }}
-              onClick={() => copy(window.location.href, 'link')}>
-              {copied === 'link' ? 'Nusxalandi ✓' : 'Ulashish'}
-            </button>
+            <div className="side-actions">
+              <button className="btn ghost sm" onClick={() => jump('iqtibos')}>Iqtibos</button>
+              <button className="btn ghost sm" onClick={() => copy(window.location.href, 'link')}>
+                {copied === 'link' ? 'Nusxalandi ✓' : 'Ulashish'}
+              </button>
+            </div>
 
             <div className="dl-stats meta">
               <span>{a.views.toLocaleString()} ko‘rish</span>
@@ -262,25 +297,26 @@ export default function ArticleDetailPage() {
             <Link to={`/archive/${issue.id}`} className="side-card issue-card">
               <div className="issue-cover">
                 {issue.cover_image_url
-                  ? <img src={issue.cover_image_url} alt="" />
+                  ? <img src={mediaUrl(issue.cover_image_url) ?? undefined} alt={`${journal} № ${issue.number}, ${issue.year} muqovasi`} />
                   : <JournalCover palette={0} />}
               </div>
               <div>
                 <div className="eyebrow" style={{ marginBottom: 5 }}>Chiqqan son</div>
                 <div className="issue-name">
-                  {issue.journal_title ?? 'Kutubxona'} № {issue.number} · {issue.year}
+                  {journal} № {issue.number} · {issue.year}
                 </div>
-                <div className="meta">{issue.season || issue.date_label}</div>
+                {issue.season && <div className="meta">{issue.season.toLowerCase()}</div>}
               </div>
             </Link>
           )}
 
-          <div className="side-card">
+          <div className="side-card toc-card">
             <div className="side-card-title">Sahifa bo‘ylab</div>
             <nav className="toc">
-              {SECTIONS.map(s => (
+              {SECTIONS.filter(s => present[s.id]).map(s => (
                 <button key={s.id} className={active === s.id ? 'active' : ''} onClick={() => jump(s.id)}>
                   {s.label}
+                  {s.id === 'matn' && a.file_kind ? ` (${a.file_kind.toUpperCase()})` : ''}
                   {s.id === 'adabiyot' && refs.length > 0 && ` (${refs.length})`}
                 </button>
               ))}
@@ -291,10 +327,10 @@ export default function ArticleDetailPage() {
 
       {/* ═══ To'liq matn — butun kenglikda (Figma); keyin adabiyotlar va sharhlar chap ustun kengligida ═══ */}
       <div className="wrap detail-rest">
-          {(fileUrl || a.content) && (
+          {hasText && (
             <section id="matn" className="detail-section detail-full">
               <SectionHead title="To‘liq matn"
-                right={isPdf(fileUrl) ? (pdfPages ? `PDF · ${pdfPages} bet` : 'PDF') : isDocx(fileUrl) ? 'DOCX' : undefined} />
+                right={isPdf(fileUrl) || isDocx(fileUrl) ? fileLabel : undefined} />
               {isPdf(fileUrl) && fileUrl
                 ? <PdfViewer url={fileUrl} title={a.title} onInfo={i => setPdfPages(i.pages)} />
                 : a.content
@@ -304,6 +340,11 @@ export default function ArticleDetailPage() {
           )}
 
         <div className="detail-main">
+          <section id="iqtibos" className="detail-section">
+            <SectionHead title="Iqtibos keltirish" right="5 format · har biri nusxalanadi" />
+            <CitationBlock data={citationData} />
+          </section>
+
           {refs.length > 0 && (
             <section id="adabiyot" className="detail-section">
               <SectionHead title="Adabiyotlar"
@@ -341,14 +382,16 @@ export default function ArticleDetailPage() {
                 {related.slice(0, 3).map(r => (
                   <Link key={r.id} to={`/articles/${r.slug}`} className="rel-card">
                     <div className="rel-media">
-                      {r.image_url ? <img src={r.image_url} alt="" /> : <div className="home-featured-ph" />}
+                      {r.image_url || r.issue_cover_url
+                        ? <img src={mediaUrl(r.image_url ?? r.issue_cover_url) ?? undefined} alt={r.image_url ? r.title : `${issueLabel(r)} soni muqovasi`} loading="lazy" />
+                        : <div className="home-featured-ph" />}
                     </div>
                     <div className="rel-body">
                       {r.category && <span className="tag cat">{r.category.name}</span>}
                       <span className="rel-title">{r.title}</span>
-                      <span className="meta">{r.authors.map(x => x.name).join(', ') || r.author_label}</span>
+                      <span className="meta">{authorsLine(r)}</span>
                       <span className="rel-foot meta">
-                        <span>{r.year} · № {r.quarter}</span>
+                        <span>{issueLabel(r)}</span>
                         <span>{r.views.toLocaleString()}</span>
                       </span>
                     </div>
@@ -361,6 +404,7 @@ export default function ArticleDetailPage() {
 
       {a.ai_ready && <AskAISection slug={a.slug} />}
 
+      </main>
       <Footer />
     </div>
   );

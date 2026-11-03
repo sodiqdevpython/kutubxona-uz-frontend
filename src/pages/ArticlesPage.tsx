@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import Pagination from '../components/ui/Pagination';
-import { CheckIcon, SearchIcon } from '../components/ui/Icons';
+import { CheckIcon, ChevIcon, SearchIcon } from '../components/ui/Icons';
+import ArticleRow from '../components/article/ArticleRow';
 import { useFetch } from '../lib/hooks';
-import type { ApiArticle, ApiCategory, PaginatedResponse } from '../lib/api';
+import { type ApiArticle, type ApiFacets, type PaginatedResponse } from '../lib/api';
 import Seo from '../components/Seo';
 
 /**
@@ -19,70 +20,38 @@ const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 // ── Saralash (Figma: segmentli boshqaruv) ────────────────────────────────────
 type SortKey = 'new' | 'old' | 'views' | 'alpha';
 const SORT_OPTS: Record<SortKey, { label: string; param: string }> = {
-  new:   { label: 'Eng yangi',     param: '-issue__year,-issue__number,-published_at' },
-  old:   { label: 'Eng eski',      param: 'issue__year,issue__number,published_at' },
-  views: { label: "Ko'p o'qilgan", param: '-views' },
+  new:   { label: 'Eng yangi',     param: '-issue__year,-issue__number,page_start' },
+  old:   { label: 'Eng eski',      param: 'issue__year,issue__number,page_start' },
+  views: { label: "Ko‘p o‘qilgan", param: '-views' },
   alpha: { label: 'Alifbo',        param: 'title' },
 };
 
 const PAGE_SIZES = [20, 50, 100];
 
-const QUARTERS: [string, string][] = [
-  ['1-chorak', '1'], ['2-chorak', '2'], ['3-chorak', '3'], ['4-chorak', '4'],
-];
+// ── Filtr guruhi ─────────────────────────────────────────────────────────────
 
-/** Sarlavhadan tilni taxmin qilamiz — Figma'da har qatorda til kodi turadi. */
-const EN_WORDS = /\b(the|and|of|in|for|with|study|based|habits|among|research|analysis|libraries|digital|review|survey|case|data)\b/i;
+type FilterItem = [string, number | null, string];   // [nomi, soni, qiymati]
 
-function langCode(title: string): string {
-  if (/[а-яА-ЯёЁ]/.test(title)) {
-    return /[ўқғҳЎҚҒҲ]/.test(title) ? 'ЎЗ' : 'RU';
-  }
-  // O'zbek lotin belgilari yoki so'zlari — aniq o'zbekcha
-  if (/[‘’]|\b(va|bilan|uchun|haqida|asosida|qilish|tizim|kutubxona)/i.test(title)) return 'UZ';
-  return EN_WORDS.test(title) ? 'EN' : 'UZ';
-}
+const LANG_LABEL: Record<string, string> = {
+  uz: 'O‘zbek (lotin)', 'uz-cyrl': 'Ўзбек (кирилл)', ru: 'Русский', en: 'English',
+};
 
-// ── Bitta qator ──────────────────────────────────────────────────────────────
-
-function ArticleRow({ a, index }: { a: ApiArticle; index: number }) {
-  const navigate = useNavigate();
-  const authors = a.authors.length
-    ? a.authors.map(x => x.name).join(', ')
-    : (a.author_names ?? []).join(', ') || a.author_label;
-
+function FiltersSkeleton() {
   return (
-    <article className="art-row" onClick={() => navigate(`/articles/${a.slug}`)}>
-      <div className="art-row-num">{String(index).padStart(2, '0')}</div>
-
-      <div className="art-row-body">
-        <div className="art-row-tags">
-          {a.category && <span className="tag cat">{a.category.name}</span>}
-          <span className="tag ok">Ochiq kirish</span>
-          <span className="meta">{langCode(a.title)}</span>
+    <div aria-hidden="true">
+      {[0, 1, 2].map(g => (
+        <div key={g} className="filter-group">
+          <div className="sk sk-author" style={{ marginBottom: 12 }} />
+          {[0, 1, 2].map(r => <div key={r} className="sk sk-meta" style={{ marginBottom: 10 }} />)}
         </div>
-
-        <h3 className="art-row-title h-display">{a.title}</h3>
-
-        {authors && <div className="art-row-authors">{authors}</div>}
-      </div>
-
-      <div className="art-row-meta">
-        <span>{a.year} · №&nbsp;{a.quarter}</span>
-        {a.pages > 0 && <span>{a.pages}&nbsp;b.</span>}
-        <span>{a.views.toLocaleString()} ko‘rish</span>
-        <Link to={`/articles/${a.slug}`} className="art-row-pdf"
-          onClick={e => e.stopPropagation()}>O‘qish</Link>
-      </div>
-    </article>
+      ))}
+    </div>
   );
 }
 
-// ── Filtr guruhi ─────────────────────────────────────────────────────────────
-
 function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
   title: string;
-  items: [string, number | null, string][];   // [nomi, soni, qiymati]
+  items: FilterItem[];
   selected: string[];
   onToggle: (val: string) => void;
   limit?: number;
@@ -157,14 +126,20 @@ export default function ArticlesPage() {
   const [urlParams] = useSearchParams();
   const initialSearch = urlParams.get('search') ?? '';
 
-  const [selCats,     setSelCats]     = useState<string[]>([]);
+  // Boshqa sahifalardagi havolalar filtrni manzil orqali beradi (?categories=…&issues=…)
+  const listParam = (name: string) => (urlParams.get(name) ?? '').split(',').filter(Boolean);
+  const [selCats,     setSelCats]     = useState<string[]>(() => listParam('categories'));
   const [selYears,    setSelYears]    = useState<string[]>([]);
-  const [selQuarters, setSelQuarters] = useState<string[]>([]);
-  const [search,      setSearch]      = useState(initialSearch);
+  const [selIssues,   setSelIssues]   = useState<string[]>(() => listParam('issues'));
+  const [selLangs,    setSelLangs]    = useState<string[]>([]);
+  const [selKeywords, setSelKeywords] = useState<string[]>(() => listParam('keywords'));
+  const [search,     setSearch]      = useState(initialSearch);
   const [debouncedQ,  setDebouncedQ]  = useState(initialSearch);
   const [page,        setPage]        = useState(1);
   const [pageSize,    setPageSize]    = useState(20);
   const [sort,        setSort]        = useState<SortKey>('new');
+  // Bir ustunli ko'rinishda filtrlar yopiq turadi (keng ekranda CSS doim ko'rsatadi)
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedQ(search); setPage(1); }, 400);
@@ -173,6 +148,9 @@ export default function ArticlesPage() {
 
   useEffect(() => { setPage(1); }, [sort, pageSize]);
 
+  // Tepadagi qidiruv shu sahifada ham ishlaydi: manzildagi so'z o'zgarsa ro'yxat yangilanadi
+  useEffect(() => { setSearch(initialSearch); setDebouncedQ(initialSearch); }, [initialSearch]);
+
   const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>) =>
     (val: string) => {
       setter(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
@@ -180,7 +158,7 @@ export default function ArticlesPage() {
     };
 
   function clearAll() {
-    setSelCats([]); setSelYears([]); setSelQuarters([]);
+    setSelCats([]); setSelYears([]); setSelIssues([]); setSelLangs([]); setSelKeywords([]);
     setSearch(''); setDebouncedQ(''); setPage(1);
   }
 
@@ -189,39 +167,39 @@ export default function ArticlesPage() {
     const p = new URLSearchParams();
     if (selCats.length)     p.set('categories', selCats.join(','));
     if (selYears.length)    p.set('years',      selYears.join(','));
-    if (selQuarters.length) p.set('quarters',   selQuarters.join(','));
+    if (selIssues.length)   p.set('issues',     selIssues.join(','));
+    if (selLangs.length)    p.set('langs',      selLangs.join(','));
+    if (selKeywords.length) p.set('keywords',   selKeywords.join(','));
     if (debouncedQ.trim())  p.set('search',     debouncedQ.trim());
     p.set('ordering',  SORT_OPTS[sort].param);
     p.set('page',      String(page));
     p.set('page_size', String(pageSize));
     return `${BASE}/api/articles/?${p.toString()}`;
-  }, [selCats, selYears, selQuarters, debouncedQ, page, pageSize, sort]);
+  }, [selCats, selYears, selIssues, selLangs, selKeywords, debouncedQ, page, pageSize, sort]);
 
   const articlesState = useFetch<PaginatedResponse<ApiArticle>>(articlesUrl);
-  const catState      = useFetch<ApiCategory[]>(`${BASE}/api/categories/`);
-  const allState      = useFetch<PaginatedResponse<ApiArticle>>(`${BASE}/api/articles/?page_size=100`);
+  const facetState    = useFetch<ApiFacets>(`${BASE}/api/articles/facets/`);
 
   const articles   = articlesState.status === 'ok' ? articlesState.data.results : [];
   const totalCount = articlesState.status === 'ok' ? articlesState.data.count   : 0;
-  const categories = catState.status      === 'ok' ? catState.data              : [];
-  const allArticles = allState.status     === 'ok' ? allState.data.results      : [];
+  const facets     = facetState.status    === 'ok' ? facetState.data            : null;
 
   // Yillar ro'yxati — mavjud maqolalardan hisoblanadi
-  const yearItems = useMemo<[string, number | null, string][]>(() => {
-    const m = new Map<number, number>();
-    allArticles.forEach(a => m.set(a.year, (m.get(a.year) ?? 0) + 1));
-    return [...m.entries()].sort((x, y) => y[0] - x[0])
-      .map(([y, n]) => [String(y), n, String(y)]);
-  }, [allArticles]);
+  const yearItems = useMemo<FilterItem[]>(() =>
+    (facets?.years ?? []).map(y => [String(y.value), y.count, String(y.value)]), [facets]);
 
-  const quarterItems = useMemo<[string, number | null, string][]>(() => {
-    const m = new Map<number, number>();
-    allArticles.forEach(a => m.set(a.quarter, (m.get(a.quarter) ?? 0) + 1));
-    return QUARTERS.map(([label, val]) => [label, m.get(Number(val)) ?? 0, val]);
-  }, [allArticles]);
+  // Sonlar ro'yxati — yangisi tepada
+  const issueItems = useMemo<FilterItem[]>(() =>
+    (facets?.issues ?? []).map(i => [`${i.year} · №\u00A0${i.number}`, i.count, i.id]), [facets]);
 
-  const catItems: [string, number | null, string][] =
-    categories.map(c => [c.name, c.article_count, c.slug]);
+  const catItems = useMemo<FilterItem[]>(() =>
+    (facets?.categories ?? []).map(c => [c.name, c.count, c.slug]), [facets]);
+
+  const langItems = useMemo<FilterItem[]>(() =>
+    (facets?.languages ?? []).map(l => [LANG_LABEL[l.code] ?? l.code, l.count, l.code]), [facets]);
+
+  const keywordItems = useMemo<FilterItem[]>(() =>
+    (facets?.keywords ?? []).map(k => [k.name, k.count, k.slug]), [facets]);
 
   // Faol filtrlar — Figma'da ro'yxat tepasida chiplar qatori bo'lib chiqadi
   const activeChips = useMemo(() => {
@@ -229,28 +207,36 @@ export default function ArticlesPage() {
     selYears.forEach(y => out.push({
       key: 'y' + y, label: y, remove: () => toggle(setSelYears)(y),
     }));
-    selQuarters.forEach(q => {
-      const lbl = QUARTERS.find(([, v]) => v === q)?.[0] ?? q;
-      out.push({ key: 'q' + q, label: lbl, remove: () => toggle(setSelQuarters)(q) });
+    selIssues.forEach(id => {
+      const lbl = issueItems.find(x => x[2] === id)?.[0] ?? id;
+      out.push({ key: 'i' + id, label: lbl, remove: () => toggle(setSelIssues)(id) });
     });
     selCats.forEach(c => {
-      const lbl = categories.find(x => x.slug === c)?.name ?? c;
+      const lbl = catItems.find(x => x[2] === c)?.[0] ?? c;
       out.push({ key: 'c' + c, label: lbl, remove: () => toggle(setSelCats)(c) });
+    });
+    selLangs.forEach(l => {
+      out.push({ key: 'l' + l, label: LANG_LABEL[l] ?? l, remove: () => toggle(setSelLangs)(l) });
+    });
+    selKeywords.forEach(k => {
+      const lbl = keywordItems.find(x => x[2] === k)?.[0] ?? k;
+      out.push({ key: 'k' + k, label: lbl, remove: () => toggle(setSelKeywords)(k) });
     });
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selYears, selQuarters, selCats, categories]);
+  }, [selYears, selIssues, selCats, selLangs, selKeywords, catItems, issueItems, keywordItems]);
 
-  const years = yearItems.map(y => Number(y[0]));
+  const years = (facets?.years ?? []).map(y => y.value);
   const yearRange = years.length ? `${Math.min(...years)}–${Math.max(...years)}` : '';
   const from = (page - 1) * pageSize + 1;
   const to   = Math.min(page * pageSize, totalCount);
 
   return (
     <div className="bg-articles" style={{ minHeight: '100vh' }}>
-      <Seo title="Maqolalar" description="Barcha ilmiy maqolalar — yo'nalish, yil, chorak bo'yicha filtrlash va qidirish." />
+      <Seo title="Maqolalar" description="Barcha ilmiy maqolalar — yo‘nalish, yil, jurnal soni bo‘yicha filtrlash va qidirish." />
       <PageLoadBar />
       <Topbar active="articles" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 30 }}>
         {/* Non-pon */}
@@ -289,7 +275,7 @@ export default function ArticlesPage() {
 
       {/* ── Asosiy: filtr + ro'yxat ── */}
       <div className="wrap articles-grid">
-        <aside className="filters rsp-hide">
+        <aside className="filters" data-open={filtersOpen ? 'on' : undefined}>
           <div className="filters-head">
             <span className="eyebrow">Filtrlar</span>
             <button onClick={clearAll} className={activeChips.length ? 'on' : ''}>Tozalash</button>
@@ -297,7 +283,8 @@ export default function ArticlesPage() {
 
           <div className="searchbar" style={{ marginBottom: 20 }}>
             <SearchIcon size={13} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input id="search" value={search} onChange={e => setSearch(e.target.value)}
+              aria-label="Ro‘yxat ichidan qidirish"
               placeholder="Ro‘yxat ichidan qidirish" style={{ fontSize: 13 }} />
             {search && (
               <button onClick={() => setSearch('')}
@@ -305,16 +292,34 @@ export default function ArticlesPage() {
             )}
           </div>
 
+          <button className="filters-toggle" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(o => !o)}>
+            <span>Filtrlar{activeChips.length ? ` (${activeChips.length})` : ''}</span>
+            <ChevIcon size={12} style={{ transform: 'rotate(90deg)', transition: 'transform .15s' }} />
+          </button>
+
+          <div className="filters-body">
+          {!facets && <FiltersSkeleton />}
           {yearItems.length > 0 && (
             <FilterGroup title="Yil" items={yearItems}
               selected={selYears} onToggle={toggle(setSelYears)} />
           )}
-          <FilterGroup title="Chorak" items={quarterItems}
-            selected={selQuarters} onToggle={toggle(setSelQuarters)} />
+          {issueItems.length > 0 && (
+            <FilterGroup title="Son" items={issueItems}
+              selected={selIssues} onToggle={toggle(setSelIssues)} />
+          )}
           {catItems.length > 0 && (
             <FilterGroup title="Yo‘nalish" items={catItems}
               selected={selCats} onToggle={toggle(setSelCats)} />
           )}
+          {langItems.length > 0 && (
+            <FilterGroup title="Til" items={langItems}
+              selected={selLangs} onToggle={toggle(setSelLangs)} />
+          )}
+          {keywordItems.length > 0 && (
+            <FilterGroup title="Kalit so‘z" items={keywordItems}
+              selected={selKeywords} onToggle={toggle(setSelKeywords)} />
+          )}
+          </div>
         </aside>
 
         {/* Ro'yxat */}
@@ -384,6 +389,7 @@ export default function ArticlesPage() {
         </div>
       </div>
 
+      </main>
       <Footer />
     </div>
   );

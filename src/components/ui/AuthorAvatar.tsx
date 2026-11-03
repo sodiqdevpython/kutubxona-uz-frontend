@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 /**
  * Muallif avatari — Figma: och doira ichida serif bosh harflar.
  * Har uchinchi muallif to'q sariq halqada, qolganlari kulrang.
@@ -23,14 +25,17 @@ interface Props {
 
 export default function AuthorAvatar({ name = '?', size = 32, idx = 0, src, alt }: Props) {
   const v = VARIANTS[idx % VARIANTS.length];
+  // Rasm yuklanmasa bo'sh doira emas, bosh harflar chiqadi
+  const [broken, setBroken] = useState(false);
   const fontSize = size <= 22 ? 9 : size <= 28 ? 10.5 : size <= 36 ? 12.5 : size <= 56 ? 17 : 28;
   const border = size <= 28 ? 1 : 1.5;
 
-  if (src) {
+  if (src && !broken) {
     return (
       <img
         src={src}
         alt={alt ?? name}
+        onError={() => setBroken(true)}
         loading="lazy"
         className="avatar"
         style={{

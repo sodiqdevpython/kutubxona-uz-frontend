@@ -69,10 +69,10 @@ export default function AdminSubmissionDetailPage() {
   async function runAi() {
     if (!sub) return;
     const status = await getAiStatus();
-    if (!status.available) { setAiOff({ action: "AI to'ldirish", reason: status.reason }); return; }
+    if (!status.available) { setAiOff({ action: "AI to‘ldirish", reason: status.reason }); return; }
     setAiBusy(true);
     try { const u = await adminApi.submissions.aiExtract(sub.id); setSub(u); setForm(toForm(u)); flash('✦ AI to‘ldirdi — maydonlarni tekshiring.'); }
-    catch (e) { if (isAiUnavailableError(e)) { resetAiStatus(); setAiOff({ action: "AI to'ldirish" }); } else flash(`AI xatosi: ${(e as Error).message}`); }
+    catch (e) { if (isAiUnavailableError(e)) { resetAiStatus(); setAiOff({ action: "AI to‘ldirish" }); } else flash(`AI xatosi: ${(e as Error).message}`); }
     finally { setAiBusy(false); }
   }
 
@@ -186,7 +186,7 @@ export default function AdminSubmissionDetailPage() {
               <div className="det-author-row">
                 <span className="ava">{sub.author?.avatar_url ? <img src={mediaUrl(sub.author.avatar_url) ?? undefined} alt="" /> : initialsOf(authorName)}</span>
                 <div>
-                  <div className="det-author-name">{authorName || "Noma'lum muallif"}</div>
+                  <div className="det-author-name">{authorName || "Noma’lum muallif"}</div>
                   <div className="det-author-role">{authorSub}</div>
                 </div>
               </div>

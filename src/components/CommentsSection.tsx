@@ -56,9 +56,9 @@ function CommentItem({
           </button>
           {isAdmin && (
             <button onClick={() => onDelete(c)}
-              title="Sharhni o'chirish"
+              title="Sharhni o‘chirish"
               style={{ background: 'none', border: 0, padding: 0, fontSize: 11.5, color: '#DC2626', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
-              🗑 O'chirish
+              🗑 O‘chirish
             </button>
           )}
         </div>
@@ -100,12 +100,12 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
   }
 
   async function handleDelete(c: ApiComment) {
-    if (!confirm(`Sharhni o'chirasizmi?\n\n"${c.text.slice(0, 80)}${c.text.length > 80 ? '…' : ''}"`)) return;
+    if (!confirm(`Sharhni o‘chirasizmi?\n\n"${c.text.slice(0, 80)}${c.text.length > 80 ? '…' : ''}"`)) return;
     try {
       await commentsApi.remove(c.id);
       setComments(prev => removeFromTree(prev, c.id));
     } catch (e) {
-      alert(`O'chirib bo'lmadi: ${(e as Error).message}`);
+      alert(`O‘chirib bo‘lmadi: ${(e as Error).message}`);
     }
   }
 
@@ -141,11 +141,11 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
   async function submit() {
     setError('');
     const trimmed = text.trim();
-    if (!trimmed) { setError("Sharh matni bo'sh bo'lmasligi kerak."); return; }
+    if (!trimmed) { setError("Sharh matni bo‘sh bo‘lmasligi kerak."); return; }
     setSending(true);
     try {
       const body: { article?: string; issue?: string; name: string; text: string; parent?: string } = {
-        name:    name.trim() || "Anonim o'quvchi",
+        name:    name.trim() || "Anonim o‘quvchi",
         text:    trimmed,
       };
       if (articleId) body.article = articleId;
@@ -171,10 +171,10 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
   const charCount = text.length;
 
   return (
-    <section style={{ padding: '72px var(--px) 96px', maxWidth: 1340, margin: '0 auto' }}>
+    <section>
       <header style={{ display: 'flex', alignItems: 'end', marginBottom: 28, paddingBottom: 18, borderBottom: '1px solid var(--line)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          <h2 className="h-display" style={{ fontSize: 32 }}>Sharhlar</h2>
+          <h2 className="h-display" style={{ fontSize: 26 }}>Sharhlar</h2>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 13, background: 'var(--grey-2)', color: 'var(--ink-3)', padding: '4px 10px', borderRadius: 4, fontWeight: 600 }}>{total}</span>
         </div>
       </header>
@@ -205,13 +205,13 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
               <textarea
                 ref={textareaRef}
                 value={text} onChange={e => setText(e.target.value)} maxLength={1200}
-                placeholder={replyTo ? "Javobingizni yozing…" : "Sharhingizni yozing — ro'yxatdan o'tish shart emas…"}
+                placeholder={replyTo ? "Javobingizni yozing…" : "Sharhingizni yozing — ro‘yxatdan o‘tish shart emas…"}
                 style={{ width: '100%', minHeight: 64, border: 0, outline: 0, background: 'transparent', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', resize: 'vertical', padding: 0, lineHeight: 1.5 }} />
             </div>
           </div>
 
           <div className="comment-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 200 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
               <div className="field" style={{ height: 34, padding: '0 10px', maxWidth: 220, flex: 1 }}>
                 <input value={name} onChange={e => setName(e.target.value)}
                   placeholder="Ismingiz (ixtiyoriy)"
@@ -220,7 +220,7 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
               </div>
               {!name.trim() && (
                 <span style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>
-                  → "Anonim o'quvchi" sifatida
+                  → "Anonim o‘quvchi" sifatida
                 </span>
               )}
             </div>
@@ -246,7 +246,7 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
       ) : comments.length === 0 ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
-          Hali sharh yo'q.
+          Hali sharh yo‘q.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>

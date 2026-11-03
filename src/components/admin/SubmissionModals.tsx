@@ -157,8 +157,8 @@ export function ApproveModal({ sub, categories, issues, onAddCategory, onDone, o
 const REJECT_TEMPLATES: { label: string; text: string }[] = [
   { label: 'Qamrovga mos emas',          text: "Maqola mavzusi jurnalning ilmiy qamroviga (kutubxonashunoslik, axborot-kutubxona texnologiyalari) mos kelmaydi." },
   { label: 'Metodika yetarli emas',      text: "Tadqiqot metodikasi va natijalarning asoslanishi yetarli emas. Tahlil qismini kengaytirib, manbalar bilan mustahkamlab qayta yuboring." },
-  { label: 'Rasmiylashtirish talablari', text: "Maqola jurnalning rasmiylashtirish talablariga (annotatsiya, kalit so'zlar, adabiyotlar ro'yxati, UDK) javob bermaydi. Qo'llanmaga muvofiq tuzatib qayta yuboring." },
-  { label: 'Plagiat aniqlandi',          text: "Tekshiruv natijasida boshqa manbalar bilan sezilarli o'xshashlik aniqlandi. Matnni qayta ishlab, iqtiboslarni to'g'ri rasmiylashtirib qayta yuboring." },
+  { label: 'Rasmiylashtirish talablari', text: "Maqola jurnalning rasmiylashtirish talablariga (annotatsiya, kalit so‘zlar, adabiyotlar ro‘yxati, UDK) javob bermaydi. Qo‘llanmaga muvofiq tuzatib qayta yuboring." },
+  { label: 'Plagiat aniqlandi',          text: "Tekshiruv natijasida boshqa manbalar bilan sezilarli o‘xshashlik aniqlandi. Matnni qayta ishlab, iqtiboslarni to‘g‘ri rasmiylashtirib qayta yuboring." },
 ];
 
 export function RejectModal({ sub, onDone, onClose }: {

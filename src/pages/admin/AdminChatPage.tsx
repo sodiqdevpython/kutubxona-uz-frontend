@@ -5,6 +5,7 @@ import AuthorAvatar from '../../components/ui/AuthorAvatar';
 import { adminApi, type AdminAuthorDetail, type AdminChat, type ChatMessage } from '../../lib/admin-api';
 import { connectAdminChat, type ChatEvent, type ChatSocketStatus } from '../../lib/chat-socket';
 import { mediaUrl } from '../../lib/config';
+import { foldText } from '../../lib/search';
 
 /**
  * Xabarlar — Figma «Xabarlar»: chapda suhbatlar (filtr, qidiruv), o'rtada suhbat
@@ -20,9 +21,9 @@ const PAGE_LIMIT = 20;
 const POLL_MS = 8000;
 type Filter = 'all' | 'waiting' | 'closed';
 const QUICK: { label: string; text: string }[] = [
-  { label: 'Taqrizga yuborildi', text: "Assalomu alaykum! Maqolangiz taqrizga yuborildi. Xulosa 21 kun ichida bo'ladi." },
-  { label: 'Tuzatish kerak',     text: "Maqolangizda tuzatish talab qilinadi: adabiyotlar ro'yxati va annotatsiyani jurnal talablariga moslab qayta yuboring." },
-  { label: 'Shablonni yuborish', text: "Maqolani jurnal shabloniga muvofiq rasmiylashtiring — qo'llanma: journalkutubxona.uz/about/guide" },
+  { label: 'Taqrizga yuborildi', text: "Assalomu alaykum! Maqolangiz taqrizga yuborildi. Xulosa 21 kun ichida bo‘ladi." },
+  { label: 'Tuzatish kerak',     text: "Maqolangizda tuzatish talab qilinadi: adabiyotlar ro‘yxati va annotatsiyani jurnal talablariga moslab qayta yuboring." },
+  { label: 'Shablonni yuborish', text: "Maqolani jurnal shabloniga muvofiq rasmiylashtiring — qo‘llanma: journalkutubxona.uz/about/guide" },
 ];
 
 const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
@@ -144,9 +145,9 @@ export default function AdminChatPage() {
 
   const counts = useMemo(() => ({ all: chats.length, waiting: chats.filter(c => c.unread_count > 0).length, closed: chats.filter(c => c.unread_count === 0).length }), [chats]);
   const list = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = foldText(search.trim());
     return chats.filter(c => (filter === 'all' || (filter === 'waiting' ? c.unread_count > 0 : c.unread_count === 0))
-      && (!q || c.author_name.toLowerCase().includes(q) || c.telegram_username.toLowerCase().includes(q)));
+      && (!q || foldText(c.author_name).includes(q) || foldText(c.telegram_username).includes(q)));
   }, [chats, filter, search]);
 
   async function toggleBlock() { if (!activeChat) return; try { const r = await adminApi.chat.toggleBlock(activeChat.id); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, is_blocked: r.is_blocked } : c))); } catch (e) { flash(`Xatolik: ${(e as Error).message}`); } setMenu(false); }
@@ -159,7 +160,7 @@ export default function AdminChatPage() {
 
   return (
     <AdminShell active="chat" crumb="Xabarlar">
-      <div className="ch-wrap">
+      <div className={`ch-wrap${activeChat ? ' has-chat' : ''}`}>
         {/* ── Chap: suhbatlar ── */}
         <div className="ch-list">
           <div className="ch-filters">
@@ -193,7 +194,8 @@ export default function AdminChatPage() {
           {!activeChat ? <div className="ch-empty">Suhbat tanlang</div> : (
             <Conversation chat={activeChat} msgs={msgs} wsStatus={wsStatus} menu={menu} setMenu={setMenu}
               onSent={m => { setMsgs(p => (p.some(x => x.id === m.id) ? p : [...p, m])); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, last_message_at: m.created_at, last_message: { text: m.text, kind: m.kind, sender: 'admin', created_at: m.created_at } } : c))); }}
-              onBlock={toggleBlock} onDelete={removeChat} onClose={markClosed} author={author} />
+              onBlock={toggleBlock} onDelete={removeChat} onClose={markClosed} author={author}
+              onBack={() => { setActiveId(null); setMenu(false); setParams(prev => { prev.delete('chat'); return prev; }, { replace: true }); }} />
           )}
         </div>
 
@@ -235,9 +237,9 @@ export default function AdminChatPage() {
 
 // ── Suhbat oynasi ─────────────────────────────────────────────────────────────
 
-function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, onDelete, onClose, author }: {
+function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, onDelete, onClose, author, onBack }: {
   chat: AdminChat; msgs: ChatMessage[]; wsStatus: ChatSocketStatus; menu: boolean; setMenu: (v: boolean) => void;
-  onSent: (m: ChatMessage) => void; onBlock: () => void; onDelete: () => void; onClose: () => void; author: AdminAuthorDetail | null;
+  onSent: (m: ChatMessage) => void; onBlock: () => void; onDelete: () => void; onClose: () => void; author: AdminAuthorDetail | null; onBack: () => void;
 }) {
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -262,6 +264,7 @@ function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, on
   return (
     <>
       <div className="ch-head">
+        <button className="ch-back" onClick={onBack} aria-label="Suhbatlar ro‘yxatiga qaytish">‹</button>
         <AuthorAvatar name={chat.author_initials} idx={chat.author_avatar_idx} src={mediaUrl(author?.avatar_url)} size={40} />
         <div style={{ minWidth: 0 }}>
           <div className="nm">{chat.author_name}</div>

@@ -127,7 +127,7 @@ export default function AdminIssueDetailPage() {
                   <div><label className="f-label"><span>DOI suffiksi</span></label><input className="f-input mono" value={issue.doi_suffix} readOnly /></div>
                   <div><label className="f-label"><span>Holat</span></label><select className="f-select" value={form.is_upcoming ? 'draft' : 'pub'} onChange={e => setForm({ ...form, is_upcoming: e.target.value === 'draft' })}><option value="pub">Nashr etilgan</option><option value="draft">Qoralama</option></select></div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
+                <div className="f-grid-1-2" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
                   <div><label className="f-label"><span>Bosh muharrir</span></label><input className="f-input" value={form.editor_name} onChange={e => setForm({ ...form, editor_name: e.target.value })} placeholder="f.f.d. N. Qodirova" /></div>
                   <div><label className="f-label"><span>Tahririyat so‘zi (son sahifasida)</span></label><textarea className="f-textarea" rows={2} style={{ minHeight: 44 }} value={form.editorial_note} onChange={e => setForm({ ...form, editorial_note: e.target.value })} /></div>
                 </div>

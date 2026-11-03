@@ -5,9 +5,11 @@ import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
 import MetaGrid from '../components/ui/MetaGrid';
-import { issuesApi, type ApiIssueDetail } from '../lib/api';
-import { mediaUrl } from '../lib/config';
+import PdfViewer from '../components/ui/PdfViewer';
+import { formatBytes, isRealDate, issuesApi, type ApiIssueDetail } from '../lib/api';
+import { ISSN, JOURNAL_NAME, mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
+import NotFoundPage from './NotFoundPage';
 
 /**
  * Son sahifasi — Figma «Jurnal arxiv detail» freymi.
@@ -25,6 +27,8 @@ export default function IssueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [issue,   setIssue]   = useState<ApiIssueDetail | null>(null);
   const [loading, setLoading] = useState(!!id);
+  // To'liq son PDF'i og'ir — faqat so'ralganda yuklanadi (havolada #pdf bo'lsa darhol)
+  const [showPdf, setShowPdf] = useState(window.location.hash === '#pdf');
 
   // id o'zgarsa — holat render vaqtida yangilanadi
   const [seenId, setSeenId] = useState(id);
@@ -32,13 +36,15 @@ export default function IssueDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    window.scrollTo({ top: 0 });
     issuesApi.detail(id)
       .then(d => { setIssue(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, [id]);
 
-  const journal = issue?.journal_title ?? 'Kutubxona';
+  const journal = issue?.journal_title ?? JOURNAL_NAME;
+  const pdfUrl  = mediaUrl(issue?.pdf_file_url);
+  const hasPages = issue?.sections.some(s => s.page_start) ?? false;
+  const hasRubrics = issue?.sections.some(s => s.category) ?? false;
   const cover   = mediaUrl(issue?.cover_image_url);
   const totalArts = issue?.sections.reduce((n, s) => n + s.articles.length, 0) ?? 0;
 
@@ -46,24 +52,14 @@ export default function IssueDetailPage() {
     return (
       <div className="bg-detail" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="archive" />
+        <main id="main" className="page-main">
         <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        </main>
         <Footer />
       </div>
     );
   }
-  if (!issue) {
-    return (
-      <div className="bg-detail" style={{ minHeight: '100vh' }}>
-        <PageLoadBar /><Topbar active="archive" />
-        <div className="wrap">
-          <div className="state-box" style={{ marginTop: 40 }}>
-            Son topilmadi. <Link to="/archive" className="side-link">Arxivga qaytish →</Link>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  if (!issue) return <NotFoundPage />;
 
   return (
     <div className="bg-detail" style={{ minHeight: '100vh' }}>
@@ -72,6 +68,7 @@ export default function IssueDetailPage() {
         image={cover} />
       <PageLoadBar />
       <Topbar active="archive" />
+      <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 26 }}>
         <nav className="crumbs">
@@ -87,8 +84,13 @@ export default function IssueDetailPage() {
         {/* Muqova + oldingi/keyingi */}
         <div className="issue-cover-col">
           <div className="issue-cover-big">
-            {cover ? <img src={cover} alt="" /> : <JournalCover palette={issue.palette} />}
+            {cover ? <img src={cover} alt={`${journal} № ${issue.number}, ${issue.year} muqovasi`} /> : <JournalCover palette={issue.palette} />}
           </div>
+          {cover && (
+            <a className="ic-btn issue-cover-dl" href={cover} download target="_blank" rel="noreferrer">
+              Muqova rasmini yuklash
+            </a>
+          )}
           <div className="issue-nav">
             {issue.prev_issue
               ? <Link to={`/archive/${issue.prev_issue.id}`} className="ic-btn">← № {issue.prev_issue.number} · {issue.prev_issue.year}</Link>
@@ -114,11 +116,11 @@ export default function IssueDetailPage() {
 
           {/* e-ISSN va DOI prefiks hali rasmiylashtirilmagan — ko'rsatilmaydi; bo'sh kataklar tushib qoladi */}
           <MetaGrid className="issue-meta" cells={[
-            ['Chiqarilgan sana', issue.date_label],
+            ['Chiqarilgan sana', isRealDate(issue.date_label) ? issue.date_label : ''],
             ['Maqolalar',        totalArts ? `${totalArts} ta` : ''],
             ['Hajm',             issue.total_pages ? `${issue.total_pages} bet` : ''],
             ['Davriylik',        'Choraklik'],
-            ['ISSN',             issue.issn],
+            ['ISSN',             issue.issn || ISSN],
             ['Tillar',           issue.languages.join(' · ')],
           ]} />
 
@@ -131,10 +133,16 @@ export default function IssueDetailPage() {
               )}
             </div>
           )}
+
+          {pdfUrl && !showPdf && (
+            <button className="btn primary" style={{ marginTop: 22 }} onClick={() => setShowPdf(true)}>
+              Butun sonni o‘qish{issue.pdf_size ? ` · ${formatBytes(issue.pdf_size)}` : ''}
+            </button>
+          )}
         </div>
 
         {/* Yon karta */}
-        <aside className="issue-side rsp-hide">
+        <aside className="issue-side">
           <div className="side-card">
             <div className="side-card-title">Son haqida</div>
             <div className="issue-facts">
@@ -158,6 +166,16 @@ export default function IssueDetailPage() {
         </aside>
       </div>
 
+      {pdfUrl && showPdf && (
+        <section id="pdf" className="wrap" style={{ paddingTop: 44 }}>
+          <div className="detail-head" style={{ marginBottom: 18 }}>
+            <h2 className="h-display" style={{ fontSize: 28 }}>Butun son</h2>
+            {issue.pdf_size ? <span className="meta">PDF · {formatBytes(issue.pdf_size)}</span> : null}
+          </div>
+          <PdfViewer url={pdfUrl} title={`${journal} № ${issue.number}`} />
+        </section>
+      )}
+
       {/* ═══ Mundarija ═══ */}
       <div className="wrap" style={{ paddingTop: 44, paddingBottom: 72 }}>
         <div className="detail-head" style={{ marginBottom: 22 }}>
@@ -165,32 +183,40 @@ export default function IssueDetailPage() {
             Mundarija
             <span className="meta">{totalArts} maqola{issue.total_pages ? ` · ${issue.total_pages} bet` : ''}</span>
           </h2>
-          <span className="meta">Yo‘nalishlar bo‘yicha guruhlangan · sahifa raqamlari jurnaldagidek</span>
+          {(hasRubrics || hasPages) && (
+            <span className="meta">
+              {[hasRubrics && 'Rubrikalar bo‘yicha guruhlangan', hasPages && 'sahifa raqamlari jurnaldagidek'].filter(Boolean).join(' · ')}
+            </span>
+          )}
         </div>
 
         {issue.sections.length === 0 && (
           <div className="state-box">Bu songa hali maqola kiritilmagan.</div>
         )}
 
-        {issue.sections.map(sec => (
-          <section key={sec.category} className="toc-section">
-            <div className="toc-section-head">
-              <span className="eyebrow accent">{sec.category}</span>
-              <span className="rule" />
-              {pageRange(sec.page_start, sec.page_end) && (
-                <span className="meta">{pageRange(sec.page_start, sec.page_end)} b.</span>
-              )}
-            </div>
+        {issue.sections.map((sec, index) => (
+          <section key={index} className="toc-section">
+            {sec.category && (
+              <div className="toc-section-head">
+                <span className="eyebrow accent">{sec.category}</span>
+                <span className="rule" />
+                {pageRange(sec.page_start, sec.page_end) && (
+                  <span className="meta">{pageRange(sec.page_start, sec.page_end)} b.</span>
+                )}
+              </div>
+            )}
 
             <div className="toc-table">
               {sec.articles.map(a => (
                 <Link key={a.id} to={`/articles/${a.slug}`} className="toc-row">
                   <div className="toc-thumb">
-                    {a.image_url ? <img src={mediaUrl(a.image_url) ?? undefined} alt="" /> : <div className="home-featured-ph" />}
+                    {a.image_url || cover
+                      ? <img src={mediaUrl(a.image_url) ?? cover ?? undefined} alt={a.image_url ? a.title : `${journal} № ${issue.number} muqovasi`} loading="lazy" />
+                      : <div className="home-featured-ph" />}
                   </div>
                   <div className="toc-body">
                     <div className="toc-title">{a.title}</div>
-                    <div className="meta">{a.views.toLocaleString()} ko‘rish</div>
+                    <div className="meta">{a.doi || `${a.views.toLocaleString()} ko‘rish`}</div>
                   </div>
                   <div className="toc-author">{a.authors.join(', ')}</div>
                   <div className="toc-pages meta">{pageRange(a.page_start, a.page_end)}</div>
@@ -201,6 +227,7 @@ export default function IssueDetailPage() {
         ))}
       </div>
 
+      </main>
       <Footer />
     </div>
   );

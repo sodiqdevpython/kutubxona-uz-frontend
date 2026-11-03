@@ -1,12 +1,16 @@
 import { useEffect } from 'react';
 
+/** Google Scholar teglari: [nom, qiymat] — bir nom bir necha marta kelishi mumkin (citation_author). */
+export type CitationMeta = [string, string][];
+
 interface Props {
   title?: string;
   description?: string;
   image?: string | null;
+  citation?: CitationMeta;
 }
 
-const SITE = 'Kutubxona Archive';
+const SITE = 'Kutubxona.uz';
 
 function setMeta(name: string, content: string, useProperty = false) {
   const attr = useProperty ? 'property' : 'name';
@@ -33,12 +37,12 @@ function setCanonical(url: string) {
  * SEO meta-teglarni har sahifa o'zgarganda yangilab turadi.
  * Sarlavha, description, Open Graph (FB/Telegram preview), Twitter card.
  */
-export default function Seo({ title, description, image }: Props) {
+export default function Seo({ title, description, image, citation }: Props) {
   useEffect(() => {
     const fullTitle = title ? `${title} — ${SITE}` : SITE;
     document.title = fullTitle;
 
-    const desc = description?.slice(0, 200) ?? `${SITE} — O'zbekiston ilmiy maqolalar arxivi.`;
+    const desc = description?.slice(0, 200) || `${SITE} — O‘zbekiston ilmiy maqolalar arxivi.`;
     const url = window.location.href;
 
     setMeta('description', desc);
@@ -58,6 +62,16 @@ export default function Seo({ title, description, image }: Props) {
     if (image) setMeta('twitter:image', image);
 
     setCanonical(url);
+
+    // Oldingi sahifaning citation_* teglari qolib ketmasin
+    const added = (citation ?? []).map(([name, content]) => {
+      const el = document.createElement('meta');
+      el.setAttribute('name', name);
+      el.setAttribute('content', content);
+      document.head.appendChild(el);
+      return el;
+    });
+    return () => added.forEach(el => el.remove());
   }, [title, description, image]);
 
   return null;

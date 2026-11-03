@@ -41,6 +41,8 @@ export default function AdminShell({ active, crumb, children }: Props) {
 
   const [q, setQ] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
+  // Tor ekranda sidebar chiqib turuvchi menyu bo'ladi (responsive.css)
+  const [navOpen, setNavOpen] = useState(false);
   const [seenAt, setSeenAt] = useState(notifSeenAt());
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -74,8 +76,8 @@ export default function AdminShell({ active, crumb, children }: Props) {
   return (
     <div className="adm">
       {/* ═══ Sidebar ═══ */}
-      <aside className="adm-side">
-        <Link to="/admin" className="adm-logo">
+      <aside className={`adm-side${navOpen ? ' open' : ''}`}>
+        <Link to="/admin" className="adm-logo" onClick={() => setNavOpen(false)}>
           <Wordmark light />
           <span className="adm-logo-tag">Admin paneli</span>
         </Link>
@@ -85,7 +87,7 @@ export default function AdminShell({ active, crumb, children }: Props) {
             const b = badge[n.key];
             return (
               <NavLink key={n.key} to={n.to} end={n.key === 'dashboard'}
-                className={active === n.key ? 'on' : ''}>
+                className={active === n.key ? 'on' : ''} onClick={() => setNavOpen(false)}>
                 <span className="adm-nav-ico">{n.icon}</span>
                 <span className="adm-nav-lbl">{n.label}</span>
                 {b && b.n > 0 && <span className={`adm-badge${b.hot ? ' hot' : ''}`}>{b.n}</span>}
@@ -110,10 +112,16 @@ export default function AdminShell({ active, crumb, children }: Props) {
           </button>
         </div>
       </aside>
+      <div className="adm-side-bg" onClick={() => setNavOpen(false)} />
 
       {/* ═══ Main ═══ */}
       <div className="adm-body">
         <header className="adm-top">
+          <button className="adm-burger" onClick={() => setNavOpen(true)} aria-label="Menyu" aria-expanded={navOpen}>
+            <svg width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden="true">
+              <path d="M0 1h18M0 7h18M0 13h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+          </button>
           <div className="adm-crumbs">
             <Link to="/admin">Tahririyat</Link>
             <span className="sep">/</span>

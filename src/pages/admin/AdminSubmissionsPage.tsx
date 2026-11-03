@@ -68,7 +68,7 @@ function SubCard({ sub, issues, aiBusy, trainBusy, onOpen, onApprove, onReject, 
         </h3>
         <div className="sub-author">
           <span className="ava">{initialsOf(authorName)}</span>
-          <b>{authorName || "Noma'lum muallif"}</b>
+          <b>{authorName || "Noma’lum muallif"}</b>
           {sub.tg_username && <a className="tg" href={`https://t.me/${sub.tg_username}`} target="_blank" rel="noreferrer">@{sub.tg_username}</a>}
         </div>
         <div className="sub-meta">
@@ -188,10 +188,10 @@ export default function AdminSubmissionsPage() {
 
   async function doAi(sub: AdminSubmission) {
     const status = await getAiStatus();
-    if (!status.available) { setAiOff({ action: "AI bilan to'ldirish", reason: status.reason }); return; }
+    if (!status.available) { setAiOff({ action: "AI bilan to‘ldirish", reason: status.reason }); return; }
     setAiBusyId(sub.id);
     try { patch(await adminApi.submissions.aiExtract(sub.id)); flash('✦ AI to‘ldirdi — tekshirib chiqing.'); }
-    catch (e) { if (isAiUnavailableError(e)) { resetAiStatus(); setAiOff({ action: "AI bilan to'ldirish" }); } else flash(`AI xatosi: ${(e as Error).message}`); }
+    catch (e) { if (isAiUnavailableError(e)) { resetAiStatus(); setAiOff({ action: "AI bilan to‘ldirish" }); } else flash(`AI xatosi: ${(e as Error).message}`); }
     finally { setAiBusyId(null); }
   }
   async function doAssign(sub: AdminSubmission, issueId: string) {
@@ -207,10 +207,10 @@ export default function AdminSubmissionsPage() {
   async function doTrain(sub: AdminSubmission) {
     if (!sub.article_id) return;
     const status = await getAiStatus();
-    if (!status.available) { setAiOff({ action: "AI ga o'qitish", reason: status.reason }); return; }
+    if (!status.available) { setAiOff({ action: "AI ga o‘qitish", reason: status.reason }); return; }
     setTrainBusyId(sub.id);
     try { const r = await adminApi.articles.trainAi(sub.article_id); patch({ ...sub, article_ai_ready: r.ai_ready }); flash('✦ AI o‘qitildi — saytda chat ochiq.'); }
-    catch (e) { if (isAiUnavailableError(e)) { resetAiStatus(); setAiOff({ action: "AI ga o'qitish" }); } else flash(`Xatolik: ${(e as Error).message}`); }
+    catch (e) { if (isAiUnavailableError(e)) { resetAiStatus(); setAiOff({ action: "AI ga o‘qitish" }); } else flash(`Xatolik: ${(e as Error).message}`); }
     finally { setTrainBusyId(null); }
   }
   async function doClearAi(sub: AdminSubmission) {

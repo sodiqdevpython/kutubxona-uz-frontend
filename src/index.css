@@ -103,6 +103,15 @@ body {
 .bg-home, .bg-articles, .bg-detail, .bg-archive,
 .bg-authors, .bg-author { background: var(--page); }
 
+/* Sahifa karkasi: footer qisqa sahifada ham pastga yopishadi */
+.bg-home, .bg-articles, .bg-detail, .bg-archive,
+.bg-authors, .bg-author { display: flex; flex-direction: column; min-height: 100vh; }
+.page-main { flex: 1 0 auto; width: 100%; min-width: 0; padding-bottom: 64px; }
+.page-main-flush { padding-bottom: 0; }
+
+/* Havoladagi #bo'lim yopishqoq sarlavha ostida qolmasin */
+section[id], h2[id] { scroll-margin-top: 136px; }
+
 .bg-ai { background: var(--grey-1); }
 
 /* Sahifa ichidagi umumiy konteyner */
@@ -157,7 +166,8 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   gap: 24px;
   height: 72px;
-  padding: 0 var(--px);
+  /* Foni butun kenglikda, ichi sahifa konteyneri bilan bir chiziqda */
+  padding: 0 max(var(--px), calc((100% - var(--maxw)) / 2 + var(--px)));
   background: var(--paper);
   border-bottom: 1px solid var(--line);
   position: sticky;
@@ -167,8 +177,8 @@ body {
 .topbar-nav {
   display: flex; align-items: center; justify-content: space-between;
   gap: 24px;
-  height: 52px;
-  padding: 0 var(--px);
+  height: 48px;
+  padding: 0 max(var(--px), calc((100% - var(--maxw)) / 2 + var(--px)));
   background: var(--paper);
   border-bottom: 1px solid var(--line);
   position: sticky;
@@ -212,12 +222,12 @@ body {
 .topnav { display: flex; align-items: center; gap: 30px; }
 .topnav > *, .topnav a { flex-shrink: 0; }
 .topnav a {
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--ink-2);
   text-decoration: none;
-  font-weight: 400;
+  font-weight: 500;
   position: relative;
-  padding: 16px 0;
+  padding: 13px 0;
   cursor: pointer;
   transition: color .15s;
   white-space: nowrap;
@@ -229,7 +239,7 @@ body {
 .topnav a:hover { color: var(--ink); }
 .topnav a.active { color: var(--ink); font-weight: 600; }
 .topnav a.active::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
   height: 2px; background: var(--accent);
 }
 
@@ -261,6 +271,7 @@ body {
 @media (max-width: 1080px) {
   .searchbar { min-width: 160px; }
 }
+@media (max-width: 1024px) { .topbar, .topbar-nav { padding-left: var(--px); padding-right: var(--px); } }
 @media (max-width: 860px) {
   .topbar { height: 60px; }
   .topbar-nav { top: 60px; height: auto; padding-top: 6px; padding-bottom: 6px; }
@@ -461,15 +472,15 @@ body {
 
 /* ── Page load bar ── */
 .page-loadbar {
-  position: fixed; top: 132px; left: 0; right: 0; height: 3px;
+  position: fixed; top: 120px; left: 0; right: 0; height: 3px;
   z-index: 100; overflow: hidden; pointer-events: none;
 }
 .page-loadbar::before {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(90deg, #2B4670, #0A192F 40%, #5E7595 70%, #2B4670);
+  background: linear-gradient(90deg, var(--accent), #F79A3C 55%, var(--accent));
   transform-origin: left;
   animation: loadbarFill 1.5s cubic-bezier(.25,.8,.3,1) forwards;
-  box-shadow: 0 0 12px rgba(43,70,112,0.6);
+  box-shadow: 0 0 12px rgba(240,132,24,0.45);
 }
 .page-loadbar.done { animation: loadbarFade .5s ease forwards; }
 @keyframes loadbarFill {
@@ -561,13 +572,12 @@ body {
    ══════════════════════════════════════════════════════════ */
 
 /* Horizontal page padding — single variable, changes everywhere */
-:root { --px: 56px; }
+:root { --px: 64px; }
 @media (max-width: 1200px) { :root { --px: 32px; } }
 @media (max-width: 768px)  { :root { --px: 20px; } }
 @media (max-width: 480px)  { :root { --px: 14px; } }
 
 /* ── Topbar ── */
-@media (max-width: 1024px) { .topbar { padding: 0 var(--px); } }
 
 .topbar-hamburger {
   display: none;
@@ -828,14 +838,14 @@ body {
 .site-footer {
   background: var(--dark-2);
   color: rgba(255,255,255,0.72);
-  margin-top: 64px;
+  flex-shrink: 0;
 }
 .site-footer-inner {
   max-width: var(--maxw);
   margin: 0 auto;
   padding: 52px var(--px) 44px;
   display: grid;
-  grid-template-columns: minmax(280px, 1.25fr) repeat(3, minmax(150px, 1fr));
+  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
   gap: 40px;
 }
 .site-footer-brand .brand { align-items: flex-start; }
@@ -844,10 +854,10 @@ body {
   color: rgba(255,255,255,0.55);
   max-width: 330px; margin: 0 0 18px;
 }
-.site-footer-badges { display: flex; flex-wrap: wrap; gap: 10px; }
+.site-footer-badges { display: flex; flex-wrap: nowrap; gap: 10px; }
 .issn-badge, .oa-badge {
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em;
-  padding: 6px 11px; border-radius: var(--radius-sm);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0;
+  padding: 6px 10px; border-radius: var(--radius-sm);
   border: 1px solid rgba(255,255,255,0.15);
   color: rgba(255,255,255,0.65);
   white-space: nowrap;
@@ -866,10 +876,12 @@ body {
 }
 .site-footer-col a:hover { color: var(--accent); }
 
+/* Chiziq kontent kengligida: padding emas, margin bilan chegaralanadi */
 .site-footer-bottom {
-  max-width: var(--maxw);
+  max-width: calc(var(--maxw) - 2 * var(--px));
+  width: calc(100% - 2 * var(--px));
   margin: 0 auto;
-  padding: 18px var(--px);
+  padding: 18px 0;
   border-top: 1px solid rgba(255,255,255,0.10);
   display: flex; align-items: center; justify-content: space-between;
   gap: 18px; flex-wrap: wrap;
@@ -884,6 +896,7 @@ body {
 .site-footer-langs button:hover  { color: #fff; }
 .site-footer-langs button.active { color: var(--accent); }
 
+@media (max-width: 1180px) { .site-footer-badges { flex-wrap: wrap; } }
 @media (max-width: 1000px) {
   .site-footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
 }
@@ -977,13 +990,16 @@ body {
 }
 .art-row {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
   gap: 18px;
-  padding: 20px 24px;
+  padding: 20px 22px;
   border-bottom: 1px solid var(--line);
   cursor: pointer;
+  color: inherit;
+  text-decoration: none;
   transition: background .12s;
 }
+.art-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .art-row:last-child { border-bottom: 0; }
 .art-row:hover { background: var(--grey-1); }
 
@@ -995,16 +1011,39 @@ body {
   display: flex; align-items: center; gap: 10px;
   margin-bottom: 8px; flex-wrap: wrap;
 }
+.art-row-cat {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent);
+}
 .art-row-title {
-  font-size: 17px; line-height: 1.34; margin: 0 0 7px;
+  font-size: 18.5px; line-height: 1.32; margin: 0 0 7px;
   font-weight: 600; color: var(--ink);
 }
 .art-row:hover .art-row-title { color: var(--accent); }
-.art-row-authors { font-size: 13px; color: var(--ink-2); }
+.art-row-authors { font-size: 13.5px; color: var(--ink-2); }
+
+/* Bosh sahifa: rasmli, ramkasiz ro'yxat (Figma: «Shu sondan yana») */
+.art-list { border-top: 1px solid var(--line); }
+.art-row-thumb {
+  grid-template-columns: 56px 132px minmax(0, 1fr) auto; gap: 24px;
+  padding: 20px 8px;
+}
+.art-row-thumb .art-row-num {
+  font-family: var(--serif); font-size: 28px; font-weight: 600; color: var(--grey-5, #CDC5B8);
+  padding-top: 0; line-height: 1;
+}
+.art-row-thumb .art-row-title { font-size: 21px; }
+.art-row-thumb .art-row-authors { font-size: 14px; }
+.art-row-media {
+  width: 132px; height: 88px; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--line); background: var(--grey-2);
+}
+.art-row-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.art-row-issue { color: var(--ink); }
 
 .art-row-meta {
   display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
-  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  font-family: var(--mono); font-size: 12px; color: var(--ink-3);
   white-space: nowrap; text-align: right; min-width: 108px;
 }
 .art-row-pdf {
@@ -1031,7 +1070,8 @@ body {
   .page-title { font-size: 32px; }
 }
 @media (max-width: 680px) {
-  .art-row { grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 16px; }
+  .art-row, .art-row-thumb { grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 16px; }
+  .art-row-media { display: none; }
   .art-row-meta {
     grid-column: 2; flex-direction: row; align-items: center;
     flex-wrap: wrap; justify-content: flex-start; margin-top: 10px; text-align: left;

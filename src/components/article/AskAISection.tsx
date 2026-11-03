@@ -10,14 +10,14 @@ const SUGGESTED_QUESTIONS: string[] = [
   "Asosiy xulosa nima?",
   "Mualliflar kimlar?",
   "Qaysi metod ishlatilgan?",
-  "Kalit so'zlar nima?",
-  "Adabiyotlar ro'yxatida nimalar bor?",
+  "Kalit so‘zlar nima?",
+  "Adabiyotlar ro‘yxatida nimalar bor?",
 ];
 
 type Msg = { who: 'ai' | 'user'; name: string; src: string | null; text: string };
 
 function AskAISection({ slug }: { slug: string }) {
-  const seed: Msg[] = [{ who: 'ai', name: 'Kutubxona AI', src: null, text: "Salom! Men ushbu maqolaning to'liq matnini o'qib chiqdim. Pastdagi tayyor savollardan birini bosing yoki o'zingiz yozing — javobni maqola ichidan topib beraman." }];
+  const seed: Msg[] = [{ who: 'ai', name: 'Kutubxona AI', src: null, text: "Salom! Men ushbu maqolaning to‘liq matnini o‘qib chiqdim. Pastdagi tayyor savollardan birini bosing yoki o‘zingiz yozing — javobni maqola ichidan topib beraman." }];
   const [msgs, setMsgs] = useState<Msg[]>(seed);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
@@ -41,7 +41,7 @@ function AskAISection({ slug }: { slug: string }) {
     }
 
     setInput('');
-    setMsgs(m => [...m, { who: 'user', name: "Anonim o'quvchi", src: null, text: q }]);
+    setMsgs(m => [...m, { who: 'user', name: "Anonim o‘quvchi", src: null, text: q }]);
     setTyping(true);
     try {
       const res = await articlesApi.ask(slug, q);
@@ -55,9 +55,9 @@ function AskAISection({ slug }: { slug: string }) {
         return;
       }
       const msg = e instanceof Error ? e.message : String(e);
-      let nice = "Hozir javob ololmadim. Iltimos, biroz kutib qayta urinib ko'ring.";
-      if (/429/.test(msg)) nice = "Juda tez-tez savol berayapsiz. Bir oz kuting va qaytadan urinib ko'ring.";
-      else if (/400/.test(msg)) nice = "Bu maqola uchun manba fayl mavjud emas yoki savol noto'g'ri.";
+      let nice = "Hozir javob ololmadim. Iltimos, biroz kutib qayta urinib ko‘ring.";
+      if (/429/.test(msg)) nice = "Juda tez-tez savol berayapsiz. Bir oz kuting va qaytadan urinib ko‘ring.";
+      else if (/400/.test(msg)) nice = "Bu maqola uchun manba fayl mavjud emas yoki savol noto‘g‘ri.";
       setMsgs(m => [...m, { who: 'ai', name: 'Kutubxona AI', src: null, text: nice }]);
     } finally {
       setTyping(false);
@@ -68,7 +68,7 @@ function AskAISection({ slug }: { slug: string }) {
     <section className="bg-ai" style={{ padding: '72px 0 80px', position: 'relative', borderTop: '1px solid var(--line)', overflow: 'hidden' }}>
       <AiUnavailableModal
         open={aiOff !== null}
-        action="Maqola haqida so'rash"
+        action="Maqola haqida so‘rash"
         reason={aiOff?.reason}
         onClose={() => setAiOff(null)}
       />
@@ -79,8 +79,8 @@ function AskAISection({ slug }: { slug: string }) {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 14px', borderRadius: 20, background: 'linear-gradient(135deg,#2B4670,#0A192F)', color: 'white', fontSize: 11.5, fontWeight: 600, letterSpacing: 0.2, textTransform: 'uppercase', marginBottom: 18, boxShadow: '0 6px 18px -8px rgba(10,25,47,0.40)' }}>
             <SparkIcon size={13} /> Kutubxona AI · Beta
           </div>
-          <h2 className="h-display" style={{ fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 14 }}>Bu maqola <em>haqida</em> so'rang.</h2>
-          <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-3)', maxWidth: 640, margin: '0 auto' }}>Tayyor savolni bosing yoki o'zingiz yozing — AI javobni shu maqola matnidan topib, aniq paragrafga havola qiladi.</p>
+          <h2 className="h-display" style={{ fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 14 }}>Bu maqola <em>haqida</em> so‘rang.</h2>
+          <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-3)', maxWidth: 640, margin: '0 auto' }}>Tayyor savolni bosing yoki o‘zingiz yozing — AI javobni shu maqola matnidan topib, aniq paragrafga havola qiladi.</p>
         </header>
         <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 12, boxShadow: '0 28px 60px -28px rgba(10,25,47,0.26),0 4px 12px rgba(10,25,47,0.05)', overflow: 'hidden' }}>
           {/* Chat header */}
@@ -139,10 +139,10 @@ function AskAISection({ slug }: { slug: string }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 4px 4px 16px', background: 'var(--paper)', border: '1px solid var(--line-2)', borderRadius: 28, boxShadow: '0 2px 8px rgba(10,25,47,0.06)' }}>
               <SearchIcon size={14} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
               <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }}
-                placeholder="Maqola bo'yicha o'z savolingizni yozing…"
+                placeholder="Maqola bo‘yicha o‘z savolingizni yozing…"
                 style={{ flex: 1, border: 0, outline: 0, background: 'transparent', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', padding: '12px 0' }} />
               <button onClick={() => ask(input)} disabled={typing || !input.trim()} style={{ height: 40, padding: '0 18px', borderRadius: 20, background: (typing || !input.trim()) ? 'var(--navy-30)' : 'linear-gradient(135deg,#2B4670,#0A192F)', color: 'white', border: 0, cursor: (typing || !input.trim()) ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, fontFamily: 'var(--sans)', boxShadow: (typing || !input.trim()) ? 'none' : '0 6px 16px -6px rgba(10,25,47,0.50)' }}>
-                So'rash <SendIcon size={13} />
+                So‘rash <SendIcon size={13} />
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, fontSize: 11.5, color: 'var(--ink-4)' }}>

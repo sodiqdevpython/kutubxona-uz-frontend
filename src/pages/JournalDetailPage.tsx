@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
 import { DocIcon } from '../components/ui/Icons';
-import { journalsApi, type ApiJournal, type ApiIssue } from '../lib/api';
+import { issueDate, journalsApi, type ApiJournal, type ApiIssue } from '../lib/api';
 import Seo from '../components/Seo';
 
 // ── Bitta son kartochkasi ─────────────────────────────────────────────────────
 
 function IssueCard({ iss, journalTitle }: { iss: ApiIssue; journalTitle: string }) {
-  const navigate = useNavigate();
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, cursor: iss.is_upcoming ? 'default' : 'pointer', opacity: iss.is_upcoming ? 0.55 : 1 }}
-      onClick={() => !iss.is_upcoming && navigate(`/archive/${iss.id}`)}>
+  const boxStyle = { display: 'flex', flexDirection: 'column', gap: 14 } as const;
+  const content = (
+    <>
       <div style={{
         height: 300, display: 'grid', placeItems: 'center',
         background: iss.is_upcoming
@@ -49,7 +48,7 @@ function IssueCard({ iss, journalTitle }: { iss: ApiIssue; journalTitle: string 
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ fontFamily: 'var(--serif)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-            {iss.date_label || `${iss.season} ${iss.year}`}
+            {issueDate(iss)}
           </div>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)' }}>№{iss.number}</span>
         </div>
@@ -65,14 +64,18 @@ function IssueCard({ iss, journalTitle }: { iss: ApiIssue; journalTitle: string 
           )}
         </div>
       </div>
-    </div>
+    </>
   );
+
+  // Tayyorlanayotgan sonning sahifasi yo'q, qolganlari oddiy havola
+  return iss.is_upcoming
+    ? <div style={{ ...boxStyle, opacity: 0.55 }}>{content}</div>
+    : <Link to={`/archive/${iss.id}`} style={{ ...boxStyle, color: 'inherit', textDecoration: 'none' }}>{content}</Link>;
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function JournalDetailPage() {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [journal, setJournal] = useState<ApiJournal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,18 +107,19 @@ export default function JournalDetailPage() {
       <Seo title={journalTitle} description={`${journalTitle} jurnali — barcha sonlar.`} />
       <PageLoadBar />
       <Topbar active="archive" />
+      <main id="main" className="page-main">
 
       <div style={{ padding: '40px var(--px) 28px', maxWidth: 1400, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, fontSize: 12.5, color: 'var(--ink-3)' }}>
-          <a onClick={() => navigate('/')} style={{ color: 'var(--ink-3)', cursor: 'pointer' }}>Bosh sahifa</a>
+          <Link to="/" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Bosh sahifa</Link>
           <span style={{ color: 'var(--ink-4)' }}>/</span>
-          <a onClick={() => navigate('/archive')} style={{ color: 'var(--ink-3)', cursor: 'pointer' }}>Jurnal arxivi</a>
+          <Link to="/archive" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Jurnal arxivi</Link>
           <span style={{ color: 'var(--ink-4)' }}>/</span>
           <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{journalTitle}</span>
         </div>
         <h1 className="h-display h1-rsp" style={{ fontSize: 48, marginBottom: 10 }}>{journalTitle}</h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-3)', maxWidth: 680, lineHeight: 1.6 }}>
-          {journal?.issn ? `ISSN: ${journal.issn} · ` : ''}Jurnalning barcha sonlari. Har bir son ustiga bosib, to'liq PDF va maqolalarni ko'rishingiz mumkin.
+          {journal?.issn ? `ISSN: ${journal.issn} · ` : ''}Jurnalning barcha sonlari. Har bir son ustiga bosib, to‘liq PDF va maqolalarni ko‘rishingiz mumkin.
         </p>
 
         {/* Stats strip */}
@@ -141,7 +145,7 @@ export default function JournalDetailPage() {
           <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 13 }}>Jurnal topilmadi.</div>
         )}
         {!loading && journal && issues.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 13 }}>Hali jurnal sonlari yo'q.</div>
+          <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)', fontSize: 13 }}>Hali jurnal sonlari yo‘q.</div>
         )}
         {yearGroups.map(g => (
           <section key={g.year}>
@@ -149,7 +153,7 @@ export default function JournalDetailPage() {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 18 }}>
                 <h2 className="h-display year-num-rsp" style={{ fontSize: 72, letterSpacing: '-0.04em', lineHeight: 0.9, fontWeight: 700, color: 'var(--navy)' }}>{g.year}</h2>
                 <div>
-                  <div className="eyebrow" style={{ fontSize: 10.5 }}>Yillik to'plam</div>
+                  <div className="eyebrow" style={{ fontSize: 10.5 }}>Yillik to‘plam</div>
                   <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4 }}>{g.issues.filter(i => !i.is_upcoming).length} son</div>
                 </div>
               </div>
@@ -160,6 +164,7 @@ export default function JournalDetailPage() {
           </section>
         ))}
       </div>
+      </main>
       <Footer />
     </div>
   );

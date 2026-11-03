@@ -22,17 +22,17 @@ const uzLatn: Dict = {
   'nav.logout':        'Chiqish',
 
   // ── Umumiy ──
-  'common.search_placeholder': "Maqola, muallif, kalit so'z…",
+  'common.search_placeholder': "Maqola, muallif, kalit so‘z yoki DOI…",
   'common.search':             'Qidirish',
   'common.searching':          'Qidirilmoqda…',
   'common.no_results':         'Hech nima topilmadi.',
-  'common.view_all_results':   "Barcha natijalarni ko'rish →",
+  'common.view_all_results':   "Barcha natijalarni ko‘rish →",
   'common.upload_article':     'Maqola yuborish',
   'common.menu':               'Menyu',
   'common.loading':            'Yuklanmoqda…',
   'common.error':              'Xatolik yuz berdi.',
-  'common.back_to_list':       "Ro'yxatga qaytish",
-  'common.read_more':          "O'qish",
+  'common.back_to_list':       "Ro‘yxatga qaytish",
+  'common.read_more':          "O‘qish",
   'common.filters':            'Filtrlar',
   'common.clear':              'Tozalash',
   'common.of':                 '/',
@@ -43,14 +43,14 @@ const uzLatn: Dict = {
   'ca.description':    "«Central Asia» axborot-kutubxona ilmiy jurnalining barcha maqolalari. Yangi son chiqishi bilan avtomatik yangilanadi.",
   'ca.stat.articles':  'Maqola',
   'ca.stat.pages':     'Sahifa',
-  'ca.search_placeholder': "Sarlavha, muallif yoki matn bo'yicha qidirish…",
-  'ca.empty':          "Hech qanday maqola topilmadi. Qidiruvni o'zgartiring yoki admin panelidan «einfolib.uz — yangilash»ni bosing.",
+  'ca.search_placeholder': "Sarlavha, muallif yoki matn bo‘yicha qidirish…",
+  'ca.empty':          "Hech qanday maqola topilmadi. Qidiruvni o‘zgartiring yoki admin panelidan «einfolib.uz — yangilash»ni bosing.",
   'ca.not_found':      'Maqola topilmadi.',
   'ca.source_link':    'Asl manba — einfolib.uz',
   'ca.error_backend':  'Xatolik yuz berdi. Backend ishga tushirilganini tekshiring.',
 
   // ── Footer ──
-  'footer.copyright':  "© 2026 O'zbekiston Milliy kutubxonasi · kutubxona.uz",
+  'footer.copyright':  "© 2026 O‘zbekiston Milliy kutubxonasi · kutubxona.uz",
 };
 
 const uzCyrl: Dict = {

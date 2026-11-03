@@ -44,7 +44,7 @@ function Editor({ item, onSaved, onRemoved, registerSave, unregisterSave }: {
 
   return (
     <div className="pm-editor">
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+      <div className="pm-editor-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div><label className="f-label"><span>Sarlavha</span></label><textarea className="f-textarea" rows={2} style={{ minHeight: 64 }} value={title} onChange={e => setTitle(e.target.value)} /></div>
           <div><label className="f-label"><span>Muallif (parser)</span></label><input className="f-input" value={author} onChange={e => setAuthor(e.target.value)} /></div>
@@ -61,7 +61,7 @@ function Editor({ item, onSaved, onRemoved, registerSave, unregisterSave }: {
           )) : <div className="meta" style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Mos profil topilmadi — yangi profil yaratiladi.</div>}
           <button type="button" className={`pm-match${mode === 'new' ? ' on' : ''}`} onClick={() => setMode('new')}><span className="nm">Yangi profil yaratish</span></button>
           {mode === 'new' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div className="f-grid2" style={{ gap: 8 }}>
               <input className="f-input" placeholder="Lavozim" value={npRole} onChange={e => setNpRole(e.target.value)} />
               <input className="f-input" placeholder="Tashkilot" value={npOrg} onChange={e => setNpOrg(e.target.value)} />
             </div>

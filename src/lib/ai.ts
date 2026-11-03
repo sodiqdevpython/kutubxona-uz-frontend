@@ -57,22 +57,22 @@ export function resetAiStatus() {
 export function isAiUnavailableError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err ?? '');
   return msg.includes('local_ai_unavailable')
-      || msg.includes("Local AI xizmatiga ulanib bo'lmadi");
+      || msg.includes("Local AI xizmatiga ulanib bo‘lmadi");
 }
 
 /** Sababni foydalanuvchi tiliga o'giradi. */
 export function aiReasonText(reason?: string): string {
   switch (reason) {
     case 'not_configured':
-      return "AI xizmatining manzili sozlanmagan (LOCAL_LLM_BASE_URL bo'sh).";
+      return "AI xizmatining manzili sozlanmagan (LOCAL_LLM_BASE_URL bo‘sh).";
     case 'unreachable':
-      return 'AI serveri javob bermayapti — o\'chirilgan yoki tarmoqda mavjud emas.';
+      return 'AI serveri javob bermayapti — o‘chirilgan yoki tarmoqda mavjud emas.';
     case 'ok':
       return 'AI xizmati ishlayapti.';
     default:
       if (reason?.startsWith('http_')) {
         return `AI serveri xato qaytardi (${reason.replace('http_', 'HTTP ')}).`;
       }
-      return 'AI xizmatiga ulanib bo\'lmadi.';
+      return 'AI xizmatiga ulanib bo‘lmadi.';
   }
 }

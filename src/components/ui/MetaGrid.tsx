@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
+
 /**
  * Meta jadval (maqola / son sahifalari) — bo'sh qiymatli kataklar tushib qoladi,
  * oxirgi qatorda bo'shliq qolmasligi uchun so'nggi katak qolgan ustunlarni egallaydi.
  */
-export default function MetaGrid({ cells, className }: { cells: [string, string][]; className?: string }) {
+export default function MetaGrid({ cells, className }: { cells: [string, ReactNode][]; className?: string }) {
   const filled = cells.filter(([, v]) => v && v !== '—');
   if (filled.length === 0) return null;
 

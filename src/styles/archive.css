@@ -104,24 +104,25 @@
   border-radius: var(--radius-lg); overflow: hidden;
 }
 .toc-row {
-  display: grid; grid-template-columns: 96px minmax(0, 1fr) 190px 60px;
-  gap: 18px; align-items: center;
-  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  display: grid; grid-template-columns: 112px minmax(0, 1fr) 220px 92px;
+  gap: 20px; align-items: center;
+  padding: 15px 20px; border-bottom: 1px solid var(--line);
   text-decoration: none; transition: background .12s;
 }
 .toc-row:last-child { border-bottom: 0; }
 .toc-row:hover { background: var(--grey-1); }
 .toc-thumb {
-  aspect-ratio: 16 / 10; border-radius: var(--radius-sm); overflow: hidden;
+  width: 112px; height: 74px; border-radius: 8px; overflow: hidden;
   background: var(--grey-3); border: 1px solid var(--line);
 }
 .toc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .toc-body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .toc-title {
-  font-family: var(--serif); font-size: 15.5px; font-weight: 600; line-height: 1.35; color: var(--ink);
+  font-family: var(--serif); font-size: 17.5px; font-weight: 600; line-height: 1.32; color: var(--ink);
 }
 .toc-row:hover .toc-title { color: var(--accent); }
-.toc-author { font-size: 13px; color: var(--ink-2); }
+.toc-author { font-size: 13.5px; color: var(--ink-2); }
+.issue-cover-dl { justify-content: center; height: 34px; text-decoration: none; }
 .toc-pages { text-align: right; white-space: nowrap; color: var(--ink-2); }
 
 @media (max-width: 1180px) {
