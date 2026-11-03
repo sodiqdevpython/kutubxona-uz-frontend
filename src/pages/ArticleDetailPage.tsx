@@ -383,7 +383,7 @@ export default function ArticleDetailPage() {
                   <Link key={r.id} to={`/articles/${r.slug}`} className="rel-card">
                     <div className="rel-media">
                       {r.image_url || r.issue_cover_url
-                        ? <img src={mediaUrl(r.image_url ?? r.issue_cover_url) ?? undefined} alt={r.image_url ? r.title : `${issueLabel(r)} soni muqovasi`} loading="lazy" />
+                        ? <img src={mediaUrl(r.image_url ?? r.issue_cover_url) ?? undefined} alt={r.image_url ? r.title : `${issueLabel(r)} soni muqovasi`} className={r.image_url ? undefined : 'is-cover'} loading="lazy" />
                         : <div className="home-featured-ph" />}
                     </div>
                     <div className="rel-body">
