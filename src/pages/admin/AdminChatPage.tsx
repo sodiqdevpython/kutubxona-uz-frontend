@@ -23,7 +23,7 @@ type Filter = 'all' | 'waiting' | 'closed';
 const QUICK: { label: string; text: string }[] = [
   { label: 'Taqrizga yuborildi', text: "Assalomu alaykum! Maqolangiz taqrizga yuborildi. Xulosa 21 kun ichida bo‘ladi." },
   { label: 'Tuzatish kerak',     text: "Maqolangizda tuzatish talab qilinadi: adabiyotlar ro‘yxati va annotatsiyani jurnal talablariga moslab qayta yuboring." },
-  { label: 'Shablonni yuborish', text: "Maqolani jurnal shabloniga muvofiq rasmiylashtiring — qo‘llanma: journalkutubxona.uz/about/guide" },
+  { label: 'Shablonni yuborish', text: "Maqolani jurnal shabloniga muvofiq rasmiylashtiring — qo‘llanma: journal.kutubxona.uz/about/guide" },
 ];
 
 const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
