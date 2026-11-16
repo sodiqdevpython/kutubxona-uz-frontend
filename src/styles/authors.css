@@ -160,3 +160,7 @@
 .au-card-org {
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
+
+/* Keyingi sahifa yuklanayotganda eski kartalar xira turadi (sakrash bo'lmaydi) */
+.au-results { transition: opacity .15s; }
+.au-results.is-loading { opacity: .55; pointer-events: none; }

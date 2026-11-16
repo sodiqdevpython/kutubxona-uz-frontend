@@ -181,10 +181,10 @@ img, video { max-width: 100%; }
 
   /* Son mundarijasi (admin): muallif sarlavha tagida */
   .toc-list { padding: 0 14px; }
-  .toc-list .toc-row { grid-template-columns: 28px minmax(0, 1fr) 64px 34px; gap: 4px 10px; }
+  .toc-list .toc-row { grid-template-columns: 28px minmax(0, 1fr) 64px 70px; gap: 4px 10px; }
   .toc-list .toc-row .a { grid-column: 2; grid-row: 2; }
   .toc-list .toc-row .p { grid-column: 3; grid-row: 1; }
-  .toc-list .toc-row .x { grid-column: 4; grid-row: 1; }
+  .toc-list .toc-row .acts { grid-column: 4; grid-row: 1; }
 
   /* Xabarlar: ro'yxat yoki suhbat — bittasi ko'rinadi, «‹» bilan qaytiladi */
   .ch-wrap { grid-template-columns: minmax(0, 1fr); height: calc(100dvh - 60px - 36px); min-height: 460px; }
@@ -403,17 +403,17 @@ img, video { max-width: 100%; }
   .art-row-meta { font-size: 11.5px; }
   .site-footer-badges { flex-wrap: wrap; }
 
-  .f-grid2, .f-grid4 { grid-template-columns: minmax(0, 1fr); }
+  .f-grid2, .f-grid3, .f-grid4 { grid-template-columns: minmax(0, 1fr); }
   .stat-grid { grid-template-columns: minmax(0, 1fr); }
   .aud-stats { gap: 10px; }
 
   .au-tr .acts { grid-column: 1 / -1; grid-row: 4; justify-content: flex-start; }
   .au-tr .acts .ab { flex: 1 1 auto; }
 
-  .toc-list .toc-row { grid-template-columns: 22px minmax(0, 1fr) 34px; }
+  .toc-list .toc-row { grid-template-columns: 22px minmax(0, 1fr) 70px; }
   .toc-list .toc-row .a { grid-column: 2; grid-row: 2; }
   .toc-list .toc-row .p { grid-column: 2; grid-row: 3; text-align: left; }
-  .toc-list .toc-row .x { grid-column: 3; grid-row: 1; }
+  .toc-list .toc-row .acts { grid-column: 3; grid-row: 1; }
 
   .cover-row { gap: 12px; }
 }

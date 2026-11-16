@@ -9,7 +9,6 @@ export const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 export const TELEGRAM_BOT_URL = 'https://t.me/journal_kutubxona_bot';
 
 /** Jurnal identifikatorlari (sarlavha, son sahifasi, iqtibos). */
-export const ISSN = '2181-1732';
 export const JOURNAL_NAME = 'Kutubxona';
 
 /** Absolyut origin — `new URL(path, origin)` uchun. */

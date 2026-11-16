@@ -1,0 +1,138 @@
+import { m, type Entry } from './types';
+
+/**
+ * Umumiy: navigatsiya, topbar, footer, holat xabarlari, vaqt, sanoq birliklari.
+ * Ko'plik shakllari `|` bilan: tartib — uz: bitta shakl; ru: one|few|many; en: one|other.
+ */
+export default {
+  // ── Navigatsiya ──
+  'nav.home':          m('Bosh sahifa', 'Бош саҳифа', 'Главная', 'Home'),
+  'nav.articles':      m('Maqolalar', 'Мақолалар', 'Статьи', 'Articles'),
+  'nav.archive':       m('Jurnal arxivi', 'Журнал архиви', 'Архив журнала', 'Journal archive'),
+  'nav.authors':       m('Mualliflar', 'Муаллифлар', 'Авторы', 'Authors'),
+  'nav.central_asia':  m('Central Asia', 'Central Asia', 'Central Asia', 'Central Asia'),
+  'nav.about':         m('Jurnal haqida', 'Журнал ҳақида', 'О журнале', 'About the journal'),
+  'nav.about.board':   m('Tahririyat kengashi', 'Таҳририят кенгаши', 'Редакционный совет', 'Editorial board'),
+  'nav.about.policy':  m('Taqriz siyosati va etika', 'Тақриз сиёсати ва этика', 'Рецензирование и этика', 'Peer review & ethics'),
+  'nav.about.guide':   m('Mualliflar uchun qo‘llanma', 'Муаллифлар учун қўлланма', 'Руководство для авторов', 'Author guidelines'),
+  'nav.admin':         m('Admin', 'Админ', 'Админ', 'Admin'),
+  'nav.logout':        m('Chiqish', 'Чиқиш', 'Выйти', 'Log out'),
+
+  // Admin bo'limlari (Topbar dropdown + AdminShell sidebar)
+  'nav.admin.dashboard':   m('Asosiy panel', 'Асосий панел', 'Главная панель', 'Dashboard'),
+  'nav.admin.submissions': m('Kelgan maqolalar', 'Келган мақолалар', 'Поступившие статьи', 'Submissions'),
+  'nav.admin.authors':     m('Mualliflar', 'Муаллифлар', 'Авторы', 'Authors'),
+  'nav.admin.journals':    m('Jurnal sonlari', 'Журнал сонлари', 'Номера журнала', 'Journal issues'),
+  'nav.admin.chat':        m('Xabarlar', 'Хабарлар', 'Сообщения', 'Messages'),
+  'nav.admin.settings':    m('Sozlamalar', 'Созламалар', 'Настройки', 'Settings'),
+
+  // ── Topbar ──
+  'topbar.tagline':        m('AXBOROT-KUTUBXONA {x} JURNALI', 'АХБОРОТ-КУТУБХОНА {x} ЖУРНАЛИ', 'ЖУРНАЛ ИНФОРМАЦИОННО-БИБЛИОТЕЧНЫХ {x}', 'JOURNAL OF LIBRARY & INFORMATION {x}'),
+  'topbar.tagline_accent': m('texnologiyalari', 'технологиялари', 'технологий', 'technologies'),
+  'topbar.theme.light':    m('Yorug‘ rejim', 'Ёруғ режим', 'Светлая тема', 'Light mode'),
+  'topbar.theme.dark':     m('Qorong‘i rejim', 'Қоронғи режим', 'Тёмная тема', 'Dark mode'),
+  'topbar.close':          m('Yopish', 'Ёпиш', 'Закрыть', 'Close'),
+
+  // ── Umumiy ──
+  'common.search_placeholder': m('Maqola, muallif yoki kalit so‘z…', 'Мақола, муаллиф ёки калит сўз…', 'Статья, автор или ключевое слово…', 'Article, author or keyword…'),
+  'common.search':             m('Qidirish', 'Қидириш', 'Поиск', 'Search'),
+  'common.searching':          m('Qidirilmoqda…', 'Қидирилмоқда…', 'Поиск…', 'Searching…'),
+  'common.no_results':         m('Hech nima topilmadi.', 'Ҳеч нима топилмади.', 'Ничего не найдено.', 'Nothing found.'),
+  'common.view_all_results':   m('Barcha natijalarni ko‘rish →', 'Барча натижаларни кўриш →', 'Показать все результаты →', 'View all results →'),
+  'common.upload_article':     m('Maqola yuborish', 'Мақола юбориш', 'Отправить статью', 'Submit an article'),
+  'common.menu':               m('Menyu', 'Меню', 'Меню', 'Menu'),
+  'common.loading':            m('Yuklanmoqda…', 'Юкланмоқда…', 'Загрузка…', 'Loading…'),
+  'common.error':              m('Xatolik yuz berdi.', 'Хатолик юз берди.', 'Произошла ошибка.', 'An error occurred.'),
+  'common.error_retry':        m('Xatolik yuz berdi. Keyinroq urinib ko‘ring.', 'Хатолик юз берди. Кейинроқ уриниб кўринг.', 'Произошла ошибка. Попробуйте позже.', 'An error occurred. Please try again later.'),
+  'common.back_to_list':       m('Ro‘yxatga qaytish', 'Рўйхатга қайтиш', 'Вернуться к списку', 'Back to list'),
+  'common.read_more':          m('O‘qish', 'Ўқиш', 'Читать', 'Read'),
+  'common.filters':            m('Filtrlar', 'Филтрлар', 'Фильтры', 'Filters'),
+  'common.clear':              m('Tozalash', 'Тозалаш', 'Очистить', 'Clear'),
+  'common.all':                m('Barchasi', 'Барчаси', 'Все', 'All'),
+  'common.all_arrow':          m('Barchasi →', 'Барчаси →', 'Все →', 'All →'),
+  'common.open_access':        m('Ochiq kirish', 'Очиқ кириш', 'Открытый доступ', 'Open access'),
+  'common.open_access_cc':     m('Ochiq kirish · CC BY 4.0', 'Очиқ кириш · CC BY 4.0', 'Открытый доступ · CC BY 4.0', 'Open access · CC BY 4.0'),
+  'common.copy':               m('nusxalash', 'нусхалаш', 'копировать', 'copy'),
+  'common.copied':             m('nusxalandi ✓', 'нусхаланди ✓', 'скопировано ✓', 'copied ✓'),
+  'common.Copy':               m('Nusxalash', 'Нусхалаш', 'Копировать', 'Copy'),
+  'common.Copied':             m('Nusxalandi ✓', 'Нусхаланди ✓', 'Скопировано ✓', 'Copied ✓'),
+  'common.share':              m('Ulashish', 'Улашиш', 'Поделиться', 'Share'),
+  'common.prev':               m('Oldingi', 'Олдинги', 'Назад', 'Previous'),
+  'common.next':               m('Keyingi', 'Кейинги', 'Вперёд', 'Next'),
+  'common.close':              m('Yopish', 'Ёпиш', 'Закрыть', 'Close'),
+  'common.open':               m('Ochish', 'Очиш', 'Открыть', 'Open'),
+  'common.save':               m('Saqlash', 'Сақлаш', 'Сохранить', 'Save'),
+  'common.cancel':             m('Bekor qilish', 'Бекор қилиш', 'Отмена', 'Cancel'),
+  'common.delete':             m('O‘chirish', 'Ўчириш', 'Удалить', 'Delete'),
+  'common.edit':               m('Tahrirlash', 'Таҳрирлаш', 'Редактировать', 'Edit'),
+  'common.yes':                m('Ha', 'Ҳа', 'Да', 'Yes'),
+  'common.no':                 m('Yo‘q', 'Йўқ', 'Нет', 'No'),
+  'common.not_specified':      m('ko‘rsatilmagan', 'кўрсатилмаган', 'не указано', 'not specified'),
+  'common.load_more':          m('Yana yuklash', 'Яна юклаш', 'Загрузить ещё', 'Load more'),
+  'common.table_of_contents':  m('Mundarija', 'Мундарижа', 'Содержание', 'Contents'),
+  'common.in_preparation':     m('Tayyorlanmoqda', 'Тайёрланмоқда', 'Готовится', 'In preparation'),
+  'common.current':            m('Joriy', 'Жорий', 'Текущий', 'Current'),
+  'common.sort':               m('Saralash', 'Саралаш', 'Сортировка', 'Sort'),
+  'common.sort.newest':        m('Eng yangi', 'Энг янги', 'Сначала новые', 'Newest'),
+  'common.sort.oldest':        m('Eng eski', 'Энг эски', 'Сначала старые', 'Oldest'),
+  'common.sort.views':         m('Ko‘p o‘qilgan', 'Кўп ўқилган', 'Популярные', 'Most read'),
+  'common.sort.alpha':         m('Alifbo', 'Алифбо', 'По алфавиту', 'A–Z'),
+  'common.lang.uz':            m('O‘zbek (lotin)', 'Ўзбек (лотин)', 'Узбекский (латиница)', 'Uzbek (Latin)'),
+  'common.lang.uz_cyrl':       m('O‘zbek (kirill)', 'Ўзбек (кирилл)', 'Узбекский (кириллица)', 'Uzbek (Cyrillic)'),
+  'common.lang.ru':            m('Rus', 'Рус', 'Русский', 'Russian'),
+  'common.lang.en':            m('Ingliz', 'Инглиз', 'Английский', 'English'),
+
+  // ── Sanoq birliklari (ko'plik) ──
+  'unit.articles':  m('{n} maqola', '{n} мақола', '{n} статья|{n} статьи|{n} статей', '{n} article|{n} articles'),
+  'unit.articles_ta': m('{n} ta maqola', '{n} та мақола', '{n} статья|{n} статьи|{n} статей', '{n} article|{n} articles'),
+  'unit.issues':    m('{n} son', '{n} сон', '{n} номер|{n} номера|{n} номеров', '{n} issue|{n} issues'),
+  'unit.authors':   m('{n} muallif', '{n} муаллиф', '{n} автор|{n} автора|{n} авторов', '{n} author|{n} authors'),
+  'unit.pages':     m('{n} bet', '{n} бет', '{n} страница|{n} страницы|{n} страниц', '{n} page|{n} pages'),
+  'unit.pages_abbr': m('{n} b.', '{n} б.', '{n} с.', 'pp. {n}'),
+  'unit.views':     m('{n} ko‘rish', '{n} кўриш', '{n} просмотр|{n} просмотра|{n} просмотров', '{n} view|{n} views'),
+  'unit.years':     m('{n} yil', '{n} йил', '{n} год|{n} года|{n} лет', '{n} year|{n} years'),
+  'unit.results':   m('{n} natija', '{n} натижа', '{n} результат|{n} результата|{n} результатов', '{n} result|{n} results'),
+  'unit.orgs':      m('{n} tashkilot', '{n} ташкилот', '{n} организация|{n} организации|{n} организаций', '{n} organisation|{n} organisations'),
+  'unit.sources':   m('{n} manba', '{n} манба', '{n} источник|{n} источника|{n} источников', '{n} source|{n} sources'),
+  'unit.filters_applied': m('{n} filtr qo‘llangan', '{n} филтр қўлланган', 'применён {n} фильтр|применено {n} фильтра|применено {n} фильтров', '{n} filter applied|{n} filters applied'),
+  'unit.count_ta':  m('{n} ta', '{n} та', '{n}', '{n}'),
+  // Faqat so'z (raqam alohida <b> ichida chiziladi): «<b>12</b> ko‘rish»
+  'unit.views_word':    m('ko‘rish', 'кўриш', 'просмотр|просмотра|просмотров', 'view|views'),
+  'unit.articles_word': m('maqola', 'мақола', 'статья|статьи|статей', 'article|articles'),
+  'unit.pages_word':    m('bet', 'бет', 'страница|страницы|страниц', 'page|pages'),
+  'unit.shown':     m('{n} ta ko‘rsatilmoqda', '{n} та кўрсатилмоқда', 'показана {n}|показаны {n}|показано {n}', '{n} shown'),
+
+  // ── Vaqt ──
+  'time.just_now':    m('hozir', 'ҳозир', 'только что', 'just now'),
+  'time.minutes_ago': m('{n} daqiqa oldin', '{n} дақиқа олдин', '{n} минуту назад|{n} минуты назад|{n} минут назад', '{n} minute ago|{n} minutes ago'),
+  'time.hours_ago':   m('{n} soat oldin', '{n} соат олдин', '{n} час назад|{n} часа назад|{n} часов назад', '{n} hour ago|{n} hours ago'),
+  'time.days_ago':    m('{n} kun oldin', '{n} кун олдин', '{n} день назад|{n} дня назад|{n} дней назад', '{n} day ago|{n} days ago'),
+  'time.yesterday_at': m('kecha {t}', 'кеча {t}', 'вчера {t}', 'yesterday {t}'),
+
+  // Son sanasi: «2025-yil 3-son» / «2025-yil»
+  'issue.date_with_vol': m('{year}-yil {vol}-son', '{year}-йил {vol}-сон', '{year} г., № {vol}', '{year}, No. {vol}'),
+  'issue.date_year':     m('{year}-yil', '{year}-йил', '{year} г.', '{year}'),
+  'issue.year_number':   m('{year} · № {n}', '{year} · № {n}', '{year} · № {n}', '{year} · No. {n}'),
+  'issue.cover_alt':     m('{journal} № {n}, {year} muqovasi', '{journal} № {n}, {year} муқоваси', 'Обложка {journal} № {n}, {year}', '{journal} No. {n}, {year} cover'),
+  'issue.cover_alt_short': m('{label} soni muqovasi', '{label} сони муқоваси', 'Обложка номера {label}', 'Cover of issue {label}'),
+
+  // ── Footer ──
+  'footer.about':        m('«Kutubxona» ilmiy-amaliy jurnali arxivi. 2019-yildan beri chiqadi. O‘zbekiston Milliy kutubxonasi nashri.', '«Кутубхона» илмий-амалий журнали архиви. 2019 йилдан бери чиқади. Ўзбекистон Миллий кутубхонаси нашри.', 'Архив научно-практического журнала «Kutubxona». Издаётся с 2019 года. Издание Национальной библиотеки Узбекистана.', 'Archive of the “Kutubxona” scholarly journal. Published since 2019 by the National Library of Uzbekistan.'),
+  'footer.col.archive':  m('Arxiv', 'Архив', 'Архив', 'Archive'),
+  'footer.col.journal':  m('Jurnal', 'Журнал', 'Журнал', 'Journal'),
+  'footer.col.authors':  m('Mualliflarga', 'Муаллифларга', 'Авторам', 'For authors'),
+  'footer.link.all_articles': m('Barcha maqolalar', 'Барча мақолалар', 'Все статьи', 'All articles'),
+  'footer.link.issues':       m('Jurnal sonlari', 'Журнал сонлари', 'Номера журнала', 'Journal issues'),
+  'footer.link.search':       m('Qidiruv', 'Қидирув', 'Поиск', 'Search'),
+  'footer.link.policy':       m('Taqriz siyosati', 'Тақриз сиёсати', 'Политика рецензирования', 'Peer review policy'),
+  'footer.link.ethics':       m('Nashr etikasi', 'Нашр этикаси', 'Публикационная этика', 'Publication ethics'),
+  'footer.link.indexing':     m('Indeksatsiya', 'Индексация', 'Индексация', 'Indexing'),
+  'footer.link.terms':        m('Qabul shartlari', 'Қабул шартлари', 'Условия приёма', 'Submission requirements'),
+  'footer.link.formatting':   m('Formatlash talablari', 'Форматлаш талаблари', 'Требования к оформлению', 'Formatting requirements'),
+  'footer.link.review':       m('Taqriz jarayoni', 'Тақриз жараёни', 'Процесс рецензирования', 'Review process'),
+  'footer.link.submit':       m('Maqola yuborish', 'Мақола юбориш', 'Отправить статью', 'Submit an article'),
+  'footer.copyright':    m('© {year} O‘zbekiston Milliy kutubxonasi', '© {year} Ўзбекистон Миллий кутубхонаси', '© {year} Национальная библиотека Узбекистана', '© {year} National Library of Uzbekistan'),
+
+  // ── SEO ──
+  'seo.default_description': m('Kutubxona.uz — O‘zbekiston ilmiy maqolalar arxivi.', 'Kutubxona.uz — Ўзбекистон илмий мақолалар архиви.', 'Kutubxona.uz — архив научных статей Узбекистана.', 'Kutubxona.uz — archive of scholarly articles from Uzbekistan.'),
+} satisfies Record<string, Entry>;

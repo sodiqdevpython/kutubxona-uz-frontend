@@ -17,6 +17,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../../lib/config';
+import { tr } from '../../lib/i18n/runtime';
 
 export interface CaptchaConfig {
   enabled:         boolean;
@@ -78,7 +79,7 @@ export default function Captcha({ onToken, onReady }: Props) {
       try {
         await loadScript(cfg.script_url);
       } catch {
-        if (alive) setError("Tekshiruv vidjetini yuklab bo‘lmadi.");
+        if (alive) setError(tr('captcha.load_failed'));
         return;
       }
 

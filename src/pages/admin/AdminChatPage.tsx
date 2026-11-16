@@ -6,6 +6,8 @@ import { adminApi, type AdminAuthorDetail, type AdminChat, type ChatMessage } fr
 import { connectAdminChat, type ChatEvent, type ChatSocketStatus } from '../../lib/chat-socket';
 import { mediaUrl } from '../../lib/config';
 import { foldText } from '../../lib/search';
+import { useI18n, type I18n, type MsgKey } from '../../lib/i18n';
+import { fmtDate, tr } from '../../lib/i18n/runtime';
 
 /**
  * Xabarlar — Figma «Xabarlar»: chapda suhbatlar (filtr, qidiruv), o'rtada suhbat
@@ -20,35 +22,42 @@ import { foldText } from '../../lib/search';
 const PAGE_LIMIT = 20;
 const POLL_MS = 8000;
 type Filter = 'all' | 'waiting' | 'closed';
-const QUICK: { label: string; text: string }[] = [
-  { label: 'Taqrizga yuborildi', text: "Assalomu alaykum! Maqolangiz taqrizga yuborildi. Xulosa 21 kun ichida bo‘ladi." },
-  { label: 'Tuzatish kerak',     text: "Maqolangizda tuzatish talab qilinadi: adabiyotlar ro‘yxati va annotatsiyani jurnal talablariga moslab qayta yuboring." },
-  { label: 'Shablonni yuborish', text: "Maqolani jurnal shabloniga muvofiq rasmiylashtiring — qo‘llanma: journal.kutubxona.uz/about/guide" },
+const FILTERS: { key: Filter; label: MsgKey }[] = [
+  { key: 'all', label: 'adm.chat.filter.all' }, { key: 'waiting', label: 'adm.chat.filter.waiting' }, { key: 'closed', label: 'adm.chat.filter.closed' },
+];
+/** Tez javoblar — tugma yorlig'i va muallifga ketadigan matn (muallif tilida yuboriladi — interfeys tili) */
+const QUICK: { label: MsgKey; text: MsgKey }[] = [
+  { label: 'adm.chat.quick.review',   text: 'adm.chat.quick.review_t' },
+  { label: 'adm.chat.quick.fix',      text: 'adm.chat.quick.fix_t' },
+  { label: 'adm.chat.quick.template', text: 'adm.chat.quick.template_t' },
 ];
 
-const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
 const hhmm = (iso: string) => { const x = new Date(iso); return `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };
 function listTime(iso: string | null): string {
   if (!iso) return '';
   const x = new Date(iso), now = new Date();
   if (x.toDateString() === now.toDateString()) return hhmm(iso);
   const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (x.toDateString() === y.toDateString()) return 'kecha';
-  return `${x.getDate()}-${MONTHS[x.getMonth()].slice(0, 3)}`;
+  if (x.toDateString() === y.toDateString()) return tr('adm.chat.yesterday');
+  return fmtDate(x, { day: 'numeric', month: 'short' });
 }
-const dayLabel = (iso: string) => { const x = new Date(iso); return `${x.getDate()}-${MONTHS[x.getMonth()]}${x.getFullYear() !== new Date().getFullYear() ? ` ${x.getFullYear()}` : ''}`; };
+const dayLabel = (iso: string) => {
+  const x = new Date(iso);
+  return fmtDate(x, x.getFullYear() !== new Date().getFullYear() ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long' });
+};
 function waitingHours(c: AdminChat): number | null {
   if (!c.last_message || c.last_message.sender !== 'user' || !c.last_message_at) return null;
   return Math.max(0, Math.floor((Date.now() - new Date(c.last_message_at).getTime()) / 3600000));
 }
-function preview(c: AdminChat): string {
-  const lm = c.last_message; if (!lm) return 'Suhbat boshlanmagan';
-  const p = lm.sender === 'admin' ? 'Siz: ' : '';
-  return p + (lm.kind === 'photo' ? `Rasm${lm.text ? ` · ${lm.text}` : ''}` : lm.kind === 'document' ? `Fayl${lm.text ? ` · ${lm.text}` : ''}` : lm.text);
+function preview(c: AdminChat, t: I18n['t']): string {
+  const lm = c.last_message; if (!lm) return t('adm.chat.no_conv');
+  const p = lm.sender === 'admin' ? t('adm.chat.you') : '';
+  return p + (lm.kind === 'photo' ? `${t('adm.chat.photo')}${lm.text ? ` · ${lm.text}` : ''}` : lm.kind === 'document' ? `${t('adm.chat.file')}${lm.text ? ` · ${lm.text}` : ''}` : lm.text);
 }
 const sortChats = (l: AdminChat[]) => [...l].sort((a, b) => new Date(b.last_message_at ?? b.created_at).getTime() - new Date(a.last_message_at ?? a.created_at).getTime());
 
 export default function AdminChatPage() {
+  const { t } = useI18n();
   const [params, setParams] = useSearchParams();
   const [chats, setChats]   = useState<AdminChat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +74,7 @@ export default function AdminChatPage() {
   const activeIdRef = useRef<string | null>(activeId);
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
   const activeChat = chats.find(c => c.id === activeId) ?? null;
-  function flash(t: string) { setToast(t); setTimeout(() => setToast(''), 3500); }
+  function flash(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3500); }
 
   // ── Ro'yxat ──
   const loadFirst = useCallback((merge: boolean) =>
@@ -126,8 +135,8 @@ export default function AdminChatPage() {
   // ── WS yo'q bo'lsa — HTTP orqali yangilab turamiz ──
   useEffect(() => {
     if (wsStatus === 'open') return;
-    const t = setInterval(() => { loadFirst(true); if (activeIdRef.current) loadMessages(activeIdRef.current, true); }, POLL_MS);
-    return () => clearInterval(t);
+    const timer = setInterval(() => { loadFirst(true); if (activeIdRef.current) loadMessages(activeIdRef.current, true); }, POLL_MS);
+    return () => clearInterval(timer);
   }, [wsStatus, loadFirst, loadMessages]);
 
   // ── ?author=slug bilan kelinsa ──
@@ -138,7 +147,8 @@ export default function AdminChatPage() {
       setChats(p => (p.some(c => c.id === ch.id) ? p : [ch, ...p]));
       setActiveId(ch.id);
       setParams(prev => { prev.delete('author'); prev.set('chat', ch.id); return prev; }, { replace: true });
-    }).catch(e => flash(`Chat ochib bo‘lmadi: ${(e as Error).message}`));
+    }).catch(e => flash(t('adm.chat.open_failed', { e: (e as Error).message })));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorParam, setParams]);
 
   function select(c: AdminChat) { setActiveId(c.id); setMenu(false); setParams(prev => { prev.set('chat', c.id); return prev; }, { replace: true }); }
@@ -150,39 +160,39 @@ export default function AdminChatPage() {
       && (!q || foldText(c.author_name).includes(q) || foldText(c.telegram_username).includes(q)));
   }, [chats, filter, search]);
 
-  async function toggleBlock() { if (!activeChat) return; try { const r = await adminApi.chat.toggleBlock(activeChat.id); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, is_blocked: r.is_blocked } : c))); } catch (e) { flash(`Xatolik: ${(e as Error).message}`); } setMenu(false); }
+  async function toggleBlock() { if (!activeChat) return; try { const r = await adminApi.chat.toggleBlock(activeChat.id); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, is_blocked: r.is_blocked } : c))); } catch (e) { flash(t('adm.chat.error', { e: (e as Error).message })); } setMenu(false); }
   async function removeChat() {
-    if (!activeChat || !confirm(`«${activeChat.author_name}» bilan suhbat va xabarlar o‘chirilsinmi?`)) return;
-    try { await adminApi.chat.remove(activeChat.id); setChats(p => p.filter(c => c.id !== activeChat.id)); setActiveId(null); setParams(prev => { prev.delete('chat'); return prev; }, { replace: true }); } catch (e) { flash(`Xatolik: ${(e as Error).message}`); }
+    if (!activeChat || !confirm(t('adm.chat.confirm_delete', { name: activeChat.author_name }))) return;
+    try { await adminApi.chat.remove(activeChat.id); setChats(p => p.filter(c => c.id !== activeChat.id)); setActiveId(null); setParams(prev => { prev.delete('chat'); return prev; }, { replace: true }); } catch (e) { flash(t('adm.chat.error', { e: (e as Error).message })); }
     setMenu(false);
   }
   async function markClosed() { if (!activeChat) return; try { await adminApi.chat.markRead(activeChat.id); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, unread_count: 0, last_message: c.last_message ? { ...c.last_message, sender: 'admin' } : c.last_message } : c))); } catch { /* */ } }
 
   return (
-    <AdminShell active="chat" crumb="Xabarlar">
+    <AdminShell active="chat" crumb={t('nav.admin.chat')}>
       <div className={`ch-wrap${activeChat ? ' has-chat' : ''}`}>
         {/* ── Chap: suhbatlar ── */}
         <div className="ch-list">
           <div className="ch-filters">
-            {([['all', 'Barchasi'], ['waiting', 'Javob kutmoqda'], ['closed', 'Yopilgan']] as [Filter, string][]).map(([k, l]) => (
-              <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}<span>{counts[k]}</span></button>
+            {FILTERS.map(f => (
+              <button key={f.key} className={filter === f.key ? 'on' : ''} onClick={() => setFilter(f.key)}>{t(f.label)}<span>{counts[f.key]}</span></button>
             ))}
           </div>
           <div className="ch-search">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ism yoki @username" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('adm.chat.search')} />
           </div>
           <div className="ch-items" onScroll={e => { const el = e.currentTarget; if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) loadMore(); }}>
-            {loading && <div className="sub-empty" style={{ padding: 30 }}>Yuklanmoqda…</div>}
-            {!loading && list.length === 0 && <div className="sub-empty" style={{ padding: 30 }}>{search ? 'Topilmadi' : 'Hali suhbat yo‘q'}</div>}
+            {loading && <div className="sub-empty" style={{ padding: 30 }}>{t('common.loading')}</div>}
+            {!loading && list.length === 0 && <div className="sub-empty" style={{ padding: 30 }}>{search ? t('adm.chat.not_found') : t('adm.chat.empty_list')}</div>}
             {list.map(c => (
               <button key={c.id} className={`ch-item${c.id === activeId ? ' on' : ''}`} onClick={() => select(c)}>
                 <span className="ava"><AuthorAvatar name={c.author_initials} idx={c.author_avatar_idx} size={40} />{c.unread_count > 0 && <span className="un" />}</span>
                 <span style={{ minWidth: 0 }}>
                   <span className="top"><span className="nm">{c.author_name}</span><span className="tm">{listTime(c.last_message_at)}</span></span>
-                  <span className="pv">{preview(c)}</span>
-                  {c.unread_count > 0 && <span className="chip-m accent">Javob kutmoqda</span>}
-                  {c.is_blocked && <span className="chip-m red" style={{ marginTop: 6 }}>Bloklangan</span>}
+                  <span className="pv">{preview(c, t)}</span>
+                  {c.unread_count > 0 && <span className="chip-m accent">{t('adm.chat.awaiting')}</span>}
+                  {c.is_blocked && <span className="chip-m red" style={{ marginTop: 6 }}>{t('adm.chat.blocked')}</span>}
                 </span>
               </button>
             ))}
@@ -191,7 +201,7 @@ export default function AdminChatPage() {
 
         {/* ── O'rta: suhbat ── */}
         <div className="ch-main">
-          {!activeChat ? <div className="ch-empty">Suhbat tanlang</div> : (
+          {!activeChat ? <div className="ch-empty">{t('adm.chat.select')}</div> : (
             <Conversation chat={activeChat} msgs={msgs} wsStatus={wsStatus} menu={menu} setMenu={setMenu}
               onSent={m => { setMsgs(p => (p.some(x => x.id === m.id) ? p : [...p, m])); setChats(p => p.map(c => (c.id === activeChat.id ? { ...c, last_message_at: m.created_at, last_message: { text: m.text, kind: m.kind, sender: 'admin', created_at: m.created_at } } : c))); }}
               onBlock={toggleBlock} onDelete={removeChat} onClose={markClosed} author={author}
@@ -207,24 +217,24 @@ export default function AdminChatPage() {
                 <div className="ava-lg">{author?.avatar_url ? <img src={mediaUrl(author.avatar_url) ?? undefined} alt="" /> : activeChat.author_initials}</div>
                 <div className="nm">{activeChat.author_name}</div>
                 <div className="org">{author ? ([author.org, author.role].filter(Boolean).join(' · ') || (activeChat.telegram_username ? `@${activeChat.telegram_username}` : 'Telegram')) : '…'}</div>
-                <Link to={`/admin/authors/${activeChat.author_id}`} className="ab sm block">Profilni ochish</Link>
+                <Link to={`/admin/authors/${activeChat.author_id}`} className="ab sm block">{t('adm.chat.open_profile')}</Link>
               </div>
               <div className="ch-side-card">
-                <div className="lbl">Ko‘rib chiqilayotgan maqola</div>
+                <div className="lbl">{t('adm.chat.reviewing')}</div>
                 {author?.pending_submission ? (
                   <div className="ch-art">
-                    <span className="chip-m blue">Taqrizda</span>
-                    <div className="t">{author.pending_submission.title || 'Sarlavhasiz'}</div>
+                    <span className="chip-m blue">{t('adm.chat.in_review')}</span>
+                    <div className="t">{author.pending_submission.title || t('adm.chat.untitled')}</div>
                     <div className="m">{dayLabel(author.pending_submission.submitted_at)}</div>
-                    <Link to={`/admin/submissions/${author.pending_submission.id}`} className="ab sm block">Maqolaga o‘tish</Link>
+                    <Link to={`/admin/submissions/${author.pending_submission.id}`} className="ab sm block">{t('adm.chat.goto_article')}</Link>
                   </div>
-                ) : <div className="meta" style={{ fontSize: 13, color: 'var(--ink-3)' }}>Hozir ko‘rib chiqilayotgan maqola yo‘q.</div>}
+                ) : <div className="meta" style={{ fontSize: 13, color: 'var(--ink-3)' }}>{t('adm.chat.no_reviewing')}</div>}
               </div>
               <div className="ch-side-card" style={{ borderBottom: 0 }}>
-                <div className="lbl">Muallif statistikasi</div>
-                <div className="ch-stat"><span>Nashr etilgan</span><b>{author?.stats.published ?? '—'}</b></div>
-                <div className="ch-stat"><span>Ko‘rib chiqilmoqda</span><b className={author?.stats.pending ? 'accent' : ''}>{author?.stats.pending || '—'}</b></div>
-                <div className="ch-stat"><span>Rad etilgan</span><b>{author?.stats.rejected || '—'}</b></div>
+                <div className="lbl">{t('adm.chat.author_stats')}</div>
+                <div className="ch-stat"><span>{t('adm.chat.st.published')}</span><b>{author?.stats.published ?? '—'}</b></div>
+                <div className="ch-stat"><span>{t('adm.chat.st.pending')}</span><b className={author?.stats.pending ? 'accent' : ''}>{author?.stats.pending || '—'}</b></div>
+                <div className="ch-stat"><span>{t('adm.chat.st.rejected')}</span><b>{author?.stats.rejected || '—'}</b></div>
               </div>
             </>
           )}
@@ -241,6 +251,7 @@ function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, on
   chat: AdminChat; msgs: ChatMessage[]; wsStatus: ChatSocketStatus; menu: boolean; setMenu: (v: boolean) => void;
   onSent: (m: ChatMessage) => void; onBlock: () => void; onDelete: () => void; onClose: () => void; author: AdminAuthorDetail | null; onBack: () => void;
 }) {
+  const { t, tn } = useI18n();
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
@@ -249,45 +260,47 @@ function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, on
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs.length, chat.id]);
 
   const waiting = waitingHours(chat);
+  // «Muallif javobingizni <b>{x}</b> kutmoqda» — qalin qism alohida
+  const [bannerA, bannerB] = t('adm.chat.banner').split('{x}');
 
   async function send() {
-    const t = text.trim(); if (!t && !file) return;
+    const body = text.trim(); if (!body && !file) return;
     setSending(true);
     try {
       const isImg = !!file && file.type.startsWith('image/');
-      const m = await adminApi.chat.send(chat.id, { text: t, image: isImg ? file : null, document: !isImg ? file : null });
+      const m = await adminApi.chat.send(chat.id, { text: body, image: isImg ? file : null, document: !isImg ? file : null });
       onSent(m); setText(''); setFile(null); if (fileRef.current) fileRef.current.value = '';
-    } catch (e) { alert(`Yuborib bo‘lmadi: ${(e as Error).message}`); }
+    } catch (e) { alert(t('adm.chat.send_failed', { e: (e as Error).message })); }
     setSending(false);
   }
 
   return (
     <>
       <div className="ch-head">
-        <button className="ch-back" onClick={onBack} aria-label="Suhbatlar ro‘yxatiga qaytish">‹</button>
+        <button className="ch-back" onClick={onBack} aria-label={t('adm.chat.back')}>‹</button>
         <AuthorAvatar name={chat.author_initials} idx={chat.author_avatar_idx} src={mediaUrl(author?.avatar_url)} size={40} />
         <div style={{ minWidth: 0 }}>
           <div className="nm">{chat.author_name}</div>
-          <div className="sb"><span className={chat.is_blocked ? 'off' : 'on'} />{chat.telegram_username ? `@${chat.telegram_username}` : 'Telegram'}{chat.last_message_at && ` · oxirgi xabar ${listTime(chat.last_message_at)}`}{chat.is_blocked && ' · bloklangan'}</div>
+          <div className="sb"><span className={chat.is_blocked ? 'off' : 'on'} />{chat.telegram_username ? `@${chat.telegram_username}` : 'Telegram'}{chat.last_message_at && t('adm.chat.last_msg', { t: listTime(chat.last_message_at) })}{chat.is_blocked && t('adm.chat.blocked_sfx')}</div>
         </div>
         <div className="ch-menu">
-          <button onClick={() => setMenu(!menu)} aria-label="Menyu">⋯</button>
+          <button onClick={() => setMenu(!menu)} aria-label={t('common.menu')}>⋯</button>
           {menu && (
             <div className="ch-menu-dd" onMouseLeave={() => setMenu(false)}>
-              <a className="ab text" style={{ display: 'block', textAlign: 'left', height: 36, padding: '0 12px', fontWeight: 400, fontSize: 13.5 }} href={`/authors/${chat.author_slug}`} target="_blank" rel="noreferrer">Saytdagi profil ↗</a>
-              <button onClick={onBlock}>{chat.is_blocked ? 'Blokdan chiqarish' : 'Bloklash'}</button>
-              <button className="red" onClick={onDelete}>Suhbatni o‘chirish</button>
+              <a className="ab text" style={{ display: 'block', textAlign: 'left', height: 36, padding: '0 12px', fontWeight: 400, fontSize: 13.5 }} href={`/authors/${chat.author_slug}`} target="_blank" rel="noreferrer">{t('adm.chat.site_profile')}</a>
+              <button onClick={onBlock}>{chat.is_blocked ? t('adm.chat.unblock') : t('adm.chat.block')}</button>
+              <button className="red" onClick={onDelete}>{t('adm.chat.delete')}</button>
             </div>
           )}
         </div>
       </div>
       {waiting !== null && chat.unread_count > 0 && (
-        <div className="ch-banner"><span className="dot" />Muallif javobingizni <b style={{ margin: '0 4px' }}>{waiting ? `${waiting} soatdan beri` : 'hozirgina'}</b> kutmoqda<button onClick={onClose}>Yopilgan deb belgilash</button></div>
+        <div className="ch-banner"><span className="dot" />{bannerA}<b style={{ margin: '0 4px' }}>{waiting ? tn('adm.chat.banner_hours', waiting) : t('adm.chat.banner_now')}</b>{bannerB}<button onClick={onClose}>{t('adm.chat.mark_closed')}</button></div>
       )}
-      {wsStatus !== 'open' && <div className={`ch-status${wsStatus === 'offline' ? ' bad' : ''}`}>{wsStatus === 'connecting' ? 'Real vaqt ulanishi o‘rnatilmoqda…' : 'Real vaqt ulanishi yo‘q — xabarlar har 8 soniyada yangilanadi'}</div>}
+      {wsStatus !== 'open' && <div className={`ch-status${wsStatus === 'offline' ? ' bad' : ''}`}>{wsStatus === 'connecting' ? t('adm.chat.ws_connecting') : t('adm.chat.ws_offline')}</div>}
 
       <div ref={scrollRef} className="ch-msgs">
-        {msgs.length === 0 && <div className="sub-empty" style={{ padding: 30 }}>Hozircha xabar yo‘q — birinchi xabarni yozing.</div>}
+        {msgs.length === 0 && <div className="sub-empty" style={{ padding: 30 }}>{t('adm.chat.no_msgs')}</div>}
         {msgs.map((m, i) => {
           const day = new Date(m.created_at).toDateString();
           const sep = i === 0 || day !== new Date(msgs[i - 1].created_at).toDateString();
@@ -297,7 +310,7 @@ function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, on
               {sep && <div className="ch-date">{dayLabel(m.created_at)}</div>}
               <div className={`bub ${out ? 'out' : 'in'}`}>
                 {m.kind === 'photo' && m.image_url && <img src={mediaUrl(m.image_url) ?? undefined} alt="" />}
-                {m.kind === 'document' && m.document_url && <a className="doc" href={mediaUrl(m.document_url) ?? undefined} target="_blank" rel="noreferrer">📎 {m.document_name || 'Fayl'}</a>}
+                {m.kind === 'document' && m.document_url && <a className="doc" href={mediaUrl(m.document_url) ?? undefined} target="_blank" rel="noreferrer">📎 {m.document_name || t('adm.chat.file')}</a>}
                 {m.text && <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>}
                 <span className="tm">{hhmm(m.created_at)}{out ? (m.is_read ? ' ✓✓' : ' ✓') : ''}</span>
               </div>
@@ -307,18 +320,18 @@ function Conversation({ chat, msgs, wsStatus, menu, setMenu, onSent, onBlock, on
       </div>
 
       <div className="ch-quick">
-        <span className="lbl">Tez javob</span>
-        {QUICK.map(q => <button key={q.label} type="button" onClick={() => setText(q.text)}>{q.label}</button>)}
+        <span className="lbl">{t('adm.chat.quick')}</span>
+        {QUICK.map(q => <button key={q.label} type="button" onClick={() => setText(t(q.text))}>{t(q.label)}</button>)}
       </div>
-      {file && <div className="ch-attach">📎 {file.name}<button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }}>✕</button></div>}
+      {file && <div className="ch-attach">📎 {file.name}<button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }} aria-label={t('adm.chat.remove_attach')}>✕</button></div>}
       <div className="ch-composer">
-        <button className="att" title="Fayl yoki rasm" disabled={chat.is_blocked || sending} onClick={() => fileRef.current?.click()}>
+        <button className="att" title={t('adm.chat.attach')} aria-label={t('adm.chat.attach')} disabled={chat.is_blocked || sending} onClick={() => fileRef.current?.click()}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.5 3.5 0 0 1 5 5l-9 9a1.5 1.5 0 0 1-2.1-2.1l8-8"/></svg>
         </button>
         <input ref={fileRef} type="file" hidden onChange={e => setFile(e.target.files?.[0] ?? null)} />
-        <textarea value={text} onChange={e => setText(e.target.value)} placeholder={chat.is_blocked ? 'Bu suhbat bloklangan' : 'Xabar yozing…'} disabled={chat.is_blocked || sending}
+        <textarea value={text} onChange={e => setText(e.target.value)} placeholder={chat.is_blocked ? t('adm.chat.ph_blocked') : t('adm.chat.ph')} disabled={chat.is_blocked || sending}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-        <button className="ab primary" onClick={send} disabled={(!text.trim() && !file) || sending || chat.is_blocked}>{sending ? '…' : 'Yuborish'}</button>
+        <button className="ab primary" onClick={send} disabled={(!text.trim() && !file) || sending || chat.is_blocked}>{sending ? '…' : t('adm.chat.send')}</button>
       </div>
     </>
   );

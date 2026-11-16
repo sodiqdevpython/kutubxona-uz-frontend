@@ -56,7 +56,6 @@
 .detail-author-org { font-size: 13.5px; line-height: 1.45; color: var(--ink-2); margin-top: 3px; }
 .orcid-link { font-family: var(--mono); font-size: 11.5px; color: #2F6B4F; text-decoration: none; }
 .orcid-link:hover { text-decoration: underline; }
-.meta-doi { display: inline-flex; align-items: baseline; gap: 8px; flex-wrap: wrap; word-break: break-all; }
 .meta-copy {
   border: 0; background: none; padding: 0; cursor: pointer;
   font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--accent);
@@ -172,12 +171,6 @@
 }
 .ref-list li:last-child { border-bottom: 0; }
 .ref-n { font-family: var(--mono); font-size: 11px; color: var(--ink-4); padding-top: 3px; }
-.ref-doi {
-  display: block; margin-top: 4px;
-  font-family: var(--mono); font-size: 11.5px;
-  color: var(--accent); text-decoration: none;
-}
-.ref-doi:hover { text-decoration: underline; }
 
 /* ── O'xshash maqolalar ── */
 .rel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -257,3 +250,7 @@
   .detail-meta > .meta-cell { border-right: 0; grid-column: auto !important; }
   .detail-head h2 { font-size: 20px; }
 }
+
+/* Ko'rishlar: ko'z belgisi + son */
+.views-count { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.views-count svg { flex-shrink: 0; color: var(--ink-3); }

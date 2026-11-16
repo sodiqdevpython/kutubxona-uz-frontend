@@ -7,6 +7,7 @@ import Pagination from '../components/ui/Pagination';
 import { CheckIcon, ChevIcon, SearchIcon } from '../components/ui/Icons';
 import ArticleRow from '../components/article/ArticleRow';
 import { useFetch } from '../lib/hooks';
+import { useI18n, type MsgKey } from '../lib/i18n';
 import { type ApiArticle, type ApiFacets, type PaginatedResponse } from '../lib/api';
 import Seo from '../components/Seo';
 
@@ -19,11 +20,11 @@ const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 // ── Saralash (Figma: segmentli boshqaruv) ────────────────────────────────────
 type SortKey = 'new' | 'old' | 'views' | 'alpha';
-const SORT_OPTS: Record<SortKey, { label: string; param: string }> = {
-  new:   { label: 'Eng yangi',     param: '-issue__year,-issue__number,page_start' },
-  old:   { label: 'Eng eski',      param: 'issue__year,issue__number,page_start' },
-  views: { label: "Ko‘p o‘qilgan", param: '-views' },
-  alpha: { label: 'Alifbo',        param: 'title' },
+const SORT_OPTS: Record<SortKey, { label: MsgKey; param: string }> = {
+  new:   { label: 'common.sort.newest', param: '-issue__year,-issue__number,page_start' },
+  old:   { label: 'common.sort.oldest', param: 'issue__year,issue__number,page_start' },
+  views: { label: 'common.sort.views',  param: '-views' },
+  alpha: { label: 'common.sort.alpha',  param: 'title' },
 };
 
 const PAGE_SIZES = [20, 50, 100];
@@ -32,8 +33,9 @@ const PAGE_SIZES = [20, 50, 100];
 
 type FilterItem = [string, number | null, string];   // [nomi, soni, qiymati]
 
-const LANG_LABEL: Record<string, string> = {
-  uz: 'O‘zbek (lotin)', 'uz-cyrl': 'Ўзбек (кирилл)', ru: 'Русский', en: 'English',
+/** Maqola tili (API kodi) → interfeys tilidagi nom */
+const LANG_LABEL: Record<string, MsgKey> = {
+  uz: 'common.lang.uz', 'uz-cyrl': 'common.lang.uz_cyrl', ru: 'common.lang.ru', en: 'common.lang.en',
 };
 
 function FiltersSkeleton() {
@@ -56,6 +58,7 @@ function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
   onToggle: (val: string) => void;
   limit?: number;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(true);
   const [all, setAll]   = useState(false);
   const shown = all ? items : items.slice(0, limit);
@@ -88,7 +91,7 @@ function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
           </div>
           {rest > 0 && (
             <button className="filter-more" onClick={() => setAll(true)}>
-              Yana {rest} {title.toLowerCase()}
+              {t('articles.filter.more', { n: rest })}
             </button>
           )}
         </>
@@ -99,9 +102,9 @@ function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
 
 // ── Yuklanish skeleti (Figma: «Maqolalar loading») ───────────────────────────
 
-function ArticlesSkeleton({ rows = 8 }: { rows?: number }) {
+function ArticlesSkeleton({ rows = 8, label }: { rows?: number; label: string }) {
   return (
-    <div className="art-table" aria-busy="true" aria-label="Yuklanmoqda">
+    <div className="art-table" aria-busy="true" aria-label={label}>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="art-row sk-row">
           <div className="sk sk-num" />
@@ -123,6 +126,7 @@ function ArticlesSkeleton({ rows = 8 }: { rows?: number }) {
 // ── Sahifa ───────────────────────────────────────────────────────────────────
 
 export default function ArticlesPage() {
+  const { t, tn, num } = useI18n();
   const [urlParams] = useSearchParams();
   const initialSearch = urlParams.get('search') ?? '';
 
@@ -142,8 +146,8 @@ export default function ArticlesPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => { setDebouncedQ(search); setPage(1); }, 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => { setDebouncedQ(search); setPage(1); }, 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
   useEffect(() => { setPage(1); }, [sort, pageSize]);
@@ -190,13 +194,13 @@ export default function ArticlesPage() {
 
   // Sonlar ro'yxati — yangisi tepada
   const issueItems = useMemo<FilterItem[]>(() =>
-    (facets?.issues ?? []).map(i => [`${i.year} · №\u00A0${i.number}`, i.count, i.id]), [facets]);
+    (facets?.issues ?? []).map(i => [`${i.year} · № ${i.number}`, i.count, i.id]), [facets]);
 
   const catItems = useMemo<FilterItem[]>(() =>
     (facets?.categories ?? []).map(c => [c.name, c.count, c.slug]), [facets]);
 
   const langItems = useMemo<FilterItem[]>(() =>
-    (facets?.languages ?? []).map(l => [LANG_LABEL[l.code] ?? l.code, l.count, l.code]), [facets]);
+    (facets?.languages ?? []).map(l => [LANG_LABEL[l.code] ? t(LANG_LABEL[l.code]) : l.code, l.count, l.code]), [facets, t]);
 
   const keywordItems = useMemo<FilterItem[]>(() =>
     (facets?.keywords ?? []).map(k => [k.name, k.count, k.slug]), [facets]);
@@ -216,7 +220,7 @@ export default function ArticlesPage() {
       out.push({ key: 'c' + c, label: lbl, remove: () => toggle(setSelCats)(c) });
     });
     selLangs.forEach(l => {
-      out.push({ key: 'l' + l, label: LANG_LABEL[l] ?? l, remove: () => toggle(setSelLangs)(l) });
+      out.push({ key: 'l' + l, label: LANG_LABEL[l] ? t(LANG_LABEL[l]) : l, remove: () => toggle(setSelLangs)(l) });
     });
     selKeywords.forEach(k => {
       const lbl = keywordItems.find(x => x[2] === k)?.[0] ?? k;
@@ -224,7 +228,7 @@ export default function ArticlesPage() {
     });
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selYears, selIssues, selCats, selLangs, selKeywords, catItems, issueItems, keywordItems]);
+  }, [selYears, selIssues, selCats, selLangs, selKeywords, catItems, issueItems, keywordItems, t]);
 
   const years = (facets?.years ?? []).map(y => y.value);
   const yearRange = years.length ? `${Math.min(...years)}–${Math.max(...years)}` : '';
@@ -233,7 +237,7 @@ export default function ArticlesPage() {
 
   return (
     <div className="bg-articles" style={{ minHeight: '100vh' }}>
-      <Seo title="Maqolalar" description="Barcha ilmiy maqolalar — yo‘nalish, yil, jurnal soni bo‘yicha filtrlash va qidirish." />
+      <Seo title={t('nav.articles')} description={t('articles.seo.description')} />
       <PageLoadBar />
       <Topbar active="articles" />
       <main id="main" className="page-main">
@@ -241,31 +245,31 @@ export default function ArticlesPage() {
       <div className="wrap" style={{ paddingTop: 30 }}>
         {/* Non-pon */}
         <nav className="crumbs">
-          <Link to="/">Bosh sahifa</Link>
+          <Link to="/">{t('nav.home')}</Link>
           <span>/</span>
-          <span className="cur">Maqolalar</span>
+          <span className="cur">{t('nav.articles')}</span>
         </nav>
 
         {/* Sarlavha + saralash */}
         <div className="page-head">
           <div>
-            <h1 className="h-display page-title">Barcha maqolalar</h1>
+            <h1 className="h-display page-title">{t('articles.title')}</h1>
             <p className="page-sub">
               {articlesState.status !== 'ok'
                 ? '…'
                 : activeChips.length > 0
-                  ? `${totalCount.toLocaleString()} natija · ${activeChips.length} filtr qo‘llangan`
-                  : `${totalCount.toLocaleString()} ta maqola${yearRange ? ` · ${yearRange}` : ''}`}
+                  ? `${tn('unit.results', totalCount)} · ${tn('unit.filters_applied', activeChips.length)}`
+                  : `${tn('unit.articles_ta', totalCount)}${yearRange ? ` · ${yearRange}` : ''}`}
             </p>
           </div>
 
           <div className="page-head-ctrl">
-            <span className="page-head-lbl">Saralash</span>
+            <span className="page-head-lbl">{t('common.sort')}</span>
             <div className="segment">
               {(Object.keys(SORT_OPTS) as SortKey[]).map(key => (
                 <button key={key} className={sort === key ? 'active' : ''}
                   onClick={() => setSort(key)}>
-                  {SORT_OPTS[key].label}
+                  {t(SORT_OPTS[key].label)}
                 </button>
               ))}
             </div>
@@ -277,46 +281,46 @@ export default function ArticlesPage() {
       <div className="wrap articles-grid">
         <aside className="filters" data-open={filtersOpen ? 'on' : undefined}>
           <div className="filters-head">
-            <span className="eyebrow">Filtrlar</span>
-            <button onClick={clearAll} className={activeChips.length ? 'on' : ''}>Tozalash</button>
+            <span className="eyebrow">{t('common.filters')}</span>
+            <button onClick={clearAll} className={activeChips.length ? 'on' : ''}>{t('common.clear')}</button>
           </div>
 
           <div className="searchbar" style={{ marginBottom: 20 }}>
             <SearchIcon size={13} style={{ color: 'var(--ink-4)', flexShrink: 0 }} />
             <input id="search" value={search} onChange={e => setSearch(e.target.value)}
-              aria-label="Ro‘yxat ichidan qidirish"
-              placeholder="Ro‘yxat ichidan qidirish" style={{ fontSize: 13 }} />
+              aria-label={t('articles.search_in_list')}
+              placeholder={t('articles.search_in_list')} style={{ fontSize: 13 }} />
             {search && (
-              <button onClick={() => setSearch('')}
+              <button onClick={() => setSearch('')} aria-label={t('common.clear')}
                 style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 15, lineHeight: 1 }}>×</button>
             )}
           </div>
 
           <button className="filters-toggle" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(o => !o)}>
-            <span>Filtrlar{activeChips.length ? ` (${activeChips.length})` : ''}</span>
+            <span>{t('common.filters')}{activeChips.length ? ` (${activeChips.length})` : ''}</span>
             <ChevIcon size={12} style={{ transform: 'rotate(90deg)', transition: 'transform .15s' }} />
           </button>
 
           <div className="filters-body">
           {!facets && <FiltersSkeleton />}
           {yearItems.length > 0 && (
-            <FilterGroup title="Yil" items={yearItems}
+            <FilterGroup title={t('articles.filter.year')} items={yearItems}
               selected={selYears} onToggle={toggle(setSelYears)} />
           )}
           {issueItems.length > 0 && (
-            <FilterGroup title="Son" items={issueItems}
+            <FilterGroup title={t('articles.filter.issue')} items={issueItems}
               selected={selIssues} onToggle={toggle(setSelIssues)} />
           )}
           {catItems.length > 0 && (
-            <FilterGroup title="Yo‘nalish" items={catItems}
+            <FilterGroup title={t('articles.filter.category')} items={catItems}
               selected={selCats} onToggle={toggle(setSelCats)} />
           )}
           {langItems.length > 0 && (
-            <FilterGroup title="Til" items={langItems}
+            <FilterGroup title={t('articles.filter.language')} items={langItems}
               selected={selLangs} onToggle={toggle(setSelLangs)} />
           )}
           {keywordItems.length > 0 && (
-            <FilterGroup title="Kalit so‘z" items={keywordItems}
+            <FilterGroup title={t('articles.filter.keyword')} items={keywordItems}
               selected={selKeywords} onToggle={toggle(setSelKeywords)} />
           )}
           </div>
@@ -327,7 +331,7 @@ export default function ArticlesPage() {
           {/* Faol filtrlar */}
           {activeChips.length > 0 && (
             <div className="active-filters">
-              <span className="eyebrow accent">Faol filtrlar</span>
+              <span className="eyebrow accent">{t('articles.active_filters')}</span>
               <div className="active-chips">
                 {activeChips.map(c => (
                   <button key={c.key} className="active-chip" onClick={c.remove}>
@@ -336,21 +340,19 @@ export default function ArticlesPage() {
                   </button>
                 ))}
               </div>
-              <button className="active-clear" onClick={clearAll}>Barchasini bekor qilish</button>
+              <button className="active-clear" onClick={clearAll}>{t('articles.clear_all')}</button>
             </div>
           )}
 
-          {articlesState.status === 'loading' && <ArticlesSkeleton rows={pageSize > 20 ? 10 : 8} />}
+          {articlesState.status === 'loading' && <ArticlesSkeleton rows={pageSize > 20 ? 10 : 8} label={t('articles.loading')} />}
           {articlesState.status === 'error' && (
-            <div className="state-box">Xatolik yuz berdi. Keyinroq urinib ko‘ring.</div>
+            <div className="state-box">{t('common.error_retry')}</div>
           )}
 
           {articlesState.status === 'ok' && (
             <>
               {articles.length === 0 ? (
-                <div className="state-box">
-                  Hech qanday natija topilmadi. Filtrlarni o‘zgartiring yoki qidiruvni tozalang.
-                </div>
+                <div className="state-box">{t('articles.empty')}</div>
               ) : (
                 <div className="art-table">
                   {articles.map((a, i) => (
@@ -362,7 +364,9 @@ export default function ArticlesPage() {
               {/* Pagination qatori */}
               <div className="art-pager">
                 <span className="meta">
-                  {totalCount > 0 ? `${from}–${to} / ${totalCount.toLocaleString()} natija` : '0 natija'}
+                  {totalCount > 0
+                    ? t('articles.range', { from: num(from), to: num(to), total: tn('unit.results', totalCount) })
+                    : tn('unit.results', 0)}
                 </span>
 
                 {totalCount > pageSize && (
@@ -375,7 +379,7 @@ export default function ArticlesPage() {
                 )}
 
                 <div className="art-pager-size">
-                  <span className="meta">Sahifada</span>
+                  <span className="meta">{t('articles.per_page')}</span>
                   <div className="segment">
                     {PAGE_SIZES.map(n => (
                       <button key={n} className={pageSize === n ? 'active' : ''}

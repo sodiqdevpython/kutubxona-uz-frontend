@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import Topbar from '../components/layout/Topbar';
 import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
+import { useI18n } from '../lib/i18n';
 import { centralAsiaApi, type ApiCentralAsiaPost, type ApiCentralAsiaPostDetail } from '../lib/api';
 import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
@@ -14,15 +15,9 @@ import Seo from '../components/Seo';
  * yon panelda manba va o'xshash maqolalar.
  */
 
-const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
-function fmtDate(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : `${d.getDate()}-${MONTHS[d.getMonth()]}, ${d.getFullYear()}`;
-}
-
 export default function CentralAsiaDetailPage() {
   const { slug = '' } = useParams<{ slug: string }>();
+  const { t, num, date } = useI18n();
   const [post, setPost]   = useState<ApiCentralAsiaPostDetail | null>(null);
   const [more, setMore]   = useState<ApiCentralAsiaPost[]>([]);
   const [error, setError] = useState(false);
@@ -49,7 +44,7 @@ export default function CentralAsiaDetailPage() {
         <PageLoadBar /><Topbar active="central-asia" />
         <main id="main" className="page-main">
         <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>
-          Maqola topilmadi. <Link to="/central-asia" className="side-link">To‘plamga qaytish →</Link>
+          {t('ca.not_found')} <Link to="/central-asia" className="side-link">{t('cad.back_arrow')}</Link>
         </div></div>
         </main>
         <Footer />
@@ -61,7 +56,7 @@ export default function CentralAsiaDetailPage() {
       <div className="bg-detail" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="central-asia" />
         <main id="main" className="page-main">
-        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>{t('common.loading')}</div></div>
         </main>
         <Footer />
       </div>
@@ -83,13 +78,13 @@ export default function CentralAsiaDetailPage() {
         <div className="cad-veil" />
         <div className="wrap cad-hero-inner">
           <nav className="crumbs cad-crumbs">
-            <Link to="/">Bosh sahifa</Link><span>/</span>
-            <Link to="/central-asia">Central Asia</Link><span>/</span>
-            <span className="cur">{post.source_category || 'Maqola'}</span>
+            <Link to="/">{t('nav.home')}</Link><span>/</span>
+            <Link to="/central-asia">{t('ca.title')}</Link><span>/</span>
+            <span className="cur">{post.source_category || t('cad.article')}</span>
           </nav>
           <div className="detail-tags" style={{ marginBottom: 16 }}>
             <span className="pill-cat">{post.source_category || 'Central Asia'}</span>
-            <span className="pill-oa" style={{ borderColor: 'rgba(255,255,255,.35)', color: '#fff' }}>Ochiq kirish</span>
+            <span className="pill-oa" style={{ borderColor: 'rgba(255,255,255,.35)', color: '#fff' }}>{t('common.open_access')}</span>
           </div>
           <h1 className="h-display cad-title">{post.title}</h1>
           {post.author_line && <div className="cad-author">{post.author_line}</div>}
@@ -99,12 +94,11 @@ export default function CentralAsiaDetailPage() {
       {/* ═══ Meta chiziq ═══ */}
       <div className="wrap">
         <div className="cad-meta">
-          {post.published_at && <span><b>Nashr etildi</b>{fmtDate(post.published_at)}</span>}
-          <span><b>Ko‘rishlar</b>{post.total_views.toLocaleString()}</span>
-          {post.quote_number > 0 && <span><b>Iqtiboslar</b>{post.quote_number}</span>}
-          {post.doi && <span><b>DOI</b><a href={`https://doi.org/${post.doi}`} target="_blank" rel="noreferrer">{post.doi}</a></span>}
+          {post.published_at && <span><b>{t('cad.published')}</b>{date(post.published_at)}</span>}
+          <span><b>{t('cad.views')}</b>{num(post.total_views)}</span>
+          {post.quote_number > 0 && <span><b>{t('cad.quotes')}</b>{post.quote_number}</span>}
           <span style={{ marginLeft: 'auto' }}>
-            <button className="btn ghost sm" onClick={share}>{copied ? 'Nusxalandi ✓' : 'Ulashish'}</button>
+            <button className="btn ghost sm" onClick={share}>{copied ? t('common.Copied') : t('common.share')}</button>
           </span>
         </div>
       </div>
@@ -115,32 +109,32 @@ export default function CentralAsiaDetailPage() {
           {post.excerpt && <p className="cad-lede">{post.excerpt}</p>}
           {post.content
             ? <div className="prose" dangerouslySetInnerHTML={{ __html: post.content }} />
-            : <div className="state-box">Matn mavjud emas.</div>}
+            : <div className="state-box">{t('cad.no_text')}</div>}
         </article>
 
         <aside className="cad-side">
           {post.source_url && (
             <div className="side-card">
-              <div className="side-card-title">Manba</div>
-              <p className="side-text" style={{ marginTop: 8 }}>Maqola asl manzilida to‘liq ko‘rinishda mavjud.</p>
+              <div className="side-card-title">{t('cad.source')}</div>
+              <p className="side-text" style={{ marginTop: 8 }}>{t('cad.source_text')}</p>
               <a className="btn ghost sm" href={post.source_url} target="_blank" rel="noreferrer" style={{ width: '100%' }}>
-                Manbada ochish ↗
+                {t('cad.open_source')}
               </a>
             </div>
           )}
           {more.length > 0 && (
             <div className="side-card">
-              <div className="side-card-title">To‘plamdan yana</div>
-              {more.map(m => (
-                <Link key={m.id} to={`/central-asia/${m.slug}`} className="cad-more">
-                  <span className="tag cat">{m.source_category || 'Central Asia'}</span>
-                  <span className="cad-more-title">{m.title}</span>
-                  <span className="meta">{m.author_line}</span>
+              <div className="side-card-title">{t('cad.more')}</div>
+              {more.map(mm => (
+                <Link key={mm.id} to={`/central-asia/${mm.slug}`} className="cad-more">
+                  <span className="tag cat">{mm.source_category || 'Central Asia'}</span>
+                  <span className="cad-more-title">{mm.title}</span>
+                  <span className="meta">{mm.author_line}</span>
                 </Link>
               ))}
             </div>
           )}
-          <Link to="/central-asia" className="btn ghost" style={{ width: '100%' }}>← To‘plamga qaytish</Link>
+          <Link to="/central-asia" className="btn ghost" style={{ width: '100%' }}>{t('cad.back')}</Link>
         </aside>
       </div>
 

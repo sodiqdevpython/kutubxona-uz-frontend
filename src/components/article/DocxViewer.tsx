@@ -1,9 +1,11 @@
 /* DOCX ko'ruvchi — ArticleDetailPage dan ajratildi. */
 import { useState, useEffect } from 'react';
+import { useI18n } from '../../lib/i18n';
 
 const DOCX_ZOOM_STEPS = [80, 90, 100, 115, 130, 150, 175];
 
 function DocxViewer({ title, html }: { title: string; html: string }) {
+  const { t } = useI18n();
   const [fullscreen, setFullscreen] = useState(false);
   const [zoomIdx,    setZoomIdx]    = useState(2);   // 100% default
 
@@ -58,7 +60,7 @@ function DocxViewer({ title, html }: { title: string; html: string }) {
             border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
             borderRadius: 6, overflow: 'hidden',
           }}>
-            <button onClick={zoomOut} disabled={zoomIdx === 0} title="Kichraytirish"
+            <button onClick={zoomOut} disabled={zoomIdx === 0} title={t('docx.zoom_out')} aria-label={t('docx.zoom_out')}
               style={{ width: 30, height: 30, border: 0, background: 'transparent', color: 'inherit',
                 cursor: zoomIdx === 0 ? 'not-allowed' : 'pointer', fontSize: 16, lineHeight: 1,
                 opacity: zoomIdx === 0 ? 0.4 : 1, fontFamily: 'var(--sans)' }}>−</button>
@@ -66,7 +68,7 @@ function DocxViewer({ title, html }: { title: string; html: string }) {
               fontFamily: 'var(--mono)', padding: '0 4px',
               borderLeft:  `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
               borderRight: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}` }}>{zoom}%</span>
-            <button onClick={zoomIn} disabled={zoomIdx === DOCX_ZOOM_STEPS.length - 1} title="Kattalashtirish"
+            <button onClick={zoomIn} disabled={zoomIdx === DOCX_ZOOM_STEPS.length - 1} title={t('docx.zoom_in')} aria-label={t('docx.zoom_in')}
               style={{ width: 30, height: 30, border: 0, background: 'transparent', color: 'inherit',
                 cursor: zoomIdx === DOCX_ZOOM_STEPS.length - 1 ? 'not-allowed' : 'pointer',
                 fontSize: 16, lineHeight: 1,
@@ -74,13 +76,13 @@ function DocxViewer({ title, html }: { title: string; html: string }) {
                 fontFamily: 'var(--sans)' }}>+</button>
           </div>
 
-          <button onClick={() => setFullscreen(p => !p)} title={fullscreen ? 'Yopish' : 'Kengaytirish'}
+          <button onClick={() => setFullscreen(p => !p)} title={fullscreen ? t('common.close') : t('docx.expand')}
             style={{ height: 30, padding: '0 12px', borderRadius: 6,
               border: `1px solid ${fullscreen ? 'rgba(255,255,255,0.18)' : 'var(--line-2)'}`,
               background: fullscreen ? 'rgba(255,255,255,0.08)' : 'var(--paper)',
               color: 'inherit', fontSize: 12, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'var(--sans)' }}>
-            {fullscreen ? '✕ Yopish' : '⛶ Kengaytirish'}
+            {fullscreen ? t('docx.close') : t('docx.expand')}
           </button>
         </div>
       </div>

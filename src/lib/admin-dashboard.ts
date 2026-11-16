@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { adminApi, type AdminDashboard } from './admin-api';
+import { fmtBytes as i18nBytes, fmtDate, tr, trn } from './i18n/runtime';
 
 const TTL = 60_000;
 const SEEN_KEY = 'kb_admin_notif_seen';
@@ -45,10 +46,9 @@ export function markNotifSeen(latestIso: string): void {
   try { localStorage.setItem(SEEN_KEY, latestIso); } catch { /* ignore */ }
 }
 
-// ── Vaqt formatlari (uz) ─────────────────────────────────────────────────────
+// ── Vaqt formatlari (joriy interfeys tilida) ─────────────────────────────────
 
-const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
-const DAYS   = ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'];
+const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
 /** «2 soat oldin», «kecha 16:20», «4-avgust» */
 export function relTime(iso: string): string {
@@ -56,14 +56,15 @@ export function relTime(iso: string): string {
   if (Number.isNaN(d.getTime())) return '';
   const now = new Date();
   const diff = (now.getTime() - d.getTime()) / 1000;
-  const hhmm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  if (diff < 60) return 'hozirgina';
-  if (diff < 3600) return `${Math.floor(diff / 60)} daqiqa oldin`;
-  if (diff < 86400 && d.getDate() === now.getDate()) return `${Math.floor(diff / 3600)} soat oldin`;
+  if (diff < 60) return tr('time.just_now');
+  if (diff < 3600) return trn('time.minutes_ago', Math.floor(diff / 60));
+  if (diff < 86400 && d.getDate() === now.getDate()) return trn('time.hours_ago', Math.floor(diff / 3600));
   const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return `kecha ${hhmm}`;
-  if (diff < 86400 * 2) return `${Math.floor(diff / 3600)} soat oldin`;
-  return `${d.getDate()}-${MONTHS[d.getMonth()]}${d.getFullYear() !== now.getFullYear() ? ` ${d.getFullYear()}` : ''}`;
+  if (d.toDateString() === yesterday.toDateString()) return tr('time.yesterday_at', { t: hhmm(d) });
+  if (diff < 86400 * 2) return trn('time.hours_ago', Math.floor(diff / 3600));
+  return fmtDate(d, d.getFullYear() !== now.getFullYear()
+    ? { day: 'numeric', month: 'long', year: 'numeric' }
+    : { day: 'numeric', month: 'long' });
 }
 
 /** «15-iyul 2026, 09:12» */
@@ -71,18 +72,15 @@ export function fullTime(iso: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return `${d.getDate()}-${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${fmtDate(d)}, ${hhmm(d)}`;
 }
 
 /** «17-AVGUST 2026, DUSHANBA» */
 export function todayEyebrow(iso?: string): string {
   const d = iso ? new Date(iso + 'T12:00:00') : new Date();
-  return `${d.getDate()}-${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${DAYS[d.getDay()]}`.toUpperCase();
+  return `${fmtDate(d)}, ${fmtDate(d, { weekday: 'long' })}`.toUpperCase();
 }
 
 export function fmtBytes(n: number | null | undefined): string {
-  if (!n) return '';
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`;
-  return `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
+  return i18nBytes(n);
 }

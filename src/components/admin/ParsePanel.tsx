@@ -1,16 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import AuthorAvatar from '../ui/AuthorAvatar';
-import { adminApi, type AdminIssue, type AuthorMatch, type ParsedArticle, type ParsedSavePayload } from '../../lib/admin-api';
+import AuthorListEditor, {
+  entriesToPayload, entryForName, matchToProfile, validateEntries, type AuthorEntry,
+} from './AuthorPicker';
+import { adminApi, type AdminIssue, type ParsedArticle, type ParsedSavePayload } from '../../lib/admin-api';
 import { refreshDashboard } from '../../lib/admin-dashboard';
+import { useI18n } from '../../lib/i18n';
 
 /**
  * «PDF'dan maqolalarni ajratish» — Figma modal:
  * progress kartasi + har bir nomzod qatori (SAQLANDI / KUTILMOQDA / TEKSHIRISH),
- * «To'ldirish» bosilganda qator ostida tahrirlash + muallif profilini moslashtirish.
+ * «To'ldirish» bosilganda qator ostida tahrirlash.
+ * Mundarijadagi «A, B» mualliflar alohida qatorlarga bo'linadi: har biri mavjud
+ * profilga biriktiriladi yoki o'z lavozimi va rasmi bilan yangi profil oladi.
  */
 
 function needsCheck(it: ParsedArticle): boolean {
   return it.status !== 'saved' && (!it.title.trim() || !it.author_name.trim());
+}
+
+/** Parser mualliflari → boshlang'ich qatorlar (to'liq mos profil bo'lsa — o'sha, aks holda yangi profil). */
+function initialEntries(it: ParsedArticle): AuthorEntry[] {
+  return it.authors.map(a => entryForName(a.name, a.matches.map(matchToProfile), {
+    parsed_index: a.index, photo_url: a.photo_url, bio: a.info,
+  }));
+}
+
+function savePayload(title: string, entries: AuthorEntry[]): ParsedSavePayload {
+  return {
+    title,
+    author_name: entries.map(e => e.profile?.name ?? e.name).filter(Boolean).join(', '),
+    authors: entriesToPayload(entries),
+  };
 }
 
 // ── Qator ostidagi muharrir ──────────────────────────────────────────────────
@@ -19,22 +39,17 @@ function Editor({ item, onSaved, onRemoved, registerSave, unregisterSave }: {
   item: ParsedArticle; onSaved: (s: ParsedArticle) => void; onRemoved: (id: string) => void;
   registerSave: (id: string, fn: () => Promise<boolean>) => void; unregisterSave: (id: string) => void;
 }) {
-  const [title, setTitle]   = useState(item.title);
-  const [author, setAuthor] = useState(item.author_name);
-  const [extra, setExtra]   = useState(item.extra_info);
-  const hasMatches = item.matches.length > 0;
-  const [mode, setMode] = useState<'existing' | 'new' | 'none'>(hasMatches ? 'existing' : 'new');
-  const [selected, setSelected] = useState(item.matches[0]?.id ?? '');
-  const [npRole, setNpRole] = useState(''); const [npOrg, setNpOrg] = useState('');
+  const { t } = useI18n();
+  const [title, setTitle]     = useState(item.title);
+  const [authors, setAuthors] = useState<AuthorEntry[]>(() => initialEntries(item));
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
 
   async function save(): Promise<boolean> {
-    if (!title.trim()) { setErr('Sarlavha majburiy'); return false; }
+    if (!title.trim()) { setErr(t('adm.parse.title_required')); return false; }
+    const authorsErr = validateEntries(authors, t);
+    if (authorsErr) { setErr(authorsErr); return false; }
     setBusy(true); setErr('');
-    const payload: ParsedSavePayload = { author_mode: mode, title, author_name: author, extra_info: extra };
-    if (mode === 'existing') { if (!selected) { setErr('Profil tanlang'); setBusy(false); return false; } payload.author_id = selected; }
-    else if (mode === 'new') payload.author = { name: author, role: npRole, org: npOrg, bio: extra };
-    try { const r = await adminApi.parsed.save(item.id, payload); onSaved(r); return true; }
+    try { const r = await adminApi.parsed.save(item.id, savePayload(title, authors)); onSaved(r); return true; }
     catch (e) { setErr((e as Error).message); return false; }
     finally { setBusy(false); }
   }
@@ -44,37 +59,17 @@ function Editor({ item, onSaved, onRemoved, registerSave, unregisterSave }: {
 
   return (
     <div className="pm-editor">
-      <div className="pm-editor-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label className="f-label"><span>Sarlavha</span></label><textarea className="f-textarea" rows={2} style={{ minHeight: 64 }} value={title} onChange={e => setTitle(e.target.value)} /></div>
-          <div><label className="f-label"><span>Muallif (parser)</span></label><input className="f-input" value={author} onChange={e => setAuthor(e.target.value)} /></div>
-          <div><label className="f-label"><span>Qo‘shimcha ma’lumot</span></label><textarea className="f-textarea" rows={2} style={{ minHeight: 64 }} value={extra} onChange={e => setExtra(e.target.value)} /></div>
-          {item.photo_url && <img src={item.photo_url} alt="" style={{ width: 64, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)' }} />}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label className="f-label"><span>Muallif profili</span></label>
-          {hasMatches ? item.matches.map((m: AuthorMatch) => (
-            <button key={m.id} type="button" className={`pm-match${mode === 'existing' && selected === m.id ? ' on' : ''}`} onClick={() => { setMode('existing'); setSelected(m.id); }}>
-              <AuthorAvatar name={m.initials} idx={m.avatar_idx} src={m.avatar_url} size={34} />
-              <span><span className="nm">{m.name}</span><br /><span className="sb">{m.role || m.org || '—'} · {m.article_count} maqola</span></span>
-            </button>
-          )) : <div className="meta" style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>Mos profil topilmadi — yangi profil yaratiladi.</div>}
-          <button type="button" className={`pm-match${mode === 'new' ? ' on' : ''}`} onClick={() => setMode('new')}><span className="nm">Yangi profil yaratish</span></button>
-          {mode === 'new' && (
-            <div className="f-grid2" style={{ gap: 8 }}>
-              <input className="f-input" placeholder="Lavozim" value={npRole} onChange={e => setNpRole(e.target.value)} />
-              <input className="f-input" placeholder="Tashkilot" value={npOrg} onChange={e => setNpOrg(e.target.value)} />
-            </div>
-          )}
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: 'var(--ink-3)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={mode === 'none'} onChange={e => setMode(e.target.checked ? 'none' : (hasMatches ? 'existing' : 'new'))} /> Profilsiz (faqat matn nomi)
-          </label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div><label className="f-label"><span>{t('adm.parse.f.title')}</span></label><textarea className="f-textarea" rows={2} style={{ minHeight: 64 }} value={title} onChange={e => setTitle(e.target.value)} /></div>
+        <div>
+          <label className="f-label"><span>{t('adm.parse.f.profile')}</span><span style={{ textTransform: 'none', letterSpacing: 0 }}>{item.author_name}</span></label>
+          <AuthorListEditor value={authors} onChange={setAuthors} noTelegram />
         </div>
       </div>
       {err && <div className="f-err" style={{ marginTop: 12 }}>{err}</div>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
-        <button className="ab sm text" style={{ color: 'var(--ink-3)' }} onClick={async () => { if (confirm('Bu nomzod o‘tkazib yuborilsinmi?')) { try { await adminApi.parsed.remove(item.id); onRemoved(item.id); } catch { /* */ } } }}>O‘tkazib yuborish</button>
-        <button className="ab sm primary" onClick={save} disabled={busy}>{busy ? 'Saqlanmoqda…' : 'Saqlash'}</button>
+        <button className="ab sm text" style={{ color: 'var(--ink-3)' }} onClick={async () => { if (confirm(t('adm.parse.skip_confirm'))) { try { await adminApi.parsed.remove(item.id); onRemoved(item.id); } catch { /* */ } } }}>{t('adm.parse.skip')}</button>
+        <button className="ab sm primary" onClick={save} disabled={busy}>{busy ? t('adm.parse.saving') : t('common.save')}</button>
       </div>
     </div>
   );
@@ -83,6 +78,7 @@ function Editor({ item, onSaved, onRemoved, registerSave, unregisterSave }: {
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIssue; onClose: () => void; onSaved: () => void }) {
+  const { t, tn } = useI18n();
   const [items, setItems]     = useState<ParsedArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [parsing, setParsing] = useState(false);
@@ -114,7 +110,7 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
       const fn = saveFns.current.get(it.id);
       if (fn) { try { await fn(); } catch { /* keyingisi */ } }
       else {
-        try { const r = await adminApi.parsed.save(it.id, { author_mode: it.matches[0] ? 'existing' : 'new', author_id: it.matches[0]?.id, author: it.matches[0] ? undefined : { name: it.author_name }, title: it.title, author_name: it.author_name, extra_info: it.extra_info }); setItems(p => p.map(i => (i.id === r.id ? r : i))); }
+        try { const r = await adminApi.parsed.save(it.id, savePayload(it.title, initialEntries(it))); setItems(p => p.map(i => (i.id === r.id ? r : i))); }
         catch { /* keyingisi */ }
       }
     }
@@ -130,22 +126,22 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
       <div className="adm-modal" style={{ width: 800 }}>
         <div className="adm-modal-head">
           <div>
-            <h2>PDF’dan maqolalarni ajratish</h2>
-            <p>{issue.year} № {issue.number} ({issue.volume}) · {items.length ? `${items.length} maqola aniqlandi, ${saved} tasi saqlandi.` : 'hali ajratilmagan.'}</p>
+            <h2>{t('adm.parse.title')}</h2>
+            <p>{issue.year} № {issue.number} · {items.length ? t('adm.parse.summary', { n: items.length, saved }) : t('adm.parse.not_yet')}</p>
           </div>
-          <button className="adm-modal-x" onClick={onClose}>✕</button>
+          <button className="adm-modal-x" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
         <div className="adm-modal-body">
           <div className="pm-progress">
             <div style={{ flex: 1 }}>
-              <b>{items.length ? `${items.length} maqoladan ${saved} tasi ajratildi` : (issue.pdf_file_url ? 'PDF yuklangan — ajratishni boshlang' : 'Avval sonning PDF faylini yuklang')}</b>
+              <b>{items.length ? t('adm.parse.progress', { n: items.length, saved }) : (issue.pdf_file_url ? t('adm.parse.pdf_ready') : t('adm.parse.upload_first'))}</b>
               <div className="pm-bar"><i style={{ width: `${items.length ? Math.round(saved / items.length * 100) : 0}%` }} /></div>
             </div>
-            <button className="ab" onClick={runParse} disabled={parsing || savingAll || !issue.pdf_file_url}>{parsing ? 'Ajratilmoqda…' : items.length ? 'Qayta ajratish' : 'Ajratish'}</button>
+            <button className="ab" onClick={runParse} disabled={parsing || savingAll || !issue.pdf_file_url}>{parsing ? t('adm.parse.running') : items.length ? t('adm.parse.rerun') : t('adm.parse.run')}</button>
           </div>
-          {err && <div className="f-err">{err} <span style={{ color: 'var(--ink-3)' }}>— parser ajrata olmasa, maqolalarni «+ Maqola qo‘shish» orqali kiriting.</span></div>}
-          {loading && <div className="sub-empty">Yuklanmoqda…</div>}
-          {!loading && items.length === 0 && !parsing && <div className="sub-empty">Nomzodlar yo‘q. «Ajratish» tugmasini bosing.</div>}
+          {err && <div className="f-err">{err} <span style={{ color: 'var(--ink-3)' }}>{t('adm.parse.err_hint')}</span></div>}
+          {loading && <div className="sub-empty">{t('common.loading')}</div>}
+          {!loading && items.length === 0 && !parsing && <div className="sub-empty">{t('adm.parse.empty')}</div>}
           {items.map(it => {
             const warn = needsCheck(it);
             const isSaved = it.status === 'saved';
@@ -155,13 +151,13 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
                 <div className={`pm-row ${isSaved ? '' : warn ? 'warn' : 'pending'}`}>
                   <span className="n">{String(it.order).padStart(2, '0')}</span>
                   <div style={{ minWidth: 0 }}>
-                    <div className="t">{it.title.trim() || (warn ? 'Muallif aniqlanmadi — sarlavha bo‘sh' : 'Sarlavhasiz')}</div>
-                    <div className="s">{warn ? 'tekshirish kerak' : it.author_name || 'muallif ko‘rsatilmagan'}{it.start_page ? ` · ${it.start_page}–${it.end_page ?? ''}-bet` : ''}</div>
+                    <div className="t">{it.title.trim() || (warn ? t('adm.parse.no_author_title') : t('adm.parse.untitled'))}</div>
+                    <div className="s">{warn ? t('adm.parse.needs_check') : it.author_name || t('adm.parse.no_author')}{it.start_page ? t('adm.parse.pages', { range: `${it.start_page}–${it.end_page ?? ''}` }) : ''}</div>
                   </div>
-                  <span className={`st ${isSaved ? 'saved' : warn ? 'check' : 'pend'}`}>{isSaved ? 'Saqlandi' : warn ? 'Tekshirish' : 'Kutilmoqda'}</span>
+                  <span className={`st ${isSaved ? 'saved' : warn ? 'check' : 'pend'}`}>{isSaved ? t('adm.parse.st.saved') : warn ? t('adm.parse.st.check') : t('adm.parse.st.pending')}</span>
                   {isSaved
-                    ? (it.article_slug ? <a className="ab sm" href={`/articles/${it.article_slug}`} target="_blank" rel="noreferrer">Ko‘rish</a> : <span className="ab sm soft">Saqlandi</span>)
-                    : <button className="ab sm" onClick={() => toggle(it.id)}>{isOpen ? 'Yopish' : warn ? 'To‘ldirish' : 'Ochish'}</button>}
+                    ? (it.article_slug ? <a className="ab sm" href={`/articles/${it.article_slug}`} target="_blank" rel="noreferrer">{t('adm.parse.view')}</a> : <span className="ab sm soft">{t('adm.parse.st.saved')}</span>)
+                    : <button className="ab sm" onClick={() => toggle(it.id)}>{isOpen ? t('adm.parse.close') : warn ? t('adm.parse.fill') : t('adm.parse.open')}</button>}
                 </div>
                 {isOpen && (
                   <Editor item={it} onSaved={handleSaved} onRemoved={handleRemoved} registerSave={registerSave} unregisterSave={unregisterSave} />
@@ -171,9 +167,9 @@ export default function ParsePanel({ issue, onClose, onSaved }: { issue: AdminIs
           })}
         </div>
         <div className="adm-modal-foot">
-          <span className="hint">{check ? `${check} nomzod tekshirishni talab qiladi` : pending ? `${pending} nomzod saqlashga tayyor` : 'Hammasi saqlangan'}</span>
-          <button className="ab" onClick={onClose}>Bekor qilish</button>
-          <button className="ab primary" onClick={saveAll} disabled={savingAll || parsing || pending - check <= 0}>{savingAll ? 'Saqlanmoqda…' : 'Barchasini saqlash'}</button>
+          <span className="hint">{check ? tn('adm.parse.hint_check', check) : pending ? tn('adm.parse.hint_ready', pending) : t('adm.parse.hint_done')}</span>
+          <button className="ab" onClick={onClose}>{t('common.cancel')}</button>
+          <button className="ab primary" onClick={saveAll} disabled={savingAll || parsing || pending - check <= 0}>{savingAll ? t('adm.parse.saving') : t('adm.parse.save_all')}</button>
         </div>
       </div>
     </div>

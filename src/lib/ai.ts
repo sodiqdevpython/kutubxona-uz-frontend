@@ -10,6 +10,7 @@
  * bo'ladi va tugmalar odatdagidek ishlaydi.
  */
 import { API_BASE } from './config';
+import { tr } from './i18n/runtime';
 
 export interface AiStatus {
   available: boolean;
@@ -63,16 +64,11 @@ export function isAiUnavailableError(err: unknown): boolean {
 /** Sababni foydalanuvchi tiliga o'giradi. */
 export function aiReasonText(reason?: string): string {
   switch (reason) {
-    case 'not_configured':
-      return "AI xizmatining manzili sozlanmagan (LOCAL_LLM_BASE_URL bo‘sh).";
-    case 'unreachable':
-      return 'AI serveri javob bermayapti — o‘chirilgan yoki tarmoqda mavjud emas.';
-    case 'ok':
-      return 'AI xizmati ishlayapti.';
+    case 'not_configured': return tr('ai.reason.not_configured');
+    case 'unreachable':    return tr('ai.reason.unreachable');
+    case 'ok':             return tr('ai.reason.ok');
     default:
-      if (reason?.startsWith('http_')) {
-        return `AI serveri xato qaytardi (${reason.replace('http_', 'HTTP ')}).`;
-      }
-      return 'AI xizmatiga ulanib bo‘lmadi.';
+      if (reason?.startsWith('http_')) return tr('ai.reason.http', { code: reason.replace('http_', 'HTTP ') });
+      return tr('ai.reason.default');
   }
 }

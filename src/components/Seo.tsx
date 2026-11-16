@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useI18n } from '../lib/i18n';
 
 /** Google Scholar teglari: [nom, qiymat] — bir nom bir necha marta kelishi mumkin (citation_author). */
 export type CitationMeta = [string, string][];
@@ -38,11 +39,12 @@ function setCanonical(url: string) {
  * Sarlavha, description, Open Graph (FB/Telegram preview), Twitter card.
  */
 export default function Seo({ title, description, image, citation }: Props) {
+  const { t, lang } = useI18n();
   useEffect(() => {
     const fullTitle = title ? `${title} — ${SITE}` : SITE;
     document.title = fullTitle;
 
-    const desc = description?.slice(0, 200) || `${SITE} — O‘zbekiston ilmiy maqolalar arxivi.`;
+    const desc = description?.slice(0, 200) || t('seo.default_description');
     const url = window.location.href;
 
     setMeta('description', desc);
@@ -72,7 +74,8 @@ export default function Seo({ title, description, image, citation }: Props) {
       return el;
     });
     return () => added.forEach(el => el.remove());
-  }, [title, description, image]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, image, lang]);
 
   return null;
 }

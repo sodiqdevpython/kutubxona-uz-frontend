@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useEffect, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LangProvider } from './context/LangContext';
+import { useI18n } from './lib/i18n';
 
 import HomePage           from './pages/HomePage';
 import ArticlesPage       from './pages/ArticlesPage';
@@ -27,14 +28,16 @@ import AdminAuthorsPage     from './pages/admin/AdminAuthorsPage';
 import AdminAuthorDetailPage from './pages/admin/AdminAuthorDetailPage';
 import AdminJournalsPage    from './pages/admin/AdminJournalsPage';
 import AdminIssueDetailPage from './pages/admin/AdminIssueDetailPage';
+import AdminArticleEditPage from './pages/admin/AdminArticleEditPage';
 import AdminChatPage        from './pages/admin/AdminChatPage';
 
 // ── Himoyalangan route ────────────────────────────────────────────────────────
 
 function Protected({ children }: { children: ReactNode }) {
   const { isAuthenticated, token, user } = useAuth();
+  const { t } = useI18n();
   // Token bor, profil hali yuklanmagan (sahifa yangilanganda) — login'ga qaytarmaymiz
-  if (token && !user) return <div style={{ padding: 48, color: 'var(--ink-3)', fontSize: 14 }}>Yuklanmoqda…</div>;
+  if (token && !user) return <div style={{ padding: 48, color: 'var(--ink-3)', fontSize: 14 }}>{t('common.loading')}</div>;
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
@@ -106,6 +109,7 @@ export default function App() {
           <Route path="/admin/authors/:id" element={<Protected><AdminAuthorDetailPage /></Protected>} />
           <Route path="/admin/journals"    element={<Protected><AdminJournalsPage /></Protected>} />
           <Route path="/admin/journals/:id" element={<Protected><AdminIssueDetailPage /></Protected>} />
+          <Route path="/admin/journals/:issueId/articles/:articleId" element={<Protected><AdminArticleEditPage /></Protected>} />
           <Route path="/admin/chat"        element={<Protected><AdminChatPage /></Protected>} />
           <Route path="/admin/*"           element={<Protected><AdminNotFoundPage /></Protected>} />
 

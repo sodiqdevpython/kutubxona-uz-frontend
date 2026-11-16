@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
+import { useI18n } from '../../lib/i18n';
 
 /**
  * PDF ko'rsatuvchi — Figma «Maqola detail» dagi «To'liq matn» bloki.
@@ -45,6 +46,7 @@ interface Props {
 }
 
 export default function PdfViewer({ url, title, onInfo }: Props) {
+  const { t } = useI18n();
   const [doc, setDoc]         = useState<PDFDocumentProxy | null>(null);
   const [sizes, setSizes]     = useState<Size[]>([]);          // har sahifaning 100% o'lchami
   const [status, setStatus]   = useState<'loading' | 'ok' | 'error'>('loading');
@@ -224,33 +226,33 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
       {/* ── Toolbar ── */}
       <div className="pdfv-bar">
         <div className="pdfv-grp">
-          <button className="pdfv-btn" onClick={() => go(page - 1)} disabled={page <= 1} aria-label="Oldingi sahifa">‹</button>
+          <button className="pdfv-btn" onClick={() => go(page - 1)} disabled={page <= 1} aria-label={t('pdf.prev')}>‹</button>
           <form className="pdfv-num" onSubmit={e => { e.preventDefault(); go(parseInt(pageInput, 10) || 1); }}>
             <input value={pageInput} onChange={e => setPageInput(e.target.value.replace(/\D/g, ''))}
-              onBlur={() => go(parseInt(pageInput, 10) || page)} aria-label="Sahifa" />
+              onBlur={() => go(parseInt(pageInput, 10) || page)} aria-label={t('pdf.page')} />
             <span>/ {pages || '–'}</span>
           </form>
-          <button className="pdfv-btn" onClick={() => go(page + 1)} disabled={!pages || page >= pages} aria-label="Keyingi sahifa">›</button>
+          <button className="pdfv-btn" onClick={() => go(page + 1)} disabled={!pages || page >= pages} aria-label={t('pdf.next')}>›</button>
         </div>
 
         <div className="pdfv-grp">
-          <button className="pdfv-btn" onClick={() => setZoomIdx(i => Math.max(0, i - 1))} disabled={zoomIdx === 0} aria-label="Kichraytirish">−</button>
+          <button className="pdfv-btn" onClick={() => setZoomIdx(i => Math.max(0, i - 1))} disabled={zoomIdx === 0} aria-label={t('docx.zoom_out')}>−</button>
           <span className="pdfv-zoom">{zoom}%</span>
-          <button className="pdfv-btn" onClick={() => setZoomIdx(i => Math.min(ZOOM_STEPS.length - 1, i + 1))} disabled={zoomIdx === ZOOM_STEPS.length - 1} aria-label="Kattalashtirish">+</button>
+          <button className="pdfv-btn" onClick={() => setZoomIdx(i => Math.min(ZOOM_STEPS.length - 1, i + 1))} disabled={zoomIdx === ZOOM_STEPS.length - 1} aria-label={t('docx.zoom_in')}>+</button>
         </div>
 
         <form className="pdfv-search" onSubmit={e => { e.preventDefault(); search(); }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Matn ichidan qidirish" disabled={status !== 'ok'} />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('pdf.search')} disabled={status !== 'ok'} />
           {searching && <span className="pdfv-hint">…</span>}
           {!searching && hits && hitsFor === q.trim().toLowerCase() && (
-            <span className="pdfv-hint">{hits.length ? `${hitIdx + 1}/${hits.length} sahifa` : 'topilmadi'}</span>
+            <span className="pdfv-hint">{hits.length ? t('pdf.hits', { i: hitIdx + 1, n: hits.length }) : t('pdf.not_found')}</span>
           )}
         </form>
 
         <div className="pdfv-grp" style={{ marginLeft: 'auto' }}>
           <button className="pdfv-btn wide" onClick={() => setFullscreen(f => !f)}>
-            {fullscreen ? '✕ Yopish' : 'To‘liq ekran'}
+            {fullscreen ? t('docx.close') : t('pdf.fullscreen')}
           </button>
         </div>
       </div>
@@ -258,17 +260,17 @@ export default function PdfViewer({ url, title, onInfo }: Props) {
       {/* ── Sahifalar (uzluksiz) ── */}
       <div className="pdfv-frame" ref={frameRef} onScroll={onScroll}>
         {status === 'error' && (
-          <div className="pdfv-msg">PDF ko‘rsatib bo‘lmadi. Keyinroq qayta urinib ko‘ring.</div>
+          <div className="pdfv-msg">{t('pdf.error')}</div>
         )}
         {status === 'loading' && (
-          <div className="pdfv-page pdfv-ph"><span className="pdfv-msg">Yuklanmoqda…</span></div>
+          <div className="pdfv-page pdfv-ph"><span className="pdfv-msg">{t('common.loading')}</span></div>
         )}
         {status === 'ok' && doc && base && scale > 0 && Array.from({ length: pages }, (_, i) => {
           const s = sizes[i] ?? base;
           return (
             <div key={i} className="pdfv-page" data-page={i + 1} ref={el => { pageRefs.current[i] = el; }}
               style={{ width: Math.floor(s.w * scale), height: Math.floor(s.h * scale) }}
-              aria-label={`${title} — ${i + 1}-sahifa`}>
+              aria-label={t('pdf.page_aria', { title, n: i + 1 })}>
               {visible.has(i + 1) && <PageCanvas doc={doc} n={i + 1} scale={scale} />}
               <div className="pdfv-foot">{i + 1}</div>
             </div>

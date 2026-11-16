@@ -5,6 +5,7 @@ import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import AuthorAvatar from '../components/ui/AuthorAvatar';
 import { useFetch } from '../lib/hooks';
+import { useI18n, type MsgKey } from '../lib/i18n';
 import { issueLabel, type ApiArticle, type ApiAuthorDetail, type PaginatedResponse } from '../lib/api';
 import { mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
@@ -18,9 +19,9 @@ import Seo from '../components/Seo';
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 type SortKey = 'new' | 'views';
-const SORT: Record<SortKey, { label: string; param: string }> = {
-  new:   { label: 'Eng yangi',     param: '-issue__year,-issue__number,-published_at' },
-  views: { label: "Ko‘p o‘qilgan", param: '-views' },
+const SORT: Record<SortKey, { label: MsgKey; param: string }> = {
+  new:   { label: 'common.sort.newest', param: '-issue__year,-issue__number,-published_at' },
+  views: { label: 'common.sort.views',  param: '-views' },
 };
 
 /** «Anvar Umarov» → «A. Umarov» */
@@ -31,6 +32,7 @@ function short(name: string): string {
 
 export default function AuthorDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { t, tn, num } = useI18n();
   const [sort, setSort] = useState<SortKey>('new');
 
   const authorState   = useFetch<ApiAuthorDetail>(slug ? `${BASE}/api/authors/${slug}/` : null);
@@ -54,7 +56,7 @@ export default function AuthorDetailPage() {
         <main id="main" className="page-main">
         <div className="wrap">
           <div className="state-box" style={{ marginTop: 40 }}>
-            Muallif topilmadi. <Link to="/authors" className="side-link">Mualliflar ro‘yxati →</Link>
+            {t('author.not_found')} <Link to="/authors" className="side-link">{t('author.list_link')}</Link>
           </div>
         </div>
         </main>
@@ -68,7 +70,7 @@ export default function AuthorDetailPage() {
       <div className="bg-author" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="authors" />
         <main id="main" className="page-main">
-        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>{t('common.loading')}</div></div>
         </main>
         <Footer />
       </div>
@@ -86,8 +88,8 @@ export default function AuthorDetailPage() {
 
       <div className="wrap" style={{ paddingTop: 26 }}>
         <nav className="crumbs">
-          <Link to="/">Bosh sahifa</Link><span>/</span>
-          <Link to="/authors">Mualliflar</Link><span>/</span>
+          <Link to="/">{t('nav.home')}</Link><span>/</span>
+          <Link to="/authors">{t('nav.authors')}</Link><span>/</span>
           <span className="cur">{a.name}</span>
         </nav>
       </div>
@@ -119,18 +121,18 @@ export default function AuthorDetailPage() {
 
           {/* Statistika */}
           <div className="au-stats">
-            <Stat k="Maqolalar" v={a.article_count} />
-            <Stat k="Ko‘rishlar" v={a.total_views} />
-            <Stat k="Profil ko‘rildi" v={a.profile_views} />
-            <Stat k="Hammuallif" v={a.coauthors.length} />
+            <Stat k={t('author.stat.articles')}  v={num(a.article_count)} />
+            <Stat k={t('author.stat.views')}     v={num(a.total_views)} />
+            <Stat k={t('author.stat.profile')}   v={num(a.profile_views)} />
+            <Stat k={t('author.stat.coauthors')} v={num(a.coauthors.length)} />
           </div>
 
           {/* Yillar diagrammasi */}
           {a.years.length > 0 && (
             <div className="au-chart">
               <div className="au-chart-head">
-                <span className="eyebrow">Yillar bo‘yicha faollik</span>
-                <span className="meta">maqolalar soni</span>
+                <span className="eyebrow">{t('author.activity')}</span>
+                <span className="meta">{t('author.activity_sub')}</span>
               </div>
               <div className="au-bars" style={{ gridTemplateColumns: `repeat(${a.years.length}, minmax(0, 1fr))` }}>
                 {a.years.map(y => (
@@ -150,27 +152,27 @@ export default function AuthorDetailPage() {
         {/* ═══ O'ng ustun ═══ */}
         <aside className="au-side">
           <div className="side-card">
-            <div className="side-card-title">Aloqa va identifikatorlar</div>
+            <div className="side-card-title">{t('author.contacts')}</div>
             <Row k="ORCID" v={a.orcid} href={a.orcid ? `https://orcid.org/${a.orcid}` : undefined} accent />
-            <Row k="Elektron pochta" v={a.email} href={a.email ? `mailto:${a.email}` : undefined} accent />
-            <Row k="Tashkilot" v={a.org} />
-            <Row k="Scopus Author ID" v={a.scopus_id || 'ko‘rsatilmagan'} muted={!a.scopus_id} />
+            <Row k={t('author.email')} v={a.email} href={a.email ? `mailto:${a.email}` : undefined} accent />
+            <Row k={t('author.org')} v={a.org} />
+            <Row k="Scopus Author ID" v={a.scopus_id || t('common.not_specified')} muted={!a.scopus_id} />
             {articles.length > 0 && (
               <Link to={`/articles?search=${encodeURIComponent(a.name)}`} className="btn primary" style={{ width: '100%', marginTop: 14 }}>
-                Barcha maqolalarini ko‘rish
+                {t('author.all_articles')}
               </Link>
             )}
           </div>
 
           {a.coauthors.length > 0 && (
             <div className="side-card">
-              <div className="side-card-title">Hammualliflar</div>
+              <div className="side-card-title">{t('author.coauthors')}</div>
               {a.coauthors.map(c => (
                 <Link key={c.id} to={`/authors/${c.slug}`} className="coauthor">
                   <AuthorAvatar name={c.initials} idx={c.avatar_idx} src={mediaUrl(c.avatar_url)} alt={c.name} size={32} />
                   <span>
                     <span className="coauthor-name">{c.name}</span>
-                    <span className="meta">{c.shared} birgalikdagi maqola</span>
+                    <span className="meta">{tn('author.shared', c.shared)}</span>
                   </span>
                 </Link>
               ))}
@@ -183,19 +185,19 @@ export default function AuthorDetailPage() {
       <div className="wrap" style={{ paddingTop: 40, paddingBottom: 72 }}>
         <div className="detail-head" style={{ marginBottom: 18 }}>
           <h2 className="h-display" style={{ fontSize: 28, display: 'flex', alignItems: 'baseline', gap: 14 }}>
-            Maqolalari
-            <span className="meta">{articles.length} ta{years ? ` · ${years}` : ''}</span>
+            {t('author.articles_title')}
+            <span className="meta">{t('unit.count_ta', { n: articles.length })}{years ? ` · ${years}` : ''}</span>
           </h2>
           <div className="segment">
             {(Object.keys(SORT) as SortKey[]).map(k => (
-              <button key={k} className={sort === k ? 'active' : ''} onClick={() => setSort(k)}>{SORT[k].label}</button>
+              <button key={k} className={sort === k ? 'active' : ''} onClick={() => setSort(k)}>{t(SORT[k].label)}</button>
             ))}
           </div>
         </div>
 
-        {articlesState.status === 'loading' && <div className="state-box">Yuklanmoqda…</div>}
+        {articlesState.status === 'loading' && <div className="state-box">{t('common.loading')}</div>}
         {articlesState.status === 'ok' && articles.length === 0 && (
-          <div className="state-box">Hali chop etilgan maqolasi yo‘q.</div>
+          <div className="state-box">{t('author.no_articles')}</div>
         )}
 
         {articles.length > 0 && (
@@ -207,21 +209,21 @@ export default function AuthorDetailPage() {
                   <div className="art-row-num">{String(i + 1).padStart(2, '0')}</div>
                   <div className="au-row-thumb">
                     {x.image_url || x.issue_cover_url
-                      ? <img src={mediaUrl(x.image_url ?? x.issue_cover_url) ?? undefined} alt={x.image_url ? x.title : `${issueLabel(x)} soni muqovasi`} loading="lazy" />
+                      ? <img src={mediaUrl(x.image_url ?? x.issue_cover_url) ?? undefined} alt={x.image_url ? x.title : t('issue.cover_alt_short', { label: issueLabel(x) })} loading="lazy" />
                       : <div className="home-featured-ph" />}
                   </div>
                   <div className="art-row-body">
                     <div className="art-row-tags">
                       {x.category && <span className="tag cat">{x.category.name}</span>}
-                      <span className="tag ok">Ochiq kirish</span>
+                      <span className="tag ok">{t('common.open_access')}</span>
                     </div>
                     <h3 className="art-row-title h-display">{x.title}</h3>
-                    <div className="art-row-authors">{others.length ? `${others.join(', ')} bilan` : 'yakka muallif'}</div>
+                    <div className="art-row-authors">{others.length ? t('author.with', { names: others.join(', ') }) : t('author.solo')}</div>
                   </div>
                   <div className="art-row-meta">
                     <span>{issueLabel(x)}</span>
-                    {x.page_start && x.page_end && <span>{x.page_start}–{x.page_end}&nbsp;b.</span>}
-                    <span>{x.views.toLocaleString()} ko‘rish</span>
+                    {x.page_start && x.page_end && <span>{t('unit.pages_abbr', { n: `${x.page_start}–${x.page_end}` })}</span>}
+                    <span>{tn('unit.views', x.views)}</span>
                     {x.file_kind && <span className="art-row-pdf">{x.file_kind.toUpperCase()}</span>}
                   </div>
                 </Link>
@@ -237,11 +239,11 @@ export default function AuthorDetailPage() {
   );
 }
 
-function Stat({ k, v }: { k: string; v: number }) {
+function Stat({ k, v }: { k: string; v: string }) {
   return (
     <div className="au-stat">
       <span className="meta-cell-k">{k}</span>
-      <span className="au-stat-n">{v.toLocaleString()}</span>
+      <span className="au-stat-n">{v}</span>
     </div>
   );
 }

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLang, type Lang } from '../../context/LangContext';
-import { markNotifSeen, notifSeenAt, relTime, useDashboard } from '../../lib/admin-dashboard';
+import { useI18n, type MsgKey } from '../../lib/i18n';
+import { markNotifSeen, notifSeenAt, useDashboard } from '../../lib/admin-dashboard';
 import { Wordmark } from '../layout/Topbar';
 
 /**
@@ -20,23 +21,25 @@ interface Props {
   children: ReactNode;
 }
 
-const NAV: { key: AdminSection; label: string; to: string; icon: ReactNode }[] = [
-  { key: 'dashboard',   label: 'Asosiy panel',     to: '/admin',             icon: <IcoGrid /> },
-  { key: 'submissions', label: 'Kelgan maqolalar', to: '/admin/submissions', icon: <IcoInbox /> },
-  { key: 'journals',    label: 'Jurnal sonlari',   to: '/admin/journals',    icon: <IcoBook /> },
-  { key: 'authors',     label: 'Mualliflar',       to: '/admin/authors',     icon: <IcoUsers /> },
-  { key: 'chat',        label: 'Xabarlar',         to: '/admin/chat',        icon: <IcoChat /> },
-  { key: 'settings',    label: 'Sozlamalar',       to: '/admin/settings',    icon: <IcoGear /> },
+const NAV: { key: AdminSection; label: MsgKey; to: string; icon: ReactNode }[] = [
+  { key: 'dashboard',   label: 'nav.admin.dashboard',   to: '/admin',             icon: <IcoGrid /> },
+  { key: 'submissions', label: 'nav.admin.submissions', to: '/admin/submissions', icon: <IcoInbox /> },
+  { key: 'journals',    label: 'nav.admin.journals',    to: '/admin/journals',    icon: <IcoBook /> },
+  { key: 'authors',     label: 'nav.admin.authors',     to: '/admin/authors',     icon: <IcoUsers /> },
+  { key: 'chat',        label: 'nav.admin.chat',        to: '/admin/chat',        icon: <IcoChat /> },
+  { key: 'settings',    label: 'nav.admin.settings',    to: '/admin/settings',    icon: <IcoGear /> },
 ];
 
+/** Admin tillari — saytdagi to'rt til bilan bir xil */
 const LANGS: { code: Lang; label: string }[] = [
-  { code: 'uz-latn', label: 'UZ' }, { code: 'ru', label: 'RU' }, { code: 'en', label: 'EN' },
+  { code: 'uz-latn', label: 'UZ' }, { code: 'uz-cyrl', label: 'ЎЗ' }, { code: 'ru', label: 'RU' }, { code: 'en', label: 'EN' },
 ];
 
 export default function AdminShell({ active, crumb, children }: Props) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { lang, setLang } = useLang();
+  const { t, rel } = useI18n();
   const dash = useDashboard();
 
   const [q, setQ] = useState('');
@@ -72,6 +75,7 @@ export default function AdminShell({ active, crumb, children }: Props) {
   }
 
   const initials = user?.initials ?? (user?.username ?? 'A').slice(0, 2).toUpperCase();
+  const activeNav = NAV.find(n => n.key === active);
 
   return (
     <div className="adm">
@@ -79,7 +83,7 @@ export default function AdminShell({ active, crumb, children }: Props) {
       <aside className={`adm-side${navOpen ? ' open' : ''}`}>
         <Link to="/admin" className="adm-logo" onClick={() => setNavOpen(false)}>
           <Wordmark light />
-          <span className="adm-logo-tag">Admin paneli</span>
+          <span className="adm-logo-tag">{t('adm.shell.tag')}</span>
         </Link>
 
         <nav className="adm-nav">
@@ -89,7 +93,7 @@ export default function AdminShell({ active, crumb, children }: Props) {
               <NavLink key={n.key} to={n.to} end={n.key === 'dashboard'}
                 className={active === n.key ? 'on' : ''} onClick={() => setNavOpen(false)}>
                 <span className="adm-nav-ico">{n.icon}</span>
-                <span className="adm-nav-lbl">{n.label}</span>
+                <span className="adm-nav-lbl">{t(n.label)}</span>
                 {b && b.n > 0 && <span className={`adm-badge${b.hot ? ' hot' : ''}`}>{b.n}</span>}
               </NavLink>
             );
@@ -97,7 +101,7 @@ export default function AdminShell({ active, crumb, children }: Props) {
           <div className="adm-nav-sep" />
           <a href="/" target="_blank" rel="noreferrer">
             <span className="adm-nav-ico"><IcoExt /></span>
-            <span className="adm-nav-lbl">Saytni ko‘rish</span>
+            <span className="adm-nav-lbl">{t('adm.shell.view_site')}</span>
           </a>
         </nav>
 
@@ -105,9 +109,9 @@ export default function AdminShell({ active, crumb, children }: Props) {
           <span className="adm-user-ava">{initials}</span>
           <span className="adm-user-txt">
             <span className="adm-user-name">{user?.short_name ?? user?.username ?? 'Admin'}</span>
-            <span className="adm-user-role">{user?.role_label ?? 'Tahririyat'}</span>
+            <span className="adm-user-role">{user?.role_label ?? t('adm.shell.role_default')}</span>
           </span>
-          <button className="adm-user-out" title="Chiqish" onClick={() => { logout(); navigate('/login'); }}>
+          <button className="adm-user-out" title={t('adm.shell.logout')} aria-label={t('adm.shell.logout')} onClick={() => { logout(); navigate('/login'); }}>
             <IcoOut />
           </button>
         </div>
@@ -117,41 +121,41 @@ export default function AdminShell({ active, crumb, children }: Props) {
       {/* ═══ Main ═══ */}
       <div className="adm-body">
         <header className="adm-top">
-          <button className="adm-burger" onClick={() => setNavOpen(true)} aria-label="Menyu" aria-expanded={navOpen}>
+          <button className="adm-burger" onClick={() => setNavOpen(true)} aria-label={t('common.menu')} aria-expanded={navOpen}>
             <svg width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden="true">
               <path d="M0 1h18M0 7h18M0 13h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
             </svg>
           </button>
           <div className="adm-crumbs">
-            <Link to="/admin">Tahririyat</Link>
+            <Link to="/admin">{t('adm.shell.crumb_root')}</Link>
             <span className="sep">/</span>
-            <span className="cur">{crumb ?? NAV.find(n => n.key === active)?.label ?? 'Panel'}</span>
+            <span className="cur">{crumb ?? (activeNav ? t(activeNav.label) : t('adm.shell.crumb_panel'))}</span>
           </div>
 
           <form className="adm-search" onSubmit={e => { e.preventDefault(); if (q.trim()) navigate(`/admin/submissions?q=${encodeURIComponent(q.trim())}`); }}>
             <IcoSearch />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Maqola, muallif, son…" />
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('adm.shell.search')} />
           </form>
 
           <div className="adm-notif-wrap" ref={notifRef}>
-            <button className="adm-bell" onClick={() => setNotifOpen(o => !o)} aria-label="Bildirishnomalar">
+            <button className="adm-bell" onClick={() => setNotifOpen(o => !o)} aria-label={t('adm.shell.notifs')}>
               <IcoBell />
               {unread > 0 && <span className="adm-bell-n">{unread}</span>}
             </button>
             {notifOpen && (
               <div className="adm-notif">
                 <div className="adm-notif-head">
-                  <b>Bildirishnomalar</b>
-                  <button onClick={markAllSeen}>Hammasini o‘qildi</button>
+                  <b>{t('adm.shell.notifs')}</b>
+                  <button onClick={markAllSeen}>{t('adm.shell.mark_read')}</button>
                 </div>
-                {notifs.length === 0 && <div className="adm-notif-empty">Yangi bildirishnoma yo‘q</div>}
+                {notifs.length === 0 && <div className="adm-notif-empty">{t('adm.shell.no_notifs')}</div>}
                 {notifs.map(n => (
                   <Link key={n.id} to={n.to} className={`adm-notif-row ${n.kind}${!seenAt || n.time > seenAt ? ' new' : ''}`}
                     onClick={() => setNotifOpen(false)}>
                     <span className="dot" />
                     <span>
                       <span className="t">{n.text}</span>
-                      <span className="m">{relTime(n.time)}</span>
+                      <span className="m">{rel(n.time)}</span>
                     </span>
                   </Link>
                 ))}

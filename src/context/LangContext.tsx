@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { setCurrentLang } from '../lib/i18n/runtime';
 
 /**
  * Til konteksti — Topbar'dagi til tugmalari orqali boshqariladi.
@@ -14,6 +15,16 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
  */
 export type Lang = 'uz-latn' | 'uz-cyrl' | 'ru' | 'en';
 
+export const LANGS: readonly Lang[] = ['uz-latn', 'uz-cyrl', 'ru', 'en'];
+
+/** BCP-47 lokal — `<html lang>`, `Intl` va `toLocaleString` uchun. */
+export const LOCALE: Record<Lang, string> = {
+  'uz-latn': 'uz-Latn-UZ',
+  'uz-cyrl': 'uz-Cyrl-UZ',
+  ru:        'ru-RU',
+  en:        'en-US',
+};
+
 const LS_KEY = 'kb_lang';
 
 interface LangContextValue {
@@ -26,12 +37,19 @@ const LangContext = createContext<LangContextValue>({
   setLang: () => {},
 });
 
+function isLang(v: unknown): v is Lang {
+  return typeof v === 'string' && (LANGS as readonly string[]).includes(v);
+}
+
 function readInitial(): Lang {
+  let lang: Lang = 'uz-latn';
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw === 'uz-latn' || raw === 'uz-cyrl' || raw === 'ru' || raw === 'en') return raw;
+    if (isLang(raw)) lang = raw;
   } catch { /* SSR yoki storage yopiq */ }
-  return 'uz-latn';
+  // Hook'lardan tashqaridagi yordamchilar (issueDate, relTime…) ham shu tilni ko'rsin
+  setCurrentLang(lang);
+  return lang;
 }
 
 export function LangProvider({ children }: { children: ReactNode }) {
@@ -40,12 +58,20 @@ export function LangProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try { localStorage.setItem(LS_KEY, lang); } catch { /* ignore */ }
     // <html lang="..."> — SEO va A11y uchun
-    const htmlLang = lang === 'uz-cyrl' ? 'uz-Cyrl' : lang === 'uz-latn' ? 'uz-Latn' : lang;
-    document.documentElement.lang = htmlLang;
+    document.documentElement.lang = LOCALE[lang];
   }, [lang]);
 
+  const value = useMemo<LangContextValue>(() => ({
+    lang,
+    setLang: (l: Lang) => {
+      // Render'dan OLDIN global qiymat yangilanadi — shu renderdagi helper'lar ham yangi tilda
+      setCurrentLang(l);
+      setLangState(l);
+    },
+  }), [lang]);
+
   return (
-    <LangContext.Provider value={{ lang, setLang: setLangState }}>
+    <LangContext.Provider value={value}>
       {children}
     </LangContext.Provider>
   );

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..800&display=swap');
 @import "tailwindcss";
 @import "./styles/home.css";
 @import "./styles/topbar-extra.css";
@@ -15,7 +15,7 @@
 /* ═══════════════════════════════════════════════════════════════════════
    Kutubxona.uz — dizayn tizimi
    Figma: Journal Kutubxona → Design sahifasi
-   Iliq qog'oz foni + to'q sariq urg'u + uch shrift (serif/sans/mono)
+   Iliq qog'oz foni + to'q sariq urg'u + bitta shrift (Inter)
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -57,10 +57,11 @@
   --warn:    #B4761A;
   --danger:  #B3261E;
 
-  /* ── Shriftlar ── */
-  --sans:  'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
-  --mono:  'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+  /* ── Shrift: butun saytda Inter (kichik yozuvlarda ham aniq o'qiladi).
+     --serif / --mono eski nomlar — ular ham Inter'ga teng. ── */
+  --sans:  'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --serif: var(--sans);
+  --mono:  var(--sans);
 
   /* ── Burchaklar ── */
   --radius-sm: 4px;
@@ -161,7 +162,7 @@ section[id], h2[id] { scroll-margin-top: 136px; }
 .section-head .rule { flex: 1; }
 
 /* ── Topbar (Figma: ikki qatorli sarlavha) ── */
-/* 1-qator: logotip · qidiruv · til/tema/CTA   2-qator: navigatsiya · ISSN/DOI */
+/* 1-qator: logotip · qidiruv · til/tema/CTA   2-qator: navigatsiya */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 24px;
@@ -346,10 +347,11 @@ section[id], h2[id] { scroll-margin-top: 136px; }
 .segment button:hover  { background: var(--grey-1); }
 .segment button.active { background: var(--grey-2); color: var(--ink); font-weight: 600; }
 
-/* ── Filtr chipi (Barchasi 14 · Kutubxonashunoslik 12 …) ── */
+/* ── Filtr chipi (Barchasi 14 · Kutubxonashunoslik 12 …) ──
+   Matn va son chip balandligi bo'yicha o'rtada turadi (baseline emas) */
 .chip {
-  display: inline-flex; align-items: baseline; gap: 6px;
-  height: 34px; padding: 0 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px; line-height: 1;
   border-radius: 17px;
   border: 1px solid var(--line);
   background: var(--paper);
@@ -357,7 +359,7 @@ section[id], h2[id] { scroll-margin-top: 136px; }
   cursor: pointer; white-space: nowrap;
   transition: background .15s, border-color .15s, color .15s;
 }
-.chip .count { font-family: var(--mono); font-size: 11px; color: var(--ink-4); }
+.chip .count { font-family: var(--mono); font-size: 11px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
 .chip:hover { border-color: var(--line-2); }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .chip.active .count { color: rgba(255,255,255,0.75); }
@@ -594,7 +596,6 @@ section[id], h2[id] { scroll-margin-top: 136px; }
 @media (max-width: 768px) {
   .topnav            { display: none !important; }
   .topbar-search-wrap { display: none !important; }
-  .topbar-ids         { display: none !important; }
   .topbar-cta         { display: none !important; }
   .topbar-hamburger   { display: inline-flex !important; }
   .brand-name .sub   { display: none; }
@@ -855,7 +856,7 @@ section[id], h2[id] { scroll-margin-top: 136px; }
   max-width: 330px; margin: 0 0 18px;
 }
 .site-footer-badges { display: flex; flex-wrap: nowrap; gap: 10px; }
-.issn-badge, .oa-badge {
+.oa-badge {
   font-family: var(--mono); font-size: 11px; letter-spacing: 0;
   padding: 6px 10px; border-radius: var(--radius-sm);
   border: 1px solid rgba(255,255,255,0.15);

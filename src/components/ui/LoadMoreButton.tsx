@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react';
 import { ChevIcon } from './Icons';
+import { useI18n } from '../../lib/i18n';
 
 interface Props {
   label?: string;
   onClick?: () => void;
 }
 
-export default function LoadMoreButton({ label = 'Yana yuklash', onClick }: Props) {
+export default function LoadMoreButton({ label, onClick }: Props) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const ref = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -22,12 +24,12 @@ export default function LoadMoreButton({ label = 'Yana yuklash', onClick }: Prop
       {loading ? (
         <>
           <span className="spinner" />
-          <span>Yuklanmoqda…</span>
+          <span>{t('common.loading')}</span>
           <span className="indet-track" />
         </>
       ) : (
         <>
-          <span>{label}</span>
+          <span>{label ?? t('common.load_more')}</span>
           <ChevIcon size={12} />
         </>
       )}

@@ -5,10 +5,12 @@ import Topbar from '../components/layout/Topbar';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import Footer from '../components/layout/Footer';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../lib/i18n';
 
 export default function LoginPage() {
   const navigate               = useNavigate();
   const { login, isAuthenticated } = useAuth();
+  const { t } = useI18n();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -63,10 +65,10 @@ export default function LoginPage() {
 
           {/* Sarlavha */}
           <div style={{ marginBottom: 36, textAlign: 'center' }}>
-            <span className="eyebrow" style={{ display: 'block', marginBottom: 14 }}>Kirish</span>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: 14 }}>{t('login.eyebrow')}</span>
             <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
-              Faqat tahrir xodimlari uchun.<br/>
-              Parolingizni unutgan bo‘lsangiz Django admin orqali tiklang.
+              {t('login.note1')}<br/>
+              {t('login.note2')}
             </p>
           </div>
 
@@ -77,7 +79,7 @@ export default function LoginPage() {
                 display: 'block', fontSize: 11.5, fontWeight: 700,
                 color: 'var(--ink-3)', textTransform: 'uppercase',
                 letterSpacing: 0.18, marginBottom: 6,
-              }}>Foydalanuvchi nomi</label>
+              }}>{t('login.username')}</label>
               <input
                 value={username} onChange={e => setUsername(e.target.value)}
                 required autoFocus autoComplete="username"
@@ -97,7 +99,7 @@ export default function LoginPage() {
                 display: 'block', fontSize: 11.5, fontWeight: 700,
                 color: 'var(--ink-3)', textTransform: 'uppercase',
                 letterSpacing: 0.18, marginBottom: 6,
-              }}>Parol</label>
+              }}>{t('login.password')}</label>
               <input
                 type="password" value={password} onChange={e => setPassword(e.target.value)}
                 required autoComplete="current-password"
@@ -136,7 +138,7 @@ export default function LoginPage() {
                 cursor: loading /* CAPTCHA-OFF: || (captchaOn && !captchaToken) */ ? 'default' : 'pointer',
               }}
             >
-              {loading ? 'Tekshirilmoqda…' : 'Kirish'}
+              {loading ? t('login.checking') : t('login.submit')}
             </button>
           </form>
         </div>

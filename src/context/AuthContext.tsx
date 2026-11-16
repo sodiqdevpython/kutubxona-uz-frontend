@@ -2,6 +2,7 @@ import {
   createContext, useContext, useState, useEffect,
   type ReactNode,
 } from 'react';
+import { tr } from '../lib/i18n/runtime';
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 const KEY_ACCESS  = 'kb_admin_access';
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Login xatosi');
+      throw new Error(err.detail || tr('login.error'));
     }
     const data = await res.json();
     localStorage.setItem(KEY_ACCESS,  data.access);

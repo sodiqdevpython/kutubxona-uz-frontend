@@ -9,12 +9,10 @@ export interface CitationData {
   title: string;
   authors: string[];
   journal: string;
-  issn: string;
   year: number;
   number: number | null;
   pageStart: number | null;
   pageEnd: number | null;
-  doi: string;
   url: string;
   slug: string;
 }
@@ -41,7 +39,6 @@ function gost(d: CitationData): string {
   const parts = [`${authors ? `${authors} ` : ''}${d.title} // ${d.journal}.`, `${d.year}.`];
   if (d.number) parts.push(`№ ${d.number}.`);
   if (pagesText(d)) parts.push(`S. ${pagesText(d)}.`);
-  if (d.doi) parts.push(`DOI: ${d.doi}.`);
   return parts.join(' — ');
 }
 
@@ -52,7 +49,7 @@ function apa(d: CitationData): string {
   if (d.number) out += `, (${d.number})`;
   if (pagesText(d)) out += `, ${pagesText(d)}`;
   out += '.';
-  return d.doi ? `${out} https://doi.org/${d.doi}` : out;
+  return out;
 }
 
 function mla(d: CitationData): string {
@@ -63,7 +60,7 @@ function mla(d: CitationData): string {
   out += `, ${d.year}`;
   if (pagesText(d)) out += `, pp. ${pagesText(d)}`;
   out += '.';
-  return d.doi ? `${out} https://doi.org/${d.doi}` : `${out} ${d.url}`;
+  return `${out} ${d.url}`;
 }
 
 function bibtex(d: CitationData): string {
@@ -74,8 +71,6 @@ function bibtex(d: CitationData): string {
     `  year = {${d.year}}`,
     d.number ? `  number = {${d.number}}` : '',
     pagesText(d, '--') ? `  pages = {${pagesText(d, '--')}}` : '',
-    d.issn ? `  issn = {${d.issn}}` : '',
-    d.doi ? `  doi = {${d.doi}}` : '',
     `  url = {${d.url}}`,
   ].filter(Boolean);
   return `@article{${d.slug},\n${lines.join(',\n')}\n}`;
@@ -91,8 +86,6 @@ function ris(d: CitationData): string {
     d.number ? `IS  - ${d.number}` : '',
     d.pageStart ? `SP  - ${d.pageStart}` : '',
     d.pageEnd ? `EP  - ${d.pageEnd}` : '',
-    d.issn ? `SN  - ${d.issn}` : '',
-    d.doi ? `DO  - ${d.doi}` : '',
     `UR  - ${d.url}`,
     'ER  - ',
   ].filter(Boolean).join('\n');

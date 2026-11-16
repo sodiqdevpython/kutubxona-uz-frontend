@@ -45,7 +45,7 @@ export interface AdminAuthor {
 
 export interface AuthorArticleRow {
   id: string; title: string; slug: string; year: number; quarter: number;
-  published_at: string | null; issue_label: string | null; doi: string; views: number;
+  published_at: string | null; issue_label: string | null; views: number;
   page_start: number | null; page_end: number | null;
 }
 export interface AdminAuthorDetail extends AdminAuthor {
@@ -68,15 +68,53 @@ export interface AuthorMatch {
   article_count: number;
 }
 
+/** Parser ajratgan bitta muallif: «A, B» qatori alohida mualliflarga bo'linadi. */
+export interface ParsedAuthor {
+  index: number; name: string; info: string; photo_url: string | null;
+  matches: AuthorMatch[];
+}
+
 export interface ParsedArticle {
   id: string; order: number; section: string; title: string;
   author_name: string; extra_info: string;
   start_page: number | null; end_page: number | null;
   status: 'pending' | 'saved' | 'skipped';
   article_pdf_url: string | null; photo_url: string | null;
-  matches: AuthorMatch[];
+  authors: ParsedAuthor[];
   article_id: string | null; article_slug: string | null;
   created_at: string;
+}
+
+/** Muallif tanlagichdagi qisqa profil (qidiruv natijasi, tanlangan qator). */
+export interface AdminAuthorBrief {
+  id: string; name: string; slug: string; initials: string;
+  role: string; org: string; avatar_idx: number; avatar_url: string | null;
+  source: 'telegram' | 'manual' | 'parser'; article_count: number; is_telegram: boolean;
+}
+
+/** Saqlashda yuboriladigan muallif: mavjud profil, yangi profil yoki profilsiz ism. */
+export type AuthorPayloadItem =
+  | { id: string; parsed_index?: number }
+  | { new: true; name: string; role?: string; org?: string; bio?: string; parsed_index?: number }
+  | { text: string };
+
+export interface ResolvedName { name: string; exact: AdminAuthorBrief | null; matches: AdminAuthorBrief[] }
+
+/** Admin: maqolani tahrirlash sahifasi */
+export interface AdminArticleEdit {
+  id: string; title: string; slug: string; excerpt: string; references: string; udk: string;
+  language: string; page_start: number | null; page_end: number | null; pages: number; views: number;
+  authors: AdminAuthorBrief[]; author_names: string[]; keywords: string;
+  category: { id: string; name: string } | null;
+  issue: { id: string; number: number; year: number; volume: number } | null;
+  source_file_url: string | null; file_name: string | null; published_at: string | null;
+}
+
+export interface ArticleUpdate {
+  title?: string; excerpt?: string; references?: string; udk?: string; keywords?: string;
+  page_start?: number | null; page_end?: number | null;
+  category_id?: string | null; issue_id?: string | null;
+  authors?: AuthorPayloadItem[];
 }
 
 export interface ParsedEdit {
@@ -84,9 +122,7 @@ export interface ParsedEdit {
 }
 
 export interface ParsedSavePayload {
-  author_mode: 'existing' | 'new' | 'none';
-  author_id?: string;
-  author?: { name?: string; role?: string; org?: string; degree?: string; bio?: string };
+  authors: AuthorPayloadItem[];
   title?: string; author_name?: string; extra_info?: string;
 }
 
@@ -103,7 +139,6 @@ export interface AdminSubmission {
   article_category: { id: string; name: string } | null;
   article_issue: { id: string; volume: number; number: number; year: number; label: string } | null;
   article_ai_ready: boolean;
-  article_doi: string | null;
   article_pages: { start: number | null; end: number | null } | null;
   source_file_url: string | null;
   image_url: string | null;
@@ -177,11 +212,11 @@ export interface PaginatedSubmissions {
 export interface AdminIssue {
   id: string; journal: string; journal_title: string | null;
   volume: number; number: number; year: number;
-  season: string; date_label: string; palette: number;
+  date_label: string; palette: number;
   is_current: boolean; is_upcoming: boolean;
   total_pages: number; views: number; editorial_note: string; editor_name: string;
   article_count: number; cover_image_url: string | null; pdf_file_url: string | null;
-  pdf_size: number | null; doi_suffix: string;
+  pdf_size: number | null;
   /** PDF parser: saqlanmagan (pending) nomzodlar va jami nomzodlar soni */
   parsed_pending: number; parsed_total: number;
   created_at: string;
@@ -191,6 +226,7 @@ export interface IssueFiles { cover?: File | null; pdf?: File | null; }
 
 export interface NewArticle {
   title: string;
+  authors?: AuthorPayloadItem[];
   author_names?: string;
   excerpt?: string;
   keywords?: string;
@@ -210,7 +246,7 @@ export interface AdminIssueDetail extends AdminIssue {
 export interface AdminArticleInIssue {
   id: string; title: string; slug: string; status: string;
   year: number; quarter: number; pages: number; min_read: number;
-  page_start: number | null; page_end: number | null; doi: string; views: number;
+  page_start: number | null; page_end: number | null; views: number;
   authors_label: string; category_name: string | null; published_at: string | null;
 }
 
@@ -222,7 +258,7 @@ export interface PaginatedAuthors {
   counts:      AuthorCounts;
 }
 
-export interface AdminJournal { id: string; title: string; issn: string; }
+export interface AdminJournal { id: string; title: string; }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
@@ -297,6 +333,17 @@ export const adminApi = {
     },
     remove: (id: string, mode: 'soft' | 'full') =>
       apiFetch<void>(`/api/admin/authors/${id}/?mode=${mode}`, { method: 'DELETE' }),
+    /** Muallif tanlagich uchun tezkor qidiruv */
+    search: (q: string, opts: { limit?: number; noTelegram?: boolean; signal?: AbortSignal } = {}) => {
+      const p = new URLSearchParams({ q, limit: String(opts.limit ?? 8) });
+      if (opts.noTelegram) p.set('no_telegram', '1');
+      return apiFetch<AdminAuthorBrief[]>(`/api/admin/authors/search/?${p}`, { signal: opts.signal });
+    },
+    /** «A, B va C» — ismlarga ajratib, har biriga mos profillarni topadi */
+    resolve: (text: string, noTelegram = false) =>
+      apiFetch<ResolvedName[]>('/api/admin/authors/resolve/', {
+        method: 'POST', body: JSON.stringify({ text, no_telegram: noTelegram }),
+      }),
   },
 
   submissions: {
@@ -342,6 +389,7 @@ export const adminApi = {
     create: (a: NewArticle) => {
       const fd = new FormData();
       fd.append('title', a.title);
+      if (a.authors)      fd.append('authors', JSON.stringify(a.authors));
       if (a.author_names) fd.append('author_names', a.author_names);
       if (a.excerpt)      fd.append('excerpt', a.excerpt);
       if (a.keywords)     fd.append('keywords', a.keywords);
@@ -355,6 +403,19 @@ export const adminApi = {
       return apiFetchForm<{ id: string; title: string; slug: string; issue_id: string | null }>(
         '/api/admin/articles/', { method: 'POST', body: fd },
       );
+    },
+    get: (id: string) => apiFetch<AdminArticleEdit>(`/api/admin/articles/${id}/`),
+    update: (id: string, d: ArticleUpdate, file?: File | null) => {
+      if (file) {
+        const fd = new FormData();
+        Object.entries(d).forEach(([k, v]) => {
+          if (v === undefined) return;
+          fd.append(k, k === 'authors' ? JSON.stringify(v) : v === null ? '' : String(v));
+        });
+        fd.append('source_file', file);
+        return apiFetchForm<AdminArticleEdit>(`/api/admin/articles/${id}/`, { method: 'PATCH', body: fd });
+      }
+      return apiFetch<AdminArticleEdit>(`/api/admin/articles/${id}/`, { method: 'PATCH', body: JSON.stringify(d) });
     },
     trainAi: (articleId: string) =>
       apiFetch<{ id: string; slug: string; llm_document_id: string; ai_ready: boolean }>(

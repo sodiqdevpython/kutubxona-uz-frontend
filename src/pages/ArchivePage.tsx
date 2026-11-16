@@ -5,6 +5,7 @@ import Footer from '../components/layout/Footer';
 import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
 import { useFetch } from '../lib/hooks';
+import { useI18n } from '../lib/i18n';
 import { issueDate, type ApiYearGroup, type ApiIssue, type ApiCategory } from '../lib/api';
 import { JOURNAL_NAME, mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
@@ -18,22 +19,23 @@ const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 const VISIBLE_YEARS = 4;   // Figma: dastlab 4 yil, qolgani tugma bilan ochiladi
 
 function IssueCard({ i }: { i: ApiIssue }) {
+  const { t, tn } = useI18n();
   const cover = mediaUrl(i.cover_image_url);
   return (
     <div className="ic">
       <Link to={`/archive/${i.id}`} className="ic-cover">
         {cover
-          ? <img src={cover} alt={`${i.journal_title ?? JOURNAL_NAME} № ${i.number}, ${i.year} muqovasi`} loading="lazy" />
+          ? <img src={cover} alt={t('issue.cover_alt', { journal: i.journal_title ?? JOURNAL_NAME, n: i.number, year: i.year })} loading="lazy" />
           : <JournalCover palette={i.palette} />}
       </Link>
       <div className="ic-body">
         <Link to={`/archive/${i.id}`} className="ic-title">
-          № {i.number}{i.season ? ` · ${i.season}` : ''}
+          № {i.number}
         </Link>
         <div className="meta">{issueDate(i)}</div>
-        <div className="ic-count">{i.article_count} maqola</div>
+        <div className="ic-count">{tn('unit.articles', i.article_count)}</div>
         <div className="ic-actions">
-          <Link to={`/archive/${i.id}`} className="ic-btn">Mundarija</Link>
+          <Link to={`/archive/${i.id}`} className="ic-btn">{t('common.table_of_contents')}</Link>
           {i.pdf_file_url && <Link to={`/archive/${i.id}#pdf`} className="ic-btn ic-btn-pdf">PDF</Link>}
         </div>
       </div>
@@ -52,6 +54,7 @@ function NoteCard({ title, text }: { title: string; text: string }) {
 }
 
 export default function ArchivePage() {
+  const { t, tn } = useI18n();
   const archState = useFetch<ApiYearGroup[]>(`${BASE}/api/issues/archive/`);
   const catState  = useFetch<ApiCategory[]>(`${BASE}/api/categories/`);
 
@@ -86,23 +89,23 @@ export default function ArchivePage() {
 
   return (
     <div className="bg-archive" style={{ minHeight: '100vh' }}>
-      <Seo title="Jurnal arxivi" description="Jurnalning barcha sonlari — muqova va mundarija." />
+      <Seo title={t('nav.archive')} description={t('archive.seo.description')} />
       <PageLoadBar />
       <Topbar active="archive" />
       <main id="main" className="page-main">
 
       <div className="wrap" style={{ paddingTop: 30 }}>
         <nav className="crumbs">
-          <Link to="/">Bosh sahifa</Link><span>/</span>
-          <span className="cur">Jurnal arxivi</span>
+          <Link to="/">{t('nav.home')}</Link><span>/</span>
+          <span className="cur">{t('nav.archive')}</span>
         </nav>
 
         <div className="page-head">
           <div>
-            <h1 className="h-display page-title">Jurnal arxivi</h1>
+            <h1 className="h-display page-title">{t('nav.archive')}</h1>
             <p className="page-sub">
               {archState.status === 'ok'
-                ? `${yearMin ?? ''}-yildan bugungacha chiqqan ${published.length} son. Har sonda muqova va mundarija.`
+                ? t('archive.sub', { year: yearMin ?? '', issues: tn('unit.issues', published.length) })
                 : '…'}
             </p>
           </div>
@@ -110,10 +113,10 @@ export default function ArchivePage() {
           {/* Yo'nalish chiplari — Figma'da o'ng tepada */}
           {categories.length > 0 && (
             <div className="page-head-ctrl" style={{ alignItems: 'flex-start' }}>
-              <span className="page-head-lbl" style={{ paddingTop: 8 }}>Yo‘nalish</span>
+              <span className="page-head-lbl" style={{ paddingTop: 8 }}>{t('archive.category')}</span>
               <div className="chip-wrap">
                 <Link to="/articles" className="chip active">
-                  Barchasi <span className="count">{published.length}</span>
+                  {t('common.all')} <span className="count">{published.length}</span>
                 </Link>
                 {categories.slice(0, 3).map(c => (
                   <Link key={c.id} to={`/articles?categories=${c.slug}`} className="chip">
@@ -129,32 +132,32 @@ export default function ArchivePage() {
       <div className="wrap archive-grid">
         {/* ── Chap: yillar ── */}
         <aside className="years-col">
-          <div className="eyebrow" style={{ marginBottom: 10 }}>Yillar</div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>{t('archive.years')}</div>
           <div className="years-list">
             {groups.map(g => (
               <button key={g.year} onClick={() => jumpYear(g.year)}
                 className={activeYear === g.year || (activeYear === null && g.year === currentYear) ? 'active' : ''}>
                 <span>{g.year}</span>
-                <span className="meta">{g.issues.length} son</span>
+                <span className="meta">{tn('unit.issues', g.issues.length)}</span>
               </button>
             ))}
           </div>
 
           <div className="side-card" style={{ marginTop: 16 }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>Jami</div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>{t('archive.total')}</div>
             <div className="h-display" style={{ fontSize: 24, marginBottom: 4 }}>
-              {published.length} son
+              {tn('unit.issues', published.length)}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-              {totalArts} maqola · {groups.length} yil
+              {tn('unit.articles', totalArts)} · {tn('unit.years', groups.length)}
             </div>
           </div>
         </aside>
 
         {/* ── O'ng: yillar bo'yicha sonlar ── */}
         <div>
-          {archState.status === 'loading' && <div className="state-box">Yuklanmoqda…</div>}
-          {archState.status === 'error'   && <div className="state-box">Xatolik yuz berdi.</div>}
+          {archState.status === 'loading' && <div className="state-box">{t('common.loading')}</div>}
+          {archState.status === 'error'   && <div className="state-box">{t('common.error')}</div>}
 
           {visible.map(g => {
             const arts = g.issues.reduce((n, i) => n + i.article_count, 0);
@@ -163,22 +166,21 @@ export default function ArchivePage() {
               <section key={g.year} id={`year-${g.year}`} className="year-block">
                 <div className="year-head">
                   <h2 className="h-display">{g.year}</h2>
-                  <span className="meta">{g.issues.length} son · {arts} maqola</span>
+                  <span className="meta">{tn('unit.issues', g.issues.length)} · {tn('unit.articles', arts)}</span>
                   <span className="rule" />
-                  {isCurrent && <span className="meta">joriy yil</span>}
+                  {isCurrent && <span className="meta">{t('archive.current_year')}</span>}
                 </div>
 
                 <div className="issue-row">
                   {g.issues.map(i =>
                     i.is_upcoming
-                      ? <NoteCard key={i.id} title={`№ ${i.number} tayyorlanmoqda`}
-                          text="Kelgusi son uchun maqola qabuli ochiq." />
+                      ? <NoteCard key={i.id} title={t('archive.upcoming_title', { n: i.number })}
+                          text={t('archive.upcoming_text')} />
                       : <IssueCard key={i.id} i={i} />
                   )}
                   {/* Yilda faqat 1 son bo'lsa — Figma'dagidek izoh kartasi */}
                   {g.issues.length === 1 && !isCurrent && (
-                    <NoteCard title="Arxivda bitta son"
-                      text="Bu yildan arxivga hozircha bitta son kiritilgan." />
+                    <NoteCard title={t('archive.single_title')} text={t('archive.single_text')} />
                   )}
                 </div>
               </section>
@@ -188,7 +190,10 @@ export default function ArchivePage() {
           {hidden > 0 && (
             <div style={{ textAlign: 'center', paddingTop: 8 }}>
               <button className="btn ghost" onClick={() => setShowAll(true)}>
-                {hiddenRange} yillarni ko‘rsatish · {groups.slice(VISIBLE_YEARS).reduce((n, g) => n + g.issues.length, 0)} son
+                {t('archive.show_years', {
+                  range: hiddenRange,
+                  issues: tn('unit.issues', groups.slice(VISIBLE_YEARS).reduce((n, g) => n + g.issues.length, 0)),
+                })}
               </button>
             </div>
           )}

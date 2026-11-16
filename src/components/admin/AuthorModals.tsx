@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { adminApi, type AdminAuthor } from '../../lib/admin-api';
 import { refreshDashboard } from '../../lib/admin-dashboard';
+import { useI18n } from '../../lib/i18n';
 import { Modal } from './SubmissionModals';
 
 /** Figma «Muallif profili» — barcha maydonlar + foto; Telegram ID o'zgartirilmaydi. */
@@ -11,6 +12,7 @@ const empty: Form = { name: '', org: '', role: '', degree: '', orcid: '', email:
 export function AuthorEditModal({ author, onDone, onClose }: {
   author: AdminAuthor | null; onDone: (a: AdminAuthor) => void; onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [form, setForm] = useState<Form>(author ? {
     name: author.name, org: author.org, role: author.role, degree: author.degree,
     orcid: author.orcid, email: author.email, scopus_id: author.scopus_id, bio: author.bio,
@@ -22,8 +24,8 @@ export function AuthorEditModal({ author, onDone, onClose }: {
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [k]: e.target.value });
 
   async function submit() {
-    if (!form.name.trim()) { setErr('Ism majburiy.'); return; }
-    if (form.orcid && !/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(form.orcid.trim())) { setErr('ORCID formati: 0000-0000-0000-0000'); return; }
+    if (!form.name.trim()) { setErr(t('adm.au.m.name_required')); return; }
+    if (form.orcid && !/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(form.orcid.trim())) { setErr(t('adm.au.m.orcid_format')); return; }
     setBusy(true); setErr('');
     try {
       const data = { ...form, name: form.name.trim(), orcid: form.orcid.trim() };
@@ -37,43 +39,44 @@ export function AuthorEditModal({ author, onDone, onClose }: {
   const initials = (form.name || '?').split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <Modal title={author ? 'Muallif profili' : 'Yangi muallif'} sub="Ism majburiy. Tashkilot va ORCID keyin to‘ldirilsa ham bo‘ladi." onClose={onClose}
+    <Modal title={author ? t('adm.au.profile') : t('adm.au.m.new_title')} sub={t('adm.au.m.sub')} onClose={onClose}
       foot={<>
-        <span className="hint">{author?.telegram_chat_id ? 'Telegram ID o‘zgartirilmaydi' : 'Qo‘lda yaratilgan profil'}</span>
-        <button className="ab" onClick={onClose}>Bekor qilish</button>
-        <button className="ab primary" onClick={submit} disabled={busy}>{busy ? 'Saqlanmoqda…' : 'Saqlash'}</button>
+        <span className="hint">{author?.telegram_chat_id ? t('adm.au.m.tg_locked') : t('adm.au.m.manual')}</span>
+        <button className="ab" onClick={onClose}>{t('common.cancel')}</button>
+        <button className="ab primary" onClick={submit} disabled={busy}>{busy ? t('adm.iss.saving') : t('common.save')}</button>
       </>}>
       <div className="photo-row">
         <span className="pv">{preview ? <img src={preview} alt="" /> : initials}</span>
         <div>
-          <p>{preview ? (photo ? photo.name : 'Foto yuklangan') : 'Foto yuklanmagan — monogramma ko‘rsatiladi'}</p>
-          <button type="button" className="ab sm" onClick={() => fileRef.current?.click()}>{preview ? 'Fotoni almashtirish' : 'Foto yuklash'}</button>
+          <p>{preview ? (photo ? photo.name : t('adm.au.m.photo_set')) : t('adm.au.m.photo_none')}</p>
+          <button type="button" className="ab sm" onClick={() => fileRef.current?.click()}>{preview ? t('adm.au.m.photo_replace') : t('adm.au.m.photo_upload')}</button>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={e => setPhoto(e.target.files?.[0] ?? null)} />
         </div>
       </div>
       <div className="f-grid2">
-        <div><label className="f-label"><span>To‘liq ism<span className="req">*</span></span></label><input className="f-input" value={form.name} onChange={set('name')} autoFocus /></div>
-        <div><label className="f-label"><span>Telegram</span></label><input className="f-input mono" value={author?.telegram_username ? `@${author.telegram_username}` : ''} readOnly placeholder="bot orqali o‘rnatiladi" /></div>
+        <div><label className="f-label"><span>{t('adm.au.m.full_name')}<span className="req">*</span></span></label><input className="f-input" value={form.name} onChange={set('name')} autoFocus /></div>
+        <div><label className="f-label"><span>Telegram</span></label><input className="f-input mono" value={author?.telegram_username ? `@${author.telegram_username}` : ''} readOnly placeholder={t('adm.au.m.tg_ph')} /></div>
       </div>
       <div className="f-grid2">
-        <div><label className="f-label"><span>Tashkilot</span></label><input className="f-input" value={form.org} onChange={set('org')} placeholder="O‘zbekiston Milliy kutubxonasi" /></div>
-        <div><label className="f-label"><span>Lavozim</span></label><input className="f-input" value={form.role} onChange={set('role')} placeholder="katta ilmiy xodim" /></div>
+        <div><label className="f-label"><span>{t('adm.au.th.org')}</span></label><input className="f-input" value={form.org} onChange={set('org')} placeholder={t('adm.au.m.org_ph')} /></div>
+        <div><label className="f-label"><span>{t('adm.au.m.role')}</span></label><input className="f-input" value={form.role} onChange={set('role')} placeholder={t('adm.au.m.role_ph')} /></div>
       </div>
       <div className="f-grid2">
-        <div><label className="f-label"><span>Ilmiy daraja</span></label><input className="f-input" value={form.degree} onChange={set('degree')} placeholder="PhD" /></div>
+        <div><label className="f-label"><span>{t('adm.au.degree')}</span></label><input className="f-input" value={form.degree} onChange={set('degree')} placeholder="PhD" /></div>
         <div><label className="f-label"><span>ORCID</span></label><input className="f-input mono" value={form.orcid} onChange={set('orcid')} placeholder="0000-0000-0000-0000" /></div>
       </div>
       <div className="f-grid2">
-        <div><label className="f-label"><span>E-pochta</span></label><input className="f-input" value={form.email} onChange={set('email')} placeholder="muallif@example.uz" /></div>
+        <div><label className="f-label"><span>{t('adm.au.email')}</span></label><input className="f-input" value={form.email} onChange={set('email')} placeholder={t('adm.au.m.email_ph')} /></div>
         <div><label className="f-label"><span>Scopus Author ID</span></label><input className="f-input mono" value={form.scopus_id} onChange={set('scopus_id')} /></div>
       </div>
-      <div><label className="f-label"><span>Tarjimai hol</span></label><textarea className="f-textarea" rows={3} value={form.bio} onChange={set('bio')} /></div>
+      <div><label className="f-label"><span>{t('adm.au.bio')}</span></label><textarea className="f-textarea" rows={3} value={form.bio} onChange={set('bio')} /></div>
       {err && <div className="f-err">{err}</div>}
     </Modal>
   );
 }
 
 export function AuthorDeleteModal({ author, onDone, onClose }: { author: AdminAuthor; onDone: () => void; onClose: () => void }) {
+  const { t, tn } = useI18n();
   const [mode, setMode] = useState<'soft' | 'full'>('soft');
   const [busy, setBusy] = useState(false);
   const [err, setErr]   = useState('');
@@ -84,18 +87,18 @@ export function AuthorDeleteModal({ author, onDone, onClose }: { author: AdminAu
     finally { setBusy(false); }
   }
   return (
-    <Modal title="Profilni o‘chirish" sub={`«${author.name}» — ${author.article_count} maqola bog‘langan.`} onClose={onClose} small
+    <Modal title={t('adm.au.delete')} sub={t('adm.au.m.del_sub', { name: author.name, articles: tn('unit.articles', author.article_count) })} onClose={onClose} small
       foot={<>
-        <button className="ab" onClick={onClose}>Bekor qilish</button>
-        <button className="ab danger" onClick={submit} disabled={busy}>{busy ? '…' : 'O‘chirish'}</button>
+        <button className="ab" onClick={onClose}>{t('common.cancel')}</button>
+        <button className="ab danger" onClick={submit} disabled={busy}>{busy ? '…' : t('common.delete')}</button>
       </>}>
       <label className="f-check" style={{ background: mode === 'soft' ? '#FDF3E7' : 'var(--adm-field)', borderColor: mode === 'soft' ? '#F5C99A' : 'var(--line)' }}>
         <input type="radio" checked={mode === 'soft'} onChange={() => setMode('soft')} />
-        <span><b>Faqat profil</b><span>Maqolalar saqlanadi, muallif nomi matn sifatida qoladi.</span></span>
+        <span><b>{t('adm.au.m.soft')}</b><span>{t('adm.au.m.soft_s')}</span></span>
       </label>
       <label className="f-check" style={{ background: mode === 'full' ? 'var(--adm-red-08)' : 'var(--adm-field)', borderColor: mode === 'full' ? 'var(--adm-red)' : 'var(--line)' }}>
         <input type="radio" checked={mode === 'full'} onChange={() => setMode('full')} />
-        <span><b>Profil va barcha maqolalari</b><span>Qaytarib bo‘lmaydi.</span></span>
+        <span><b>{t('adm.au.m.full')}</b><span>{t('adm.au.m.full_s')}</span></span>
       </label>
       {err && <div className="f-err">{err}</div>}
     </Modal>

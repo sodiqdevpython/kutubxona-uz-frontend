@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { aiReasonText } from '../../lib/ai';
+import { useI18n } from '../../lib/i18n';
 
 interface Props {
   open: boolean;
@@ -17,6 +18,7 @@ interface Props {
  * holat `/api/ai/status/` dan real vaqtda olinadi.
  */
 export default function AiUnavailableModal({ open, onClose, reason, action }: Props) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -61,18 +63,15 @@ export default function AiUnavailableModal({ open, onClose, reason, action }: Pr
           fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 600,
           color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em',
         }}>
-          Local AI ulanmagan
+          {t('aimodal.title')}
         </h3>
 
         <p style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink-2)', marginBottom: 10 }}>
-          {action
-            ? <>«{action}» hozircha ishlamaydi — AI xizmati ulanmagan.</>
-            : <>AI imkoniyatlari hozircha ishlamaydi — xizmat ulanmagan.</>}
+          {action ? t('aimodal.action_off', { action }) : t('aimodal.off')}
         </p>
 
         <p style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-3)', marginBottom: 18 }}>
-          {aiReasonText(reason)} Xizmat ishga tushgach bu amal avtomatik ishlaydi —
-          hech narsani o‘zgartirish shart emas.
+          {aiReasonText(reason)} {t('aimodal.auto')}
         </p>
 
         <div style={{
@@ -80,8 +79,7 @@ export default function AiUnavailableModal({ open, onClose, reason, action }: Pr
           padding: '10px 12px', marginBottom: 18,
           fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.55,
         }}>
-          Shu orada maydonlarni <strong>qo‘lda</strong> to‘ldirishingiz mumkin —
-          «Tahrirlash» tugmasi orqali.
+          {t('aimodal.manual')}
         </div>
 
         <button
@@ -93,7 +91,7 @@ export default function AiUnavailableModal({ open, onClose, reason, action }: Pr
             fontFamily: 'var(--sans)',
           }}
         >
-          Tushunarli
+          {t('aimodal.ok')}
         </button>
       </div>
     </div>

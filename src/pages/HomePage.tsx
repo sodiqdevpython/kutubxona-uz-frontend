@@ -7,8 +7,9 @@ import JournalCover from '../components/ui/JournalCover';
 import ArticleRow from '../components/article/ArticleRow';
 import Seo from '../components/Seo';
 import { useFetch } from '../lib/hooks';
+import { useI18n, type I18n } from '../lib/i18n';
 import {
-  authorsLine, formatBytes, issueDate, issueLabel, pageRange,
+  authorsLine, issueDate, issueLabel, pageRange,
   type ApiArticle, type ApiCategory, type ApiFacets, type ApiIssue, type ApiYearGroup, type PaginatedResponse,
 } from '../lib/api';
 import { JOURNAL_NAME, TELEGRAM_BOT_URL, mediaUrl } from '../lib/config';
@@ -30,14 +31,19 @@ const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 interface Stats { articles: number; authors: number; issues: number }
 
 /** Son haqidagi jumla faqat haqiqiy ma'lumotdan: rubrikalar va maqolalar soni. */
-function issueSummary(issue: ApiIssue | null, facets: ApiFacets | null): string {
-  if (!issue) return 'Axborot-kutubxona texnologiyalari bo‘yicha ilmiy-amaliy jurnal. Barcha maqolalar ochiq kirishda.';
+function issueSummary(issue: ApiIssue | null, facets: ApiFacets | null, { t, tn }: I18n): string {
+  if (!issue) return t('home.summary.default');
   const rubrics = (facets?.categories ?? []).slice(0, 4).map(c => c.name);
-  const count = `${issue.article_count} ta maqola`;
-  return rubrics.length ? `Bu sonda: ${rubrics.join(', ')}. Jami ${count}.` : `Bu sonda ${count}.`;
+  const count = tn('unit.articles_ta', issue.article_count);
+  return rubrics.length
+    ? t('home.summary.with_rubrics', { rubrics: rubrics.join(', '), count })
+    : t('home.summary.count_only', { count });
 }
 
 export default function HomePage() {
+  const i18n = useI18n();
+  const { t, tn, num, bytes } = i18n;
+
   const feedState  = useFetch<PaginatedResponse<ApiArticle>>(`${BASE}/api/articles/?page_size=12`);
   const trendState = useFetch<PaginatedResponse<ApiArticle>>(`${BASE}/api/articles/?ordering=-views&page_size=5`);
   const catState   = useFetch<ApiCategory[]>(`${BASE}/api/categories/`);
@@ -69,7 +75,7 @@ export default function HomePage() {
   const inIssue = current ? articles.filter(a => a.issue_id === current.id) : articles;
   const featured = inIssue[0] ?? articles[0] ?? null;
   const alsoIn   = inIssue.slice(1, 5);
-  const summary  = issueSummary(current, issueFacets);
+  const summary  = issueSummary(current, issueFacets, i18n);
 
   // Hero karuseli — Figma'da 4 ta nuqta bor, ya'ni 4 ta yetakchi maqola
   const slides = inIssue.slice(0, 4);
@@ -78,8 +84,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (slides.length < 2) return;
-    const t = setInterval(() => setSlide(i => (i + 1) % slides.length), 7000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setSlide(i => (i + 1) % slides.length), 7000);
+    return () => clearInterval(timer);
   }, [slides.length]);
 
   const go = (d: number) =>
@@ -89,15 +95,15 @@ export default function HomePage() {
   const HERO_BG = '/main_ground.png';
 
   const issueMeta = current
-    ? [issueDate(current), current.total_pages ? `${current.total_pages} bet` : '', `${current.article_count} maqola`]
+    ? [issueDate(current), current.total_pages ? tn('unit.pages', current.total_pages) : '', tn('unit.articles', current.article_count)]
         .filter(Boolean).join(' · ')
     : '';
 
   return (
     <div className="bg-home" style={{ minHeight: '100vh' }}>
       <Seo
-        title="Bosh sahifa"
-        description="Kutubxona — axborot-kutubxona texnologiyalari ilmiy-amaliy jurnali. Ochiq kirish arxivi."
+        title={t('nav.home')}
+        description={t('home.seo.description')}
       />
       <PageLoadBar />
       <Topbar active="home" />
@@ -111,8 +117,7 @@ export default function HomePage() {
         <div className="wrap hero-inner">
           <div className="hero-eyebrow">
             <span className="eyebrow accent">
-              So‘nggi son · {current ? `${current.year} № ${current.number}` : '—'}
-              {current?.season ? ` · ${current.season.toLowerCase()}` : ''}
+              {t('home.hero.latest_issue')} · {current ? `${current.year} № ${current.number}` : '—'}
             </span>
             <span className="hero-rule" />
             <span className="eyebrow" style={{ color: 'rgba(255,255,255,0.6)' }}>{issueMeta}</span>
@@ -121,40 +126,40 @@ export default function HomePage() {
           <div className="hero-body">
             <div className="hero-text">
               <h1 className="h-display hero-title">
-                {hero?.title ?? 'Ilmiy meros va kelajak raqamli formatda'}
+                {hero?.title ?? t('home.hero.title_default')}
               </h1>
               <p className="hero-lede">{hero?.excerpt ? hero.excerpt.slice(0, 150) + (hero.excerpt.length > 150 ? '…' : '') : summary}</p>
               <div className="hero-actions">
                 <Link className="btn primary" to={current ? `/archive/${current.id}` : '/archive'}>
-                  Sonni ochish
+                  {t('home.hero.open_issue')}
                 </Link>
                 {hero && (
-                  <Link className="btn hero-ghost" to={`/articles/${hero.slug}`}>Yetakchi maqola</Link>
+                  <Link className="btn hero-ghost" to={`/articles/${hero.slug}`}>{t('home.hero.featured')}</Link>
                 )}
               </div>
             </div>
 
             <div className="hero-stats">
-              <HeroStat n={stats?.articles} label="Maqola" />
-              <HeroStat n={stats?.authors}  label="Muallif" />
-              <HeroStat n={stats?.issues}   label="Son" />
-              <HeroStat n={caCount ?? undefined} label="Central Asia" />
+              <HeroStat n={stats?.articles} label={t('home.stat.articles')} />
+              <HeroStat n={stats?.authors}  label={t('home.stat.authors')} />
+              <HeroStat n={stats?.issues}   label={t('home.stat.issues')} />
+              <HeroStat n={caCount ?? undefined} label={t('nav.central_asia')} />
             </div>
           </div>
 
           {/* Karusel boshqaruvi */}
           {slides.length > 1 && (
             <div className="hero-nav">
-              <button className="hero-arrow" onClick={() => go(-1)} aria-label="Oldingi">
+              <button className="hero-arrow" onClick={() => go(-1)} aria-label={t('common.prev')}>
                 <Chevron dir="left" />
               </button>
               <div className="hero-dots">
                 {slides.map((_, i) => (
                   <button key={i} className={i === slide ? 'active' : ''}
-                    onClick={() => setSlide(i)} aria-label={`${i + 1}-slayd`} />
+                    onClick={() => setSlide(i)} aria-label={t('home.hero.slide', { n: i + 1 })} />
                 ))}
               </div>
-              <button className="hero-arrow" onClick={() => go(1)} aria-label="Keyingi">
+              <button className="hero-arrow" onClick={() => go(1)} aria-label={t('common.next')}>
                 <Chevron dir="right" />
               </button>
             </div>
@@ -166,29 +171,29 @@ export default function HomePage() {
       <section className="wrap home-issue">
         <div>
           <div className="section-head">
-            <span className="eyebrow accent">So‘nggi son</span>
+            <span className="eyebrow accent">{t('home.hero.latest_issue')}</span>
             <span className="rule" />
             <span className="meta">{issueMeta}</span>
           </div>
 
           <h2 className="h-display home-issue-title">
-            {current ? `${journal} № ${current.number} · ${current.year}` : 'Jurnalning so‘nggi soni'}
+            {current ? `${journal} № ${current.number} · ${current.year}` : t('home.issue.latest_default')}
           </h2>
           <p className="home-issue-lede">{summary}</p>
 
           <div className="home-issue-actions">
             {current?.pdf_file_url && (
               <Link className="btn primary" to={`/archive/${current.id}#pdf`}>
-                Butun sonni o‘qish{current.pdf_size ? ` · ${formatBytes(current.pdf_size)}` : ''}
+                {t('home.issue.read_full')}{current.pdf_size ? ` · ${bytes(current.pdf_size)}` : ''}
               </Link>
             )}
-            {current && <Link className="btn ghost" to={`/archive/${current.id}`}>Mundarija</Link>}
+            {current && <Link className="btn ghost" to={`/archive/${current.id}`}>{t('common.table_of_contents')}</Link>}
           </div>
 
           {featured && (
             <div className="home-featured">
               <div>
-                <div className="eyebrow accent" style={{ marginBottom: 12 }}>Sonning yetakchi maqolasi</div>
+                <div className="eyebrow accent" style={{ marginBottom: 12 }}>{t('home.issue.featured_eyebrow')}</div>
                 <Link to={`/articles/${featured.slug}`} className="home-featured-media">
                   {/* Maqolaning o'z rasmi bo'lmasa — doimiy foto (public/main_article.png) */}
                   <img src={mediaUrl(featured.image_url) ?? '/main_article.png'} alt={featured.title} />
@@ -202,21 +207,20 @@ export default function HomePage() {
                 <div className="home-featured-by">
                   <span>{authorsLine(featured)}</span>
                   <span className="meta">
-                    {[pageRange(featured) && `${pageRange(featured)} b.`, `${featured.views.toLocaleString()} ko‘rish`].filter(Boolean).join(' · ')}
+                    {[pageRange(featured) && t('unit.pages_abbr', { n: pageRange(featured) }), tn('unit.views', featured.views)].filter(Boolean).join(' · ')}
                   </span>
                 </div>
               </div>
 
               <div className="home-featured-meta">
-                <div className="eyebrow" style={{ marginBottom: 10 }}>Ushbu maqola</div>
-                <span className="tag ok" style={{ marginBottom: 12 }}>Ochiq kirish</span>
+                <div className="eyebrow" style={{ marginBottom: 10 }}>{t('home.issue.this_article')}</div>
+                <span className="tag ok" style={{ marginBottom: 12 }}>{t('common.open_access')}</span>
                 <div className="meta" style={{ lineHeight: 1.7 }}>
                   {issueLabel(featured)}
-                  {featured.doi && <><br />DOI {featured.doi}</>}
                 </div>
                 {featured.file_kind && (
                   <Link to={`/articles/${featured.slug}#matn`} className="side-link" style={{ marginTop: 12 }}>
-                    {featured.file_kind.toUpperCase()}{featured.file_size ? ` · ${formatBytes(featured.file_size)}` : ''}
+                    {featured.file_kind.toUpperCase()}{featured.file_size ? ` · ${bytes(featured.file_size)}` : ''}
                   </Link>
                 )}
               </div>
@@ -227,7 +231,7 @@ export default function HomePage() {
         <aside className="home-side">
           {current && issueFacets && issueFacets.categories.length > 0 && (
             <div className="side-card">
-              <div className="side-card-title">Sondagi yo‘nalishlar</div>
+              <div className="side-card-title">{t('home.side.rubrics')}</div>
               {issueFacets.categories.slice(0, 6).map(c => (
                 <Link key={c.slug} to={`/articles?issues=${current.id}&categories=${c.slug}`} className="side-row">
                   <span>{c.name}</span>
@@ -238,12 +242,9 @@ export default function HomePage() {
           )}
 
           <div className="side-card side-card-soft">
-            <div className="side-card-title">Jurnal haqida</div>
-            <p className="side-text">
-              2019-yildan chiqadigan choraklik nashr. Nashr uchun ham, o‘qish uchun ham
-              to‘lov olinmaydi.
-            </p>
-            <Link to="/about/board" className="side-link">Tahririyat kengashi →</Link>
+            <div className="side-card-title">{t('home.side.about_title')}</div>
+            <p className="side-text">{t('home.side.about_text')}</p>
+            <Link to="/about/board" className="side-link">{t('home.side.board_link')}</Link>
           </div>
         </aside>
       </section>
@@ -252,9 +253,9 @@ export default function HomePage() {
       {alsoIn.length > 0 && (
         <section className="wrap home-also">
           <div className="section-head">
-            <span className="eyebrow accent">Shu sondan yana</span>
+            <span className="eyebrow accent">{t('home.also.eyebrow')}</span>
             <span className="rule" />
-            <Link to={current ? `/archive/${current.id}` : '/archive'} className="side-link">To‘liq mundarija →</Link>
+            <Link to={current ? `/archive/${current.id}` : '/archive'} className="side-link">{t('home.also.full_toc')}</Link>
           </div>
 
           <div className="art-list">
@@ -267,9 +268,9 @@ export default function HomePage() {
       <section className="wrap home-two">
         <div>
           <div className="section-head">
-            <span className="eyebrow accent">Ko‘p o‘qilganlar</span>
+            <span className="eyebrow accent">{t('home.top.eyebrow')}</span>
             <span className="rule" />
-            <span className="meta">barcha vaqt</span>
+            <span className="meta">{t('home.top.all_time')}</span>
           </div>
 
           <div className="top-list">
@@ -282,19 +283,19 @@ export default function HomePage() {
                   <span className="top-title">{a.title}</span>
                   <span className="top-sub">{authorsLine(a)} · {issueLabel(a)}</span>
                 </span>
-                <span className="meta top-views">{a.views.toLocaleString()}</span>
+                <span className="meta top-views">{num(a.views)}</span>
               </Link>
             ))}
-            {trending.length === 0 && <div className="side-empty">Hozircha bo‘sh</div>}
+            {trending.length === 0 && <div className="side-empty">{t('home.top.empty')}</div>}
           </div>
         </div>
 
         {categories.length > 0 && (
           <div>
             <div className="section-head">
-              <span className="eyebrow accent">Yo‘nalishlar</span>
+              <span className="eyebrow accent">{t('home.cats.eyebrow')}</span>
               <span className="rule" />
-              <Link to="/articles" className="side-link">Barchasi →</Link>
+              <Link to="/articles" className="side-link">{t('common.all_arrow')}</Link>
             </div>
 
             <div className="cat-grid">
@@ -314,9 +315,9 @@ export default function HomePage() {
         <section className="home-archive">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow accent">Arxiv</span>
+              <span className="eyebrow accent">{t('home.archive.eyebrow')}</span>
               <span className="rule" />
-              <Link to="/archive" className="side-link">Barcha {issues.length} son →</Link>
+              <Link to="/archive" className="side-link">{t('home.archive.all', { n: issues.length })}</Link>
             </div>
 
             <div className="cover-row">
@@ -324,12 +325,12 @@ export default function HomePage() {
                 <Link key={i.id} to={`/archive/${i.id}`} className="cover-item">
                   <div className="cover-box">
                     {i.cover_image_url
-                      ? <img src={mediaUrl(i.cover_image_url) ?? undefined} alt={`${i.journal_title ?? JOURNAL_NAME} № ${i.number}, ${i.year} muqovasi`} loading="lazy" />
+                      ? <img src={mediaUrl(i.cover_image_url) ?? undefined} alt={t('issue.cover_alt', { journal: i.journal_title ?? JOURNAL_NAME, n: i.number, year: i.year })} loading="lazy" />
                       : <JournalCover palette={i.palette} />}
                   </div>
                   <div className="cover-cap">
                     <span className="cover-num">№{i.number} <span className="meta">{i.year}</span></span>
-                    <span className="meta">{i.article_count} maqola</span>
+                    <span className="meta">{tn('unit.articles', i.article_count)}</span>
                   </div>
                 </Link>
               ))}
@@ -342,29 +343,21 @@ export default function HomePage() {
       <section className="home-cta">
         <div className="wrap home-cta-inner">
           <div>
-            <span className="eyebrow accent">Mualliflarga</span>
-            <h2 className="h-display home-cta-title">
-              Keyingi songa maqola qabul qilinmoqda
-            </h2>
-            <p className="home-cta-lede">
-              Qo‘lyozmani Telegram bot orqali yuboring — tahririyat 3 ish kuni ichida
-              qabulini tasdiqlaydi va taqrizga yo‘naltiradi.
-            </p>
+            <span className="eyebrow accent">{t('home.cta.eyebrow')}</span>
+            <h2 className="h-display home-cta-title">{t('home.cta.title')}</h2>
+            <p className="home-cta-lede">{t('home.cta.lede')}</p>
             <a className="btn primary" href={TELEGRAM_BOT_URL} target="_blank" rel="noreferrer">
-              Telegram bot orqali yuborish
+              {t('home.cta.button')}
             </a>
           </div>
 
           <div className="home-cta-steps">
-            <Step n="01" title="Talablarni o‘qing"
-              text="Qamrov, hajm (8–15 bet), annotatsiya va kalit so‘zlar bo‘yicha qabul shartlari."
-              link="/about/guide#qabul" linkLabel="Qo‘llanma" />
-            <Step n="02" title="Faylni tayyorlang"
-              text=".docx yoki .pdf, Times New Roman 14 kegl, adabiyotlar GOST bo‘yicha."
-              link="/about/guide#formatlash" linkLabel="Formatlash talablari" />
-            <Step n="03" title="Yuboring"
-              text="Tahririyat 3 ish kuni ichida qabulni tasdiqlaydi va taqrizga yo‘naltiradi."
-              link="/about/policy#taqriz" linkLabel="Taqriz jarayoni" />
+            <Step n="01" title={t('home.cta.step1.title')} text={t('home.cta.step1.text')}
+              link="/about/guide#qabul" linkLabel={t('home.cta.step1.link')} />
+            <Step n="02" title={t('home.cta.step2.title')} text={t('home.cta.step2.text')}
+              link="/about/guide#formatlash" linkLabel={t('home.cta.step2.link')} />
+            <Step n="03" title={t('home.cta.step3.title')} text={t('home.cta.step3.text')}
+              link="/about/policy#taqriz" linkLabel={t('home.cta.step3.link')} />
           </div>
         </div>
       </section>

@@ -1,5 +1,6 @@
 // ── API base ─────────────────────────────────────────────────────────────────
 import { API_BASE, apiOrigin } from './config';
+import { fmtBytes, tr } from './i18n/runtime';
 
 const BASE = API_BASE;
 
@@ -87,7 +88,6 @@ export interface ApiArticle {
   excerpt: string;
   /** Sarlavhadan aniqlangan til: uz | uz-cyrl | ru | en */
   language: string;
-  doi: string;
   category: ApiCategory | null;
   authors: ApiAuthorBrief[];
   author_label: string;
@@ -131,12 +131,9 @@ export function pageRange(a: { page_start: number | null; page_end: number | nul
   return a.page_start ? `${a.page_start}` : '';
 }
 
-/** 2 400 000 → «2,3 MB» */
+/** 2 400 000 → «2,3 MB» (joriy til bo'yicha kasr belgisi) */
 export function formatBytes(bytes: number | null | undefined): string {
-  if (!bytes) return '';
-  const mb = bytes / (1024 * 1024);
-  if (mb >= 1) return `${mb.toFixed(1).replace('.', ',')} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return fmtBytes(bytes);
 }
 
 /**
@@ -160,7 +157,9 @@ export function authorsLine(a: Pick<ApiArticle, 'authors' | 'author_names' | 'au
  */
 export function issueDate(i: { date_label: string; year: number; volume?: number }): string {
   if (isRealDate(i.date_label)) return i.date_label;
-  return i.volume && i.volume <= 12 ? `${i.year}-yil ${i.volume}-son` : `${i.year}-yil`;
+  return i.volume && i.volume <= 12
+    ? tr('issue.date_with_vol', { year: i.year, vol: i.volume })
+    : tr('issue.date_year', { year: i.year });
 }
 
 export function isRealDate(label: string | null | undefined): boolean {
@@ -190,7 +189,6 @@ export interface ApiIssueBrief {
   volume: number;
   number: number;
   year: number;
-  season: string;
   date_label: string;
   cover_image_url?: string | null;
   journal_id?: string | null;
@@ -204,7 +202,6 @@ export interface ApiIssue {
   volume: number;
   number: number;
   year: number;
-  season: string;
   date_label: string;
   palette: number;
   is_current: boolean;
@@ -228,7 +225,6 @@ export interface ApiTocArticle {
   page_end: number | null;
   views: number;
   image_url: string | null;
-  doi: string;
 }
 
 export interface ApiIssueSection {
@@ -249,7 +245,6 @@ export interface ApiIssueNeighbor {
 export interface ApiIssueDetail extends ApiIssue {
   editorial_note: string;
   editor_name: string;
-  issn: string;
   pdf_size: number | null;
   sections: ApiIssueSection[];
   categories: { name: string; count: number }[];
@@ -266,7 +261,6 @@ export interface ApiYearGroup {
 export interface ApiJournal {
   id: string;
   title: string;
-  issn: string;
   issues: ApiIssue[];
 }
 
@@ -298,7 +292,6 @@ export interface ApiCentralAsiaPost {
   views_local: number;
   total_views: number;
   quote_number: number;
-  doi: string;
   source_category: string;
   source_url: string | null;
   published_at: string | null;

@@ -3,18 +3,7 @@ import AuthorAvatar from './ui/AuthorAvatar';
 import { SendIcon } from './ui/Icons';
 import { commentsApi, type ApiComment } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-
-// ── Vaqtni nisbiy ko'rsatish ──────────────────────────────────────────────────
-
-function relTime(iso: string): string {
-  const d  = new Date(iso);
-  const dt = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (dt < 60)     return 'hozir';
-  if (dt < 3600)   return `${Math.floor(dt / 60)} daqiqa oldin`;
-  if (dt < 86400)  return `${Math.floor(dt / 3600)} soat oldin`;
-  if (dt < 604800) return `${Math.floor(dt / 86400)} kun oldin`;
-  return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+import { useI18n } from '../lib/i18n';
 
 function initialsOf(name: string): string {
   return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -31,6 +20,7 @@ function CommentItem({
   onReply: (parent: ApiComment) => void;
   onDelete: (c: ApiComment) => void;
 }) {
+  const { t, rel } = useI18n();
   return (
     <article style={{
       display: 'grid', gridTemplateColumns: '40px 1fr', gap: 14,
@@ -44,7 +34,7 @@ function CommentItem({
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
           <span style={{ fontFamily: 'var(--serif)', fontSize: 14.5, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{c.name}</span>
-          <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>· {relTime(c.created_at)}</span>
+          <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>· {rel(c.created_at)}</span>
         </div>
         <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--ink-2)', margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>
           {c.text}
@@ -52,13 +42,13 @@ function CommentItem({
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => onReply(c)}
             style={{ background: 'none', border: 0, padding: 0, fontSize: 11.5, color: 'var(--navy)', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
-            ↩ Javob berish
+            {t('comments.reply')}
           </button>
           {isAdmin && (
             <button onClick={() => onDelete(c)}
-              title="Sharhni o‘chirish"
+              title={t('comments.delete_title')}
               style={{ background: 'none', border: 0, padding: 0, fontSize: 11.5, color: '#DC2626', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
-              🗑 O‘chirish
+              {t('comments.delete')}
             </button>
           )}
         </div>
@@ -79,6 +69,7 @@ function CommentItem({
 
 export default function CommentsSection({ articleId, issueId }: { articleId?: string; issueId?: string }) {
   const { user, isAuthenticated } = useAuth();
+  const { t } = useI18n();
   const isAdmin = isAuthenticated && !!user?.is_staff;
 
   const targetId = articleId ?? issueId ?? '';
@@ -100,12 +91,12 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
   }
 
   async function handleDelete(c: ApiComment) {
-    if (!confirm(`Sharhni o‘chirasizmi?\n\n"${c.text.slice(0, 80)}${c.text.length > 80 ? '…' : ''}"`)) return;
+    if (!confirm(`${t('comments.confirm_delete')}\n\n"${c.text.slice(0, 80)}${c.text.length > 80 ? '…' : ''}"`)) return;
     try {
       await commentsApi.remove(c.id);
       setComments(prev => removeFromTree(prev, c.id));
     } catch (e) {
-      alert(`O‘chirib bo‘lmadi: ${(e as Error).message}`);
+      alert(t('comments.delete_failed', { e: (e as Error).message }));
     }
   }
 
@@ -141,11 +132,11 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
   async function submit() {
     setError('');
     const trimmed = text.trim();
-    if (!trimmed) { setError("Sharh matni bo‘sh bo‘lmasligi kerak."); return; }
+    if (!trimmed) { setError(t('comments.empty_text')); return; }
     setSending(true);
     try {
       const body: { article?: string; issue?: string; name: string; text: string; parent?: string } = {
-        name:    name.trim() || "Anonim o‘quvchi",
+        name:    name.trim() || t('comments.anon'),
         text:    trimmed,
       };
       if (articleId) body.article = articleId;
@@ -162,19 +153,21 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
 
       setText(''); setReplyTo(null);
     } catch (e) {
-      setError(`Yuborishda xato: ${(e as Error).message}`);
+      setError(t('comments.send_failed', { e: (e as Error).message }));
     } finally {
       setSending(false);
     }
   }
 
   const charCount = text.length;
+  // «{name} ga javob bermoqdasiz —» — ism qalin, so'z tartibi tilga qarab farq qiladi
+  const [replyBefore, replyAfter] = replyTo ? t('comments.replying_to').split('{name}') : ['', ''];
 
   return (
     <section>
       <header style={{ display: 'flex', alignItems: 'end', marginBottom: 28, paddingBottom: 18, borderBottom: '1px solid var(--line)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          <h2 className="h-display" style={{ fontSize: 26 }}>Sharhlar</h2>
+          <h2 className="h-display" style={{ fontSize: 26 }}>{t('comments.title')}</h2>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 13, background: 'var(--grey-2)', color: 'var(--ink-3)', padding: '4px 10px', borderRadius: 4, fontWeight: 600 }}>{total}</span>
         </div>
       </header>
@@ -187,12 +180,12 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
           {replyTo && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', marginBottom: 14, background: 'var(--navy-08)', borderLeft: '3px solid var(--navy)', borderRadius: 4 }}>
               <div style={{ fontSize: 12, color: 'var(--ink-2)', minWidth: 0 }}>
-                <b style={{ color: 'var(--navy)' }}>{replyTo.name}</b> ga javob bermoqdasiz —{' '}
+                {replyBefore}<b style={{ color: 'var(--navy)' }}>{replyTo.name}</b>{replyAfter}{' '}
                 <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>
                   «{replyTo.text.slice(0, 60)}{replyTo.text.length > 60 ? '…' : ''}»
                 </span>
               </div>
-              <button onClick={() => setReplyTo(null)}
+              <button onClick={() => setReplyTo(null)} aria-label={t('common.cancel')}
                 style={{ background: 'none', border: 0, padding: 0, fontSize: 16, color: 'var(--ink-3)', cursor: 'pointer', flexShrink: 0, marginLeft: 8 }}>×</button>
             </div>
           )}
@@ -205,7 +198,7 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
               <textarea
                 ref={textareaRef}
                 value={text} onChange={e => setText(e.target.value)} maxLength={1200}
-                placeholder={replyTo ? "Javobingizni yozing…" : "Sharhingizni yozing — ro‘yxatdan o‘tish shart emas…"}
+                placeholder={replyTo ? t('comments.placeholder_reply') : t('comments.placeholder')}
                 style={{ width: '100%', minHeight: 64, border: 0, outline: 0, background: 'transparent', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', resize: 'vertical', padding: 0, lineHeight: 1.5 }} />
             </div>
           </div>
@@ -214,13 +207,13 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
               <div className="field" style={{ height: 34, padding: '0 10px', maxWidth: 220, flex: 1 }}>
                 <input value={name} onChange={e => setName(e.target.value)}
-                  placeholder="Ismingiz (ixtiyoriy)"
+                  placeholder={t('comments.name_placeholder')}
                   maxLength={150}
                   style={{ border: 0, outline: 0, background: 'transparent', fontFamily: 'var(--sans)', fontSize: 12.5, color: 'var(--ink)', flex: 1, minWidth: 0 }} />
               </div>
               {!name.trim() && (
                 <span style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>
-                  → "Anonim o‘quvchi" sifatida
+                  {t('comments.as_anon')}
                 </span>
               )}
             </div>
@@ -228,7 +221,7 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
               <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>{charCount} / 1200</span>
               <button onClick={submit} disabled={sending || !text.trim()}
                 className="btn primary" style={{ height: 36, opacity: (sending || !text.trim()) ? 0.5 : 1, cursor: (sending || !text.trim()) ? 'default' : 'pointer' }}>
-                <SendIcon size={13} /> {sending ? 'Yuborilmoqda…' : 'Yuborish'}
+                <SendIcon size={13} /> {sending ? t('comments.sending') : t('comments.send')}
               </button>
             </div>
           </div>
@@ -243,10 +236,10 @@ export default function CommentsSection({ articleId, issueId }: { articleId?: st
 
       {/* ── Comments list ── */}
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Yuklanmoqda…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>{t('common.loading')}</div>
       ) : comments.length === 0 ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
-          Hali sharh yo‘q.
+          {t('comments.none')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>

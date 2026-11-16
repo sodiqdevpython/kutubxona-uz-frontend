@@ -2,6 +2,8 @@
  * Kelgan maqola kartasi uchun hisoblanadigan holatlar (Figma: TAYYOR / AI TO'LDIRDI / TO'LIQSIZ).
  */
 import type { AdminSubmission } from './admin-api';
+import type { MsgKey } from './i18n';
+import { tr } from './i18n/runtime';
 
 export type Readiness = 'ready' | 'ai' | 'incomplete';
 
@@ -10,17 +12,15 @@ export function readiness(s: AdminSubmission): Readiness {
   return s.ai_filled ? 'ai' : 'ready';
 }
 
-export const READINESS_LABEL: Record<Readiness, string> = {
-  ready: 'Tayyor', ai: "AI to‘ldirdi", incomplete: "To‘liqsiz",
+export const READINESS_LABEL: Record<Readiness, MsgKey> = {
+  ready: 'adm.sub.ready', ai: 'adm.sub.ai_filled', incomplete: 'adm.sub.incomplete',
 };
 
 export function readinessNote(s: AdminSubmission): string {
   switch (readiness(s)) {
-    case 'ready':      return "Metama’lumot to‘liq — songa biriktirib tasdiqlash mumkin.";
-    case 'ai':         return "AI to‘ldirgan maydonlarni tekshirib chiqing.";
-    case 'incomplete': return s.source_file_url
-      ? "Metama’lumot to‘liq emas. AI bilan to‘ldiring yoki qo‘lda kiriting."
-      : "Fayl yo‘q — muallif faylni yubormagan.";
+    case 'ready':      return tr('adm.sub.note.ready');
+    case 'ai':         return tr('adm.sub.note.ai');
+    case 'incomplete': return s.source_file_url ? tr('adm.sub.note.incomplete') : tr('adm.sub.note.no_file');
   }
 }
 

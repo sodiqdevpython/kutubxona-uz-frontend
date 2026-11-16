@@ -3,18 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { SearchIcon, ChevIcon } from '../ui/Icons';
 import { useAuth } from '../../context/AuthContext';
 import { useLang, type Lang } from '../../context/LangContext';
-import { useT } from '../../lib/i18n';
+import { useI18n } from '../../lib/i18n';
+import type { MsgKey } from '../../lib/i18n';
 import { articlesApi, type ApiArticle } from '../../lib/api';
-import { API_BASE, ISSN, TELEGRAM_BOT_URL } from '../../lib/config';
+import { API_BASE, TELEGRAM_BOT_URL } from '../../lib/config';
 
 export type Page =
   | 'home' | 'articles' | 'archive' | 'authors' | 'central-asia' | 'about'
   | 'admin-dashboard' | 'submissions' | 'admin-authors' | 'admin-journals' | 'admin-chat';
 
-/** Sayt identifikatorlari — Figma'da sarlavhaning o'ng chetida turadi. */
-const DOI_PREFIX = '10.62499';
-
-const PUBLIC_NAV: { key: Page; tKey: string; to: string; countKey?: CountKey }[] = [
+const PUBLIC_NAV: { key: Page; tKey: MsgKey; to: string; countKey?: CountKey }[] = [
   { key: 'articles',     tKey: 'nav.articles',     to: '/articles',     countKey: 'articles' },
   { key: 'archive',      tKey: 'nav.archive',      to: '/archive',      countKey: 'issues'   },
   { key: 'authors',      tKey: 'nav.authors',      to: '/authors',      countKey: 'authors'  },
@@ -24,20 +22,19 @@ const PUBLIC_NAV: { key: Page; tKey: string; to: string; countKey?: CountKey }[]
 type CountKey = 'articles' | 'issues' | 'authors' | 'central';
 
 /** «Jurnal haqida ▾» ichidagi statik sahifalar (Figma: 14–17-freymlar). */
-const ABOUT_NAV: { label: string; to: string }[] = [
-  { label: 'Jurnal haqida',              to: '/about' },
-  { label: 'Tahririyat kengashi',        to: '/about/board' },
-  { label: 'Taqriz siyosati va etika',   to: '/about/policy' },
-  { label: 'Mualliflar uchun qo‘llanma', to: '/about/guide' },
+const ABOUT_NAV: { tKey: MsgKey; to: string }[] = [
+  { tKey: 'nav.about',        to: '/about' },
+  { tKey: 'nav.about.board',  to: '/about/board' },
+  { tKey: 'nav.about.policy', to: '/about/policy' },
+  { tKey: 'nav.about.guide',  to: '/about/guide' },
 ];
 
-// Admin sahifa yorliqlari — hozircha faqat lotin (admin panel ichi uchun etarli).
-const ADMIN_NAV: { key: Page; label: string; to: string }[] = [
-  { key: 'admin-dashboard', label: 'Asosiy panel',    to: '/admin'             },
-  { key: 'submissions',    label: 'Kelgan maqolalar', to: '/admin/submissions' },
-  { key: 'admin-authors',  label: 'Mualliflar',       to: '/admin/authors'     },
-  { key: 'admin-journals', label: 'Jurnal sonlari',   to: '/admin/journals'    },
-  { key: 'admin-chat',     label: 'Xabarlar',         to: '/admin/chat'        },
+const ADMIN_NAV: { key: Page; tKey: MsgKey; to: string }[] = [
+  { key: 'admin-dashboard', tKey: 'nav.admin.dashboard',   to: '/admin'             },
+  { key: 'submissions',    tKey: 'nav.admin.submissions', to: '/admin/submissions' },
+  { key: 'admin-authors',  tKey: 'nav.admin.authors',     to: '/admin/authors'     },
+  { key: 'admin-journals', tKey: 'nav.admin.journals',    to: '/admin/journals'    },
+  { key: 'admin-chat',     tKey: 'nav.admin.chat',        to: '/admin/chat'        },
 ];
 
 const LANGS: { code: string; value: Lang }[] = [
@@ -51,7 +48,7 @@ export default function Topbar({ active }: { active: Page }) {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   const { lang, setLang } = useLang();
-  const t = useT();
+  const { t } = useI18n();
   const activeLangIdx = Math.max(0, LANGS.findIndex(l => l.value === lang));
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -148,7 +145,8 @@ export default function Topbar({ active }: { active: Page }) {
   }
 
   const isAdminPage = ADMIN_NAV.some(n => n.key === active);
-  const activeAdminLabel = ADMIN_NAV.find(n => n.key === active)?.label ?? t('nav.admin');
+  const activeAdmin = ADMIN_NAV.find(n => n.key === active);
+  const activeAdminLabel = activeAdmin ? t(activeAdmin.tKey) : t('nav.admin');
 
   return (
     <>
@@ -278,7 +276,7 @@ export default function Topbar({ active }: { active: Page }) {
         </div>
       </header>
 
-      {/* ═══ 2-qator: navigatsiya · ISSN/DOI ═══ */}
+      {/* ═══ 2-qator: navigatsiya ═══ */}
       <div className="topbar-nav">
         <nav className="topnav">
           {PUBLIC_NAV.map(n => {
@@ -295,7 +293,7 @@ export default function Topbar({ active }: { active: Page }) {
           <div ref={aboutRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <button onClick={() => setAboutDrop(p => !p)}
               className={active === 'about' ? 'topnav-trigger active' : 'topnav-trigger'}>
-              Jurnal haqida
+              {t('nav.about')}
               <ChevIcon size={9} style={{ opacity: 0.55, transform: aboutDrop ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .15s' }} />
             </button>
             {aboutDrop && (
@@ -312,7 +310,7 @@ export default function Topbar({ active }: { active: Page }) {
                       fontFamily: 'var(--sans)', fontSize: 13.5, color: 'var(--ink-2)',
                       textDecoration: 'none',
                     }}>
-                    {n.label}
+                    {t(n.tKey)}
                   </Link>
                 ))}
               </div>
@@ -346,7 +344,7 @@ export default function Topbar({ active }: { active: Page }) {
                         fontWeight: active === n.key ? 600 : 400,
                         cursor: 'pointer', textDecoration: 'none',
                       }}>
-                      {n.label}
+                      {t(n.tKey)}
                       {active === n.key && (
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
                       )}
@@ -372,10 +370,6 @@ export default function Topbar({ active }: { active: Page }) {
             </div>
           )}
         </nav>
-
-        <div className="meta topbar-ids">
-          ISSN {ISSN} · DOI {DOI_PREFIX}
-        </div>
       </div>
 
       {/* ── Mobil drawer ── */}
@@ -387,7 +381,7 @@ export default function Topbar({ active }: { active: Page }) {
               onClick={() => { setDrawerOpen(false); navigate('/'); }}>
               <Wordmark />
             </div>
-            <button className="mobile-nav-close" onClick={() => setDrawerOpen(false)}>✕</button>
+            <button className="mobile-nav-close" onClick={() => setDrawerOpen(false)} aria-label={t('topbar.close')}>✕</button>
           </div>
 
           {/* Telefonda sarlavhadagi qidiruv yashirin — shu yerda */}
@@ -407,7 +401,7 @@ export default function Topbar({ active }: { active: Page }) {
               </Link>
             ))}
             {ABOUT_NAV.map(n => (
-              <Link key={n.to} to={n.to} onClick={() => setDrawerOpen(false)}>{n.label}</Link>
+              <Link key={n.to} to={n.to} onClick={() => setDrawerOpen(false)}>{t(n.tKey)}</Link>
             ))}
 
             {isAuthenticated && (
@@ -420,7 +414,7 @@ export default function Topbar({ active }: { active: Page }) {
                   <Link key={n.key} to={n.to}
                     className={active === n.key ? 'active' : ''}
                     onClick={() => setDrawerOpen(false)}>
-                    {n.label}
+                    {t(n.tKey)}
                   </Link>
                 ))}
                 <button
@@ -462,13 +456,16 @@ export default function Topbar({ active }: { active: Page }) {
  * «K» va «.UZ» to'q sariq, qolgani to'q rangda; pastida mayda tavsif.
  */
 export function Wordmark({ light = false }: { light?: boolean }) {
+  const { t } = useI18n();
+  // «… {x} …» — urg'uli so'z alohida <span> ichida (CSS kursiv), o'rni tilga qarab farq qiladi
+  const [before, after] = t('topbar.tagline').split('{x}');
   return (
     <span className="wordmark" data-light={light ? 'on' : undefined}>
       <span className="wordmark-main">
         <span className="wordmark-k">K</span>UTUBXONA<span className="wordmark-uz">.UZ</span>
       </span>
       <span className="wordmark-sub">
-        AXBOROT-KUTUBXONA <span>texnologiyalari</span> JURNALI
+        {before}<span>{t('topbar.tagline_accent')}</span>{after}
       </span>
     </span>
   );
@@ -476,6 +473,7 @@ export function Wordmark({ light = false }: { light?: boolean }) {
 
 /** Yorug'/qorong'i tema tugmasi (Figma: qidiruv yonidagi yarim doira ikonka). */
 function ThemeToggle() {
+  const { t } = useI18n();
   const [dark, setDark] = useState(() => {
     try { return localStorage.getItem('kb_theme') === 'dark'; } catch { return false; }
   });
@@ -487,8 +485,8 @@ function ThemeToggle() {
 
   return (
     <button className="icon-btn" onClick={() => setDark(d => !d)}
-      aria-label={dark ? 'Yorug‘ rejim' : 'Qorong‘i rejim'}
-      title={dark ? 'Yorug‘ rejim' : 'Qorong‘i rejim'}>
+      aria-label={dark ? t('topbar.theme.light') : t('topbar.theme.dark')}
+      title={dark ? t('topbar.theme.light') : t('topbar.theme.dark')}>
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.3" />
         <path d="M8 1.6a6.4 6.4 0 0 0 0 12.8V1.6Z" fill="currentColor" />

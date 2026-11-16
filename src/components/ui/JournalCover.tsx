@@ -9,7 +9,6 @@ const PALETTES = [
 
 interface Props {
   title?: string;
-  vol?: string;
   year?: number;
   n?: number;
   palette?: number;
@@ -17,7 +16,7 @@ interface Props {
   h?: number;
 }
 
-export default function JournalCover({ title = 'Kutubxona Arxivi', vol = 'Vol. 42', year = 2026, n = 1, palette = 0, w = 180, h = 240 }: Props) {
+export default function JournalCover({ title = 'Kutubxona Arxivi', year = 2026, n = 1, palette = 0, w = 180, h = 240 }: Props) {
   const p = PALETTES[palette % PALETTES.length];
   const borderColor = p.bg === '#FFFFFF' || p.bg === '#F5F7FA' ? 'rgba(10,25,47,0.15)' : 'rgba(255,255,255,0.18)';
 
@@ -47,7 +46,7 @@ export default function JournalCover({ title = 'Kutubxona Arxivi', vol = 'Vol. 4
           display: 'flex', justifyContent: 'space-between',
           fontSize: 9.5, fontFamily: 'var(--mono)', letterSpacing: 0.3, opacity: 0.85,
         }}>
-          <span>{vol} · №{n}</span>
+          <span>№{n}</span>
           <span>{year}</span>
         </div>
       </div>

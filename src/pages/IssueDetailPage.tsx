@@ -6,8 +6,9 @@ import PageLoadBar from '../components/ui/PageLoadBar';
 import JournalCover from '../components/ui/JournalCover';
 import MetaGrid from '../components/ui/MetaGrid';
 import PdfViewer from '../components/ui/PdfViewer';
-import { formatBytes, isRealDate, issuesApi, type ApiIssueDetail } from '../lib/api';
-import { ISSN, JOURNAL_NAME, mediaUrl } from '../lib/config';
+import { useI18n } from '../lib/i18n';
+import { isRealDate, issuesApi, type ApiIssueDetail } from '../lib/api';
+import { JOURNAL_NAME, mediaUrl } from '../lib/config';
 import Seo from '../components/Seo';
 import NotFoundPage from './NotFoundPage';
 
@@ -25,6 +26,7 @@ function pageRange(a: number | null, b: number | null): string {
 
 export default function IssueDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { t, tn, num, bytes } = useI18n();
   const [issue,   setIssue]   = useState<ApiIssueDetail | null>(null);
   const [loading, setLoading] = useState(!!id);
   // To'liq son PDF'i og'ir — faqat so'ralganda yuklanadi (havolada #pdf bo'lsa darhol)
@@ -53,7 +55,7 @@ export default function IssueDetailPage() {
       <div className="bg-detail" style={{ minHeight: '100vh' }}>
         <PageLoadBar /><Topbar active="archive" />
         <main id="main" className="page-main">
-        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>Yuklanmoqda…</div></div>
+        <div className="wrap"><div className="state-box" style={{ marginTop: 40 }}>{t('common.loading')}</div></div>
         </main>
         <Footer />
       </div>
@@ -61,10 +63,12 @@ export default function IssueDetailPage() {
   }
   if (!issue) return <NotFoundPage />;
 
+  const coverAlt = t('issue.cover_alt', { journal, n: issue.number, year: issue.year });
+
   return (
     <div className="bg-detail" style={{ minHeight: '100vh' }}>
       <Seo title={`${journal} № ${issue.number} · ${issue.year}`}
-        description={issue.editorial_note || `${journal} jurnalining ${issue.year}-yil ${issue.number}-soni.`}
+        description={issue.editorial_note || t('issue.seo.description', { journal, year: issue.year, n: issue.number })}
         image={cover} />
       <PageLoadBar />
       <Topbar active="archive" />
@@ -72,8 +76,8 @@ export default function IssueDetailPage() {
 
       <div className="wrap" style={{ paddingTop: 26 }}>
         <nav className="crumbs">
-          <Link to="/">Bosh sahifa</Link><span>/</span>
-          <Link to="/archive">Jurnal arxivi</Link><span>/</span>
+          <Link to="/">{t('nav.home')}</Link><span>/</span>
+          <Link to="/archive">{t('nav.archive')}</Link><span>/</span>
           <Link to="/archive">{issue.year}</Link><span>/</span>
           <span className="cur">№ {issue.number}</span>
         </nav>
@@ -84,59 +88,58 @@ export default function IssueDetailPage() {
         {/* Muqova + oldingi/keyingi */}
         <div className="issue-cover-col">
           <div className="issue-cover-big">
-            {cover ? <img src={cover} alt={`${journal} № ${issue.number}, ${issue.year} muqovasi`} /> : <JournalCover palette={issue.palette} />}
+            {cover ? <img src={cover} alt={coverAlt} /> : <JournalCover palette={issue.palette} />}
           </div>
           {cover && (
             <a className="ic-btn issue-cover-dl" href={cover} download target="_blank" rel="noreferrer">
-              Muqova rasmini yuklash
+              {t('issue.download_cover')}
             </a>
           )}
           <div className="issue-nav">
             {issue.prev_issue
               ? <Link to={`/archive/${issue.prev_issue.id}`} className="ic-btn">← № {issue.prev_issue.number} · {issue.prev_issue.year}</Link>
-              : <span className="ic-btn" style={{ opacity: .4 }}>← Birinchi son</span>}
+              : <span className="ic-btn" style={{ opacity: .4 }}>{t('issue.first')}</span>}
             {issue.next_issue
               ? issue.next_issue.is_upcoming
-                ? <span className="ic-btn" style={{ opacity: .6 }}>№ {issue.next_issue.number} tayyorlanmoqda</span>
+                ? <span className="ic-btn" style={{ opacity: .6 }}>{t('issue.upcoming', { n: issue.next_issue.number })}</span>
                 : <Link to={`/archive/${issue.next_issue.id}`} className="ic-btn">№ {issue.next_issue.number} · {issue.next_issue.year} →</Link>
-              : <span className="ic-btn" style={{ opacity: .4 }}>So‘nggi son</span>}
+              : <span className="ic-btn" style={{ opacity: .4 }}>{t('issue.last')}</span>}
           </div>
         </div>
 
         {/* Matn */}
         <div className="issue-main">
           <div className="detail-tags">
-            {issue.is_current && <span className="pill-cat">So‘nggi son</span>}
-            <span className="pill-oa">Ochiq kirish</span>
+            {issue.is_current && <span className="pill-cat">{t('issue.latest_badge')}</span>}
+            <span className="pill-oa">{t('common.open_access')}</span>
           </div>
           <h1 className="h-display issue-title">{journal} № {issue.number}</h1>
           <div className="issue-sub">
-            {issue.year}-yil{issue.season ? ` · ${issue.season.toLowerCase()}` : ''}
+            {t('issue.year_sub', { year: issue.year })}
           </div>
 
-          {/* e-ISSN va DOI prefiks hali rasmiylashtirilmagan — ko'rsatilmaydi; bo'sh kataklar tushib qoladi */}
+          {/* Bo'sh kataklar tushib qoladi */}
           <MetaGrid className="issue-meta" cells={[
-            ['Chiqarilgan sana', isRealDate(issue.date_label) ? issue.date_label : ''],
-            ['Maqolalar',        totalArts ? `${totalArts} ta` : ''],
-            ['Hajm',             issue.total_pages ? `${issue.total_pages} bet` : ''],
-            ['Davriylik',        'Choraklik'],
-            ['ISSN',             issue.issn || ISSN],
-            ['Tillar',           issue.languages.join(' · ')],
+            [t('issue.meta.date'),        isRealDate(issue.date_label) ? issue.date_label : ''],
+            [t('issue.meta.articles'),    totalArts ? t('unit.count_ta', { n: totalArts }) : ''],
+            [t('issue.meta.volume'),      issue.total_pages ? tn('unit.pages', issue.total_pages) : ''],
+            [t('issue.meta.periodicity'), t('issue.meta.quarterly')],
+            [t('issue.meta.languages'),   issue.languages.join(' · ')],
           ]} />
 
           {issue.editorial_note && (
             <div className="editorial">
-              <div className="eyebrow" style={{ marginBottom: 12 }}>Tahririyat so‘zi</div>
+              <div className="eyebrow" style={{ marginBottom: 12 }}>{t('issue.editorial')}</div>
               <p>{issue.editorial_note}</p>
               {issue.editor_name && (
-                <div className="meta" style={{ marginTop: 14 }}>Bosh muharrir · {issue.editor_name}</div>
+                <div className="meta" style={{ marginTop: 14 }}>{t('issue.editor', { name: issue.editor_name })}</div>
               )}
             </div>
           )}
 
           {pdfUrl && !showPdf && (
             <button className="btn primary" style={{ marginTop: 22 }} onClick={() => setShowPdf(true)}>
-              Butun sonni o‘qish{issue.pdf_size ? ` · ${formatBytes(issue.pdf_size)}` : ''}
+              {t('issue.read_full')}{issue.pdf_size ? ` · ${bytes(issue.pdf_size)}` : ''}
             </button>
           )}
         </div>
@@ -144,17 +147,17 @@ export default function IssueDetailPage() {
         {/* Yon karta */}
         <aside className="issue-side">
           <div className="side-card">
-            <div className="side-card-title">Son haqida</div>
+            <div className="side-card-title">{t('issue.about')}</div>
             <div className="issue-facts">
-              <span><b>{issue.views.toLocaleString()}</b> ko‘rish</span>
-              <span><b>{totalArts}</b> maqola</span>
-              {issue.total_pages > 0 && <span><b>{issue.total_pages}</b> bet</span>}
+              <span><b>{num(issue.views)}</b> {tn('unit.views_word', issue.views)}</span>
+              <span><b>{totalArts}</b> {tn('unit.articles_word', totalArts)}</span>
+              {issue.total_pages > 0 && <span><b>{issue.total_pages}</b> {tn('unit.pages_word', issue.total_pages)}</span>}
             </div>
           </div>
 
           {issue.categories.length > 0 && (
             <div className="side-card">
-              <div className="side-card-title">Sondagi yo‘nalishlar</div>
+              <div className="side-card-title">{t('issue.rubrics')}</div>
               {issue.categories.map(c => (
                 <div key={c.name} className="side-row">
                   <span>{c.name}</span>
@@ -169,8 +172,8 @@ export default function IssueDetailPage() {
       {pdfUrl && showPdf && (
         <section id="pdf" className="wrap" style={{ paddingTop: 44 }}>
           <div className="detail-head" style={{ marginBottom: 18 }}>
-            <h2 className="h-display" style={{ fontSize: 28 }}>Butun son</h2>
-            {issue.pdf_size ? <span className="meta">PDF · {formatBytes(issue.pdf_size)}</span> : null}
+            <h2 className="h-display" style={{ fontSize: 28 }}>{t('issue.full')}</h2>
+            {issue.pdf_size ? <span className="meta">PDF · {bytes(issue.pdf_size)}</span> : null}
           </div>
           <PdfViewer url={pdfUrl} title={`${journal} № ${issue.number}`} />
         </section>
@@ -180,18 +183,18 @@ export default function IssueDetailPage() {
       <div className="wrap" style={{ paddingTop: 44, paddingBottom: 72 }}>
         <div className="detail-head" style={{ marginBottom: 22 }}>
           <h2 className="h-display" style={{ fontSize: 28, display: 'flex', alignItems: 'baseline', gap: 14 }}>
-            Mundarija
-            <span className="meta">{totalArts} maqola{issue.total_pages ? ` · ${issue.total_pages} bet` : ''}</span>
+            {t('issue.toc')}
+            <span className="meta">{tn('unit.articles', totalArts)}{issue.total_pages ? ` · ${tn('unit.pages', issue.total_pages)}` : ''}</span>
           </h2>
           {(hasRubrics || hasPages) && (
             <span className="meta">
-              {[hasRubrics && 'Rubrikalar bo‘yicha guruhlangan', hasPages && 'sahifa raqamlari jurnaldagidek'].filter(Boolean).join(' · ')}
+              {[hasRubrics && t('issue.grouped'), hasPages && t('issue.pages_as_printed')].filter(Boolean).join(' · ')}
             </span>
           )}
         </div>
 
         {issue.sections.length === 0 && (
-          <div className="state-box">Bu songa hali maqola kiritilmagan.</div>
+          <div className="state-box">{t('issue.empty')}</div>
         )}
 
         {issue.sections.map((sec, index) => (
@@ -201,7 +204,7 @@ export default function IssueDetailPage() {
                 <span className="eyebrow accent">{sec.category}</span>
                 <span className="rule" />
                 {pageRange(sec.page_start, sec.page_end) && (
-                  <span className="meta">{pageRange(sec.page_start, sec.page_end)} b.</span>
+                  <span className="meta">{t('unit.pages_abbr', { n: pageRange(sec.page_start, sec.page_end) })}</span>
                 )}
               </div>
             )}
@@ -211,12 +214,12 @@ export default function IssueDetailPage() {
                 <Link key={a.id} to={`/articles/${a.slug}`} className="toc-row">
                   <div className="toc-thumb">
                     {a.image_url || cover
-                      ? <img src={mediaUrl(a.image_url) ?? cover ?? undefined} alt={a.image_url ? a.title : `${journal} № ${issue.number} muqovasi`} loading="lazy" />
+                      ? <img src={mediaUrl(a.image_url) ?? cover ?? undefined} alt={a.image_url ? a.title : coverAlt} loading="lazy" />
                       : <div className="home-featured-ph" />}
                   </div>
                   <div className="toc-body">
                     <div className="toc-title">{a.title}</div>
-                    <div className="meta">{a.doi || `${a.views.toLocaleString()} ko‘rish`}</div>
+                    <div className="meta">{tn('unit.views', a.views)}</div>
                   </div>
                   <div className="toc-author">{a.authors.join(', ')}</div>
                   <div className="toc-pages meta">{pageRange(a.page_start, a.page_end)}</div>

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { CITATION_FORMATS, citationFileName, formatCitation, type CitationData, type CitationFormat } from '../../lib/citation';
+import { useI18n } from '../../lib/i18n';
 
 /** «Iqtibos keltirish» — Figma: 5 format, har biri nusxalanadi yoki fayl sifatida yuklanadi. */
 export default function CitationBlock({ data }: { data: CitationData }) {
+  const { t } = useI18n();
   const [format, setFormat] = useState<CitationFormat>('GOST');
   const [copied, setCopied] = useState(false);
   const text = formatCitation(format, data);
@@ -36,10 +38,10 @@ export default function CitationBlock({ data }: { data: CitationData }) {
       <div className="cite-card">
         <div className={isCode ? 'cite-text cite-code' : 'cite-text'}>{text}</div>
         <div className="cite-foot">
-          <span className="meta">{format} uslubi</span>
+          <span className="meta">{t('cite.style', { f: format })}</span>
           <div className="cite-actions">
-            <button className="btn ghost sm" onClick={download}>Fayl sifatida yuklash</button>
-            <button className="btn primary sm" onClick={copy}>{copied ? 'Nusxalandi ✓' : 'Nusxalash'}</button>
+            <button className="btn ghost sm" onClick={download}>{t('cite.download')}</button>
+            <button className="btn primary sm" onClick={copy}>{copied ? t('common.Copied') : t('common.Copy')}</button>
           </div>
         </div>
       </div>

@@ -1,0 +1,47 @@
+import { m, type Entry } from './types';
+
+/** Central Asia to'plami va uning maqola sahifasi. */
+export default {
+  'ca.title':          m('Central Asia', 'Central Asia', 'Central Asia', 'Central Asia'),
+  'ca.eyebrow':        m('einfolib.uz · manba', 'einfolib.uz · манба', 'einfolib.uz · источник', 'einfolib.uz · source'),
+  'ca.seo.description': m('Markaziy Osiyo mamlakatlari kutubxonalari va axborot muassasalari bo‘yicha maqolalar to‘plami.', 'Марказий Осиё мамлакатлари кутубхоналари ва ахборот муассасалари бўйича мақолалар тўплами.', 'Коллекция статей о библиотеках и информационных учреждениях стран Центральной Азии.', 'A collection of articles on libraries and information institutions of Central Asia.'),
+  'ca.collection':     m('Alohida to‘plam', 'Алоҳида тўплам', 'Отдельная коллекция', 'Special collection'),
+  'ca.title_full':     m('Central Asia: mintaqaviy kutubxonashunoslik to‘plami', 'Central Asia: минтақавий кутубхонашунослик тўплами', 'Central Asia: коллекция по библиотековедению региона', 'Central Asia: regional library science collection'),
+  'ca.lede': m(
+    'Markaziy Osiyo mamlakatlari kutubxonalari va axborot muassasalari bo‘yicha maqolalar. Jurnal arxividan alohida turadi: bu yerda mintaqa mualliflarining ishlari, IFLA mintaqaviy hisobotlari va qiyosiy tadqiqotlar jamlangan.',
+    'Марказий Осиё мамлакатлари кутубхоналари ва ахборот муассасалари бўйича мақолалар. Журнал архивидан алоҳида туради: бу ерда минтақа муаллифларининг ишлари, IFLA минтақавий ҳисоботлари ва қиёсий тадқиқотлар жамланган.',
+    'Статьи о библиотеках и информационных учреждениях стран Центральной Азии. Коллекция существует отдельно от архива журнала: здесь собраны работы авторов региона, региональные отчёты IFLA и сравнительные исследования.',
+    'Articles on libraries and information institutions of Central Asian countries. Kept separate from the journal archive: it gathers work by regional authors, IFLA regional reports and comparative studies.',
+  ),
+  'ca.stat.articles':  m('Maqolalar', 'Мақолалар', 'Статьи', 'Articles'),
+  'ca.stat.topics':    m('Mavzular', 'Мавзулар', 'Темы', 'Topics'),
+  'ca.stat.authors':   m('Mualliflar', 'Муаллифлар', 'Авторы', 'Authors'),
+  'ca.stat.languages': m('Tillar', 'Тиллар', 'Языки', 'Languages'),
+  'ca.all':            m('Barcha maqolalar', 'Барча мақолалар', 'Все статьи', 'All articles'),
+  'ca.empty':          m('Hozircha maqola yo‘q.', 'Ҳозирча мақола йўқ.', 'Статей пока нет.', 'No articles yet.'),
+  'ca.more':           m('Yana {n} maqola', 'Яна {n} мақола', 'Ещё {n} статья|Ещё {n} статьи|Ещё {n} статей', '{n} more article|{n} more articles'),
+  'ca.topics':         m('Mavzular', 'Мавзулар', 'Темы', 'Topics'),
+  'ca.about_title':    m('To‘plam haqida', 'Тўплам ҳақида', 'О коллекции', 'About the collection'),
+  'ca.about_text': m(
+    'Central Asia to‘plami 2022-yilda IFLA mintaqaviy bo‘limi bilan hamkorlikda ochilgan. Maqolalar jurnal sonlaridan tashqari ham qabul qilinadi.',
+    'Central Asia тўплами 2022 йилда IFLA минтақавий бўлими билан ҳамкорликда очилган. Мақолалар журнал сонларидан ташқари ҳам қабул қилинади.',
+    'Коллекция Central Asia открыта в 2022 году совместно с региональным отделением IFLA. Статьи принимаются и вне номеров журнала.',
+    'The Central Asia collection was launched in 2022 together with the IFLA regional section. Articles are accepted outside the journal issues as well.',
+  ),
+  'ca.terms':          m('Qabul shartlari', 'Қабул шартлари', 'Условия приёма', 'Submission requirements'),
+  'ca.not_found':      m('Maqola topilmadi.', 'Мақола топилмади.', 'Статья не найдена.', 'Article not found.'),
+  'ca.source_link':    m('Asl manba — einfolib.uz', 'Асл манба — einfolib.uz', 'Оригинал — einfolib.uz', 'Original — einfolib.uz'),
+  'ca.error_backend':  m('Xatolik yuz berdi. Backend ishga tushirilganini tekshiring.', 'Хатолик юз берди. Backend ишга туширилганини текширинг.', 'Ошибка. Проверьте, запущен ли backend.', 'An error occurred. Check that the backend is running.'),
+
+  'cad.back_arrow':   m('To‘plamga qaytish →', 'Тўпламга қайтиш →', 'Вернуться к коллекции →', 'Back to the collection →'),
+  'cad.back':         m('← To‘plamga qaytish', '← Тўпламга қайтиш', '← К коллекции', '← Back to the collection'),
+  'cad.article':      m('Maqola', 'Мақола', 'Статья', 'Article'),
+  'cad.published':    m('Nashr etildi', 'Нашр этилди', 'Опубликовано', 'Published'),
+  'cad.views':        m('Ko‘rishlar', 'Кўришлар', 'Просмотры', 'Views'),
+  'cad.quotes':       m('Iqtiboslar', 'Иқтибослар', 'Цитирования', 'Citations'),
+  'cad.no_text':      m('Matn mavjud emas.', 'Матн мавжуд эмас.', 'Текст отсутствует.', 'No text available.'),
+  'cad.source':       m('Manba', 'Манба', 'Источник', 'Source'),
+  'cad.source_text':  m('Maqola asl manzilida to‘liq ko‘rinishda mavjud.', 'Мақола асл манзилида тўлиқ кўринишда мавжуд.', 'Полная версия статьи доступна по исходному адресу.', 'The full article is available at its original address.'),
+  'cad.open_source':  m('Manbada ochish ↗', 'Манбада очиш ↗', 'Открыть источник ↗', 'Open source ↗'),
+  'cad.more':         m('To‘plamdan yana', 'Тўпламдан яна', 'Ещё из коллекции', 'More from the collection'),
+} satisfies Record<string, Entry>;

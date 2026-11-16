@@ -6,8 +6,23 @@
   display: grid; grid-template-columns: 172px minmax(0, 1fr);
   gap: 40px; padding-bottom: 64px; align-items: start;
 }
-.years-col { position: sticky; top: 140px; }
-.years-list { display: flex; flex-direction: column; gap: 8px; }
+/* Yillar ko'p (2009–…): ustun ekran balandligidan oshmaydi, ro'yxat ichida aylanadi */
+.years-col {
+  position: sticky; top: 140px;
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 160px);
+}
+.years-list {
+  display: flex; flex-direction: column; gap: 8px;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px; margin-right: -6px;
+  scrollbar-width: thin; scrollbar-color: var(--line-2) transparent;
+}
+.years-list::-webkit-scrollbar { width: 6px; }
+.years-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+.years-list button { flex-shrink: 0; }
+.years-col .side-card { flex-shrink: 0; }
 .years-list button {
   display: flex; align-items: center; justify-content: space-between;
   width: 100%; height: 40px; padding: 0 14px;
