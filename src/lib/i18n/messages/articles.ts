@@ -18,6 +18,9 @@ export default {
   'articles.filter.language': m('Til', 'Тил', 'Язык', 'Language'),
   'articles.filter.keyword':  m('Kalit so‘z', 'Калит сўз', 'Ключевое слово', 'Keyword'),
   'articles.filter.more':     m('Yana {n} ta', 'Яна {n} та', 'Ещё {n}', '{n} more'),
+  'articles.filter.less':     m('Yig‘ish', 'Йиғиш', 'Свернуть', 'Show less'),
+  'articles.filter.find':     m('Ro‘yxatdan topish…', 'Рўйхатдан топиш…', 'Найти в списке…', 'Find in list…'),
+  'articles.filter.none':     m('Hech narsa topilmadi', 'Ҳеч нарса топилмади', 'Ничего не найдено', 'Nothing found'),
   'articles.active_filters':  m('Faol filtrlar', 'Фаол филтрлар', 'Активные фильтры', 'Active filters'),
   'articles.clear_all':       m('Barchasini bekor qilish', 'Барчасини бекор қилиш', 'Сбросить все', 'Clear all'),
   'articles.empty': m(

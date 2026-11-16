@@ -110,7 +110,9 @@ export default {
   'time.yesterday_at': m('kecha {t}', 'кеча {t}', 'вчера {t}', 'yesterday {t}'),
 
   // Son sanasi: «2025-yil 3-son» / «2025-yil»
-  'issue.date_with_vol': m('{year}-yil {vol}-son', '{year}-йил {vol}-сон', '{year} г., № {vol}', '{year}, No. {vol}'),
+  // «№» — jurnalning umumiy raqami, shuning uchun yil ichidagi tartib «выпуск / issue» deb yoziladi
+  'issue.date_with_vol': m('{year}-yil {vol}-son', '{year}-йил {vol}-сон', '{year} г., выпуск {vol}', '{year}, issue {vol}'),
+  'issue.vol':           m('{vol}-son', '{vol}-сон', 'выпуск {vol}', 'issue {vol}'),
   'issue.date_year':     m('{year}-yil', '{year}-йил', '{year} г.', '{year}'),
   'issue.year_number':   m('{year} · № {n}', '{year} · № {n}', '{year} · № {n}', '{year} · No. {n}'),
   'issue.cover_alt':     m('{journal} № {n}, {year} muqovasi', '{journal} № {n}, {year} муқоваси', 'Обложка {journal} № {n}, {year}', '{journal} No. {n}, {year} cover'),

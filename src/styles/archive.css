@@ -41,27 +41,32 @@
 .year-head h2 { font-size: 34px; margin: 0; }
 .year-head .rule { flex: 1; }
 
-.issue-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+/* Har yili 4 ta son chiqadi — bir yil bitta qatorda */
+.issue-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 
-/* ── Son kartasi ── */
+/* ── Son kartasi: muqova + ma'lumot, tugmalar pastda butun en bo'ylab ── */
 .ic {
-  display: flex; gap: 16px;
+  display: grid; grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-areas: "cover body" "actions actions";
+  column-gap: 14px; row-gap: 12px; align-items: start;
   background: var(--paper); border: 1px solid var(--line);
   border-radius: var(--radius-lg); padding: 14px;
   transition: border-color .15s, box-shadow .15s;
 }
 .ic:hover { border-color: var(--line-2); box-shadow: 0 8px 22px -14px rgba(43,43,43,.3); }
 .ic-cover {
-  width: 86px; flex-shrink: 0; aspect-ratio: 3 / 4;
+  grid-area: cover;
+  width: 100%; aspect-ratio: 3 / 4;
   border-radius: var(--radius-sm); overflow: hidden;
   background: var(--grey-3); border: 1px solid var(--line);
 }
 .ic-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ic-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+.ic-body { grid-area: body; display: flex; flex-direction: column; gap: 5px; min-width: 0; padding-top: 2px; }
 .ic-title { font-size: 15px; font-weight: 600; color: var(--ink); text-decoration: none; }
 .ic-title:hover { color: var(--accent); }
 .ic-count { font-size: 13px; color: var(--ink-2); }
-.ic-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+.ic-actions { grid-area: actions; display: flex; gap: 6px; }
+.ic-actions .ic-btn { flex: 1 1 0; justify-content: center; }
 .ic-btn {
   display: inline-flex; align-items: center; height: 28px; padding: 0 10px;
   border: 1px solid var(--line); border-radius: var(--radius-sm);
@@ -74,7 +79,7 @@
 .ic-btn-pdf:hover { border-color: var(--accent); color: var(--accent); }
 
 .ic-note {
-  flex-direction: column; gap: 0;
+  display: flex; flex-direction: column; gap: 0;
   background: var(--grey-2); border-style: dashed;
 }
 .ic-note p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
@@ -143,6 +148,9 @@
 @media (max-width: 1180px) {
   .issue-hero { grid-template-columns: 240px minmax(0, 1fr); }
   .issue-side { display: none; }
+}
+/* Tor ekranda 4 ta karta sig'maydi — 2 + 2 (3 + 1 bo'lib qolmasin) */
+@media (max-width: 1240px) {
   .issue-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {

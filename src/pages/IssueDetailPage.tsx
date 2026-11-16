@@ -64,6 +64,7 @@ export default function IssueDetailPage() {
   if (!issue) return <NotFoundPage />;
 
   const coverAlt = t('issue.cover_alt', { journal, n: issue.number, year: issue.year });
+  const hasVol = issue.volume > 0 && issue.volume <= 12;
 
   return (
     <div className="bg-detail" style={{ minHeight: '100vh' }}>
@@ -79,7 +80,7 @@ export default function IssueDetailPage() {
           <Link to="/">{t('nav.home')}</Link><span>/</span>
           <Link to="/archive">{t('nav.archive')}</Link><span>/</span>
           <Link to="/archive">{issue.year}</Link><span>/</span>
-          <span className="cur">№ {issue.number}</span>
+          <span className="cur">№ {issue.number}{hasVol ? ` · ${t('issue.vol', { vol: issue.volume })}` : ''}</span>
         </nav>
       </div>
 
@@ -114,8 +115,9 @@ export default function IssueDetailPage() {
             <span className="pill-oa">{t('common.open_access')}</span>
           </div>
           <h1 className="h-display issue-title">{journal} № {issue.number}</h1>
+          {/* Yil ichidagi tartib raqami: «2026-yil 2-son» (№ — jurnalning umumiy raqami) */}
           <div className="issue-sub">
-            {t('issue.year_sub', { year: issue.year })}
+            {hasVol ? t('issue.date_with_vol', { year: issue.year, vol: issue.volume }) : t('issue.year_sub', { year: issue.year })}
           </div>
 
           {/* Bo'sh kataklar tushib qoladi */}

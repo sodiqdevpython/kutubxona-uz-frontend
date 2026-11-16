@@ -89,6 +89,10 @@
 
 * { box-sizing: border-box; }
 
+/* Brauzer tugma/maydonlarga o'z tizim shriftini beradi — ular ham Inter bo'lsin */
+button, input, textarea, select, optgroup { font-family: inherit; }
+code, pre, kbd, samp { font-family: var(--mono); }
+
 body {
   font-family: var(--sans);
   font-size: 14px;
@@ -940,7 +944,15 @@ section[id], h2[id] { scroll-margin-top: 136px; }
   padding-bottom: 72px;
   align-items: start;
 }
-.filters { position: sticky; top: 140px; }
+/* Panel ekrandan baland bo'lsa, o'zi ichida aylanadi (pastki guruhlarga yetib borish uchun) */
+.filters {
+  position: sticky; top: 140px;
+  max-height: calc(100vh - 160px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 2px 8px 2px 2px; margin: -2px -8px 0 -2px;
+  scrollbar-width: thin; scrollbar-color: var(--line-2) transparent;
+}
+.filters::-webkit-scrollbar { width: 6px; }
+.filters::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
 .filters-head {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 14px;
@@ -981,6 +993,22 @@ section[id], h2[id] { scroll-margin-top: 136px; }
   font-family: var(--sans); font-size: 13px; color: var(--ink-3);
 }
 .filter-more:hover { color: var(--accent); }
+
+/* «Yana N ta» ochilganda — to'liq ro'yxat o'z ichida aylanadi */
+.filter-group-items[data-all] {
+  max-height: 264px; overflow-y: auto; overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-width: thin; scrollbar-color: var(--line-2) transparent;
+}
+.filter-group-items[data-all]::-webkit-scrollbar { width: 6px; }
+.filter-group-items[data-all]::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+.filter-find {
+  display: block; width: 100%; height: 32px; padding: 0 10px; margin: 0 0 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper);
+  font-family: var(--sans); font-size: 13px; color: var(--ink); outline: none;
+}
+.filter-find:focus { border-color: var(--accent); }
+.filter-none { font-size: 13px; color: var(--ink-4); padding: 2px 0; }
 
 /* ═══ Maqolalar jadvali (Figma: raqamlangan qatorlar) ═══ */
 .art-table {
@@ -1067,7 +1095,7 @@ section[id], h2[id] { scroll-margin-top: 136px; }
 
 @media (max-width: 1000px) {
   .articles-grid { grid-template-columns: 1fr; gap: 24px; }
-  .filters { position: static; }
+  .filters { position: static; max-height: none; overflow: visible; padding: 0; margin: 0; }
   .page-title { font-size: 32px; }
 }
 @media (max-width: 680px) {

@@ -51,6 +51,13 @@ function FiltersSkeleton() {
   );
 }
 
+/** Ro'yxat shundan uzun bo'lsa, ochilganda guruh ichida qidiruv maydoni chiqadi. */
+const FIND_FROM = 10;
+
+/**
+ * Filtr guruhi: avval `limit` ta qator (+ tanlanganlari), «Yana N ta» bosilganda
+ * to'liq ro'yxat o'z ichida aylanadi (scroll) — panel pastga cho'zilib ketmaydi.
+ */
 function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
   title: string;
   items: FilterItem[];
@@ -61,19 +68,29 @@ function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
   const { t } = useI18n();
   const [open, setOpen] = useState(true);
   const [all, setAll]   = useState(false);
-  const shown = all ? items : items.slice(0, limit);
-  const rest  = items.length - shown.length;
+  const [q, setQ]       = useState('');
+  const needle = q.trim().toLowerCase();
+  const head  = items.filter(([, , value], i) => i < limit || selected.includes(value));
+  const shown = !all ? head : needle ? items.filter(([name]) => name.toLowerCase().includes(needle)) : items;
+  const rest  = items.length - head.length;
+
+  function collapse() { setAll(false); setQ(''); }
 
   return (
     <div className="filter-group">
-      <button className="filter-group-head" onClick={() => setOpen(o => !o)}>
+      <button className="filter-group-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         {title}
         <span className="filter-group-toggle">{open ? '–' : '+'}</span>
       </button>
 
       {open && (
         <>
-          <div className="filter-group-items">
+          {all && items.length > FIND_FROM && (
+            <input className="filter-find" value={q} onChange={e => setQ(e.target.value)}
+              placeholder={t('articles.filter.find')} aria-label={`${title}: ${t('articles.filter.find')}`} />
+          )}
+          <div className="filter-group-items" data-all={all ? 'on' : undefined}>
+            {all && needle && !shown.length && <div className="filter-none">{t('articles.filter.none')}</div>}
             {shown.map(([name, count, value]) => {
               const on = selected.includes(value);
               const empty = count === 0;
@@ -89,10 +106,13 @@ function FilterGroup({ title, items, selected, onToggle, limit = 4 }: {
               );
             })}
           </div>
-          {rest > 0 && (
+          {!all && rest > 0 && (
             <button className="filter-more" onClick={() => setAll(true)}>
               {t('articles.filter.more', { n: rest })}
             </button>
+          )}
+          {all && (
+            <button className="filter-more" onClick={collapse}>{t('articles.filter.less')}</button>
           )}
         </>
       )}

@@ -34,10 +34,11 @@ function IssueCard({ i }: { i: ApiIssue }) {
         </Link>
         <div className="meta">{issueDate(i)}</div>
         <div className="ic-count">{tn('unit.articles', i.article_count)}</div>
-        <div className="ic-actions">
-          <Link to={`/archive/${i.id}`} className="ic-btn">{t('common.table_of_contents')}</Link>
-          {i.pdf_file_url && <Link to={`/archive/${i.id}#pdf`} className="ic-btn ic-btn-pdf">PDF</Link>}
-        </div>
+      </div>
+      {/* Tugmalar karta enida — 4 ta son bir qatorga sig'ishi uchun */}
+      <div className="ic-actions">
+        <Link to={`/archive/${i.id}`} className="ic-btn">{t('common.table_of_contents')}</Link>
+        {i.pdf_file_url && <Link to={`/archive/${i.id}#pdf`} className="ic-btn ic-btn-pdf">PDF</Link>}
       </div>
     </div>
   );
